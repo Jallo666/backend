@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PrimoProgramma")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2b79ddce4365fb3579eab5081ab5d26b5b2512b3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fc122afebb99ee8cecc629e97134a5a0b7a2bf80")]
 [assembly: System.Reflection.AssemblyProductAttribute("PrimoProgramma")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PrimoProgramma")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

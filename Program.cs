@@ -1,5 +1,14 @@
 ﻿var app = WebApplication.CreateBuilder(args).Build();
 
-app.MapGet("/", () => "Ciao mondo!");
+var utenti = new List<Utente>
+{
+    new(1, "Mario", "Rossi", "mario.rossi@email.com"),
+    new(2, "Giulia", "Bianchi", "giulia.bianchi@email.com"),
+    new(3, "Luca", "Verdi", "luca.verdi@email.com"),
+};
+
+app.MapGet("/utenti", () => utenti);
 
 app.Run();
+
+record Utente(int Id, string Nome, string Cognome, string Email);
