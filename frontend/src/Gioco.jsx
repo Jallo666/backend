@@ -1,806 +1,12 @@
-// ═══════════════════════════════════════════════
-//  PIXEL DUNGEON  —  Roguelike a turni
-// ═══════════════════════════════════════════════
 import { useEffect, useRef, useCallback, useState } from "react";
+import { W, H, HUD, T, SPELLS, ROWS, COLS } from "./game/constants.js";
+import { getMuted, setMuted as setAudioMuted, sfx, startMusic, stopMusic } from "./game/audio.js";
+import { newGame } from "./game/dungeon.js";
+import { drawTile, drawEnemy, drawPlayer, drawPotion, drawArrowBundle, drawGem,
+         drawFloats, drawFlashEffect, drawHUD, drawOverlay } from "./game/sprites.js";
+import { actionMove, actionShoot, actionCastSpell } from "./game/actions.js";
+import { DPAD_DIRS, createKeyHandler } from "./game/input.js";
 
-const TILE   = 32;
-const COLS   = 21;
-const ROWS   = 15;
-const W      = COLS * TILE;
-const H      = ROWS * TILE;
-const HUD    = 132;
-const FACE_H = 10;   // altezza faccia frontale muro (effetto 3D)
-
-const T = { WALL: 0, FLOOR: 1, STAIRS: 2 };
-
-const ENEMIES = [
-  { name: "Slime",    maxHp: 8,  atk: 2,  color: "#2daa3d", xp: 10  },
-  { name: "Skeleton", maxHp: 15, atk: 4,  color: "#9898b8", xp: 25  },
-  { name: "Orc",      maxHp: 25, atk: 7,  color: "#7a3a10", xp: 45  },
-  { name: "Dragon",   maxHp: 50, atk: 12, color: "#cc2222", xp: 100 },
-];
-const BOSS_TYPES = [
-  { name: "GOLEM",  maxHp: 80,  atk: 10, color: "#445577", xp: 200 },
-  { name: "LICH",   maxHp: 65,  atk: 16, color: "#882299", xp: 350 },
-  { name: "DEMONE", maxHp: 120, atk: 22, color: "#aa0000", xp: 600 },
-];
-
-// Spell si sbloccano salendo di livello
-const GEM_TYPES = [
-  { color:"#cc2222", label:"Rubino",   value:1  },
-  { color:"#22cc44", label:"Smeraldo", value:3  },
-  { color:"#2266ee", label:"Zaffiro",  value:8  },
-  { color:"#9922cc", label:"Ametista", value:20 },
-  { color:"#d4a820", label:"Topazio",  value:50 },
-];
-
-const SPELLS = [
-  { id:"heal",      name:"CURA",    icon:"💚", cost:18, desc:"Recupera HP",   fc:"rgba(50,200,80,0.35)",   unlockAt:1 },
-  { id:"ice",       name:"GELO",    icon:"❄",  cost:15, desc:"Stordisce",     fc:"rgba(100,220,255,0.35)", unlockAt:3 },
-  { id:"fire",      name:"FIAMMA",  icon:"🔥", cost:20, desc:"Singolo forte", fc:"rgba(255,100,30,0.4)",   unlockAt:5 },
-  { id:"lightning", name:"FULMINE", icon:"⚡", cost:25, desc:"AOE",           fc:"rgba(100,160,255,0.4)",  unlockAt:8 },
-];
-
-// ══════════════════════════════════════════════
-//  AUDIO ENGINE
-// ══════════════════════════════════════════════
-let _ctx = null, _mTick = null, _mPlay = false, _muted = false;
-
-function ac() {
-  if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (_ctx.state === "suspended") _ctx.resume();
-  return _ctx;
-}
-function beep(freq, dur, type = "square", vol = 0.15, t0 = 0) {
-  if (_muted) return;
-  try {
-    const c = ac(), o = c.createOscillator(), g = c.createGain();
-    o.connect(g); g.connect(c.destination);
-    o.type = type; o.frequency.value = freq;
-    const s = c.currentTime + t0;
-    g.gain.setValueAtTime(vol, s);
-    g.gain.exponentialRampToValueAtTime(0.001, s + dur);
-    o.start(s); o.stop(s + dur + 0.01);
-  } catch (_) {}
-}
-function sfx(name) {
-  const sq = "square", tr = "triangle", sw = "sawtooth";
-  const seq = (arr, type, vol, dt = 0.07) =>
-    arr.forEach(([f, d], i) => beep(f, d, type, vol, i * dt));
-  switch (name) {
-    case "swing":       beep(380, 0.07, sq, 0.12); break;
-    case "bowShoot":    beep(600,0.03,sq,0.10); beep(280,0.08,sq,0.08,0.03); break;
-    case "hit":         seq([[200,0.10],[140,0.08]], sq, 0.2, 0.07); break;
-    case "kill":        seq([[400,0.09],[300,0.09],[200,0.09],[150,0.09]], sq, 0.15); break;
-    case "lvlup":       seq([[262,0.14],[330,0.14],[392,0.14],[523,0.14],[659,0.18]], sq, 0.22, 0.1); break;
-    case "potHp":       seq([[392,0.10],[494,0.10],[659,0.14]], tr, 0.18, 0.08); break;
-    case "potMp":       seq([[330,0.09],[440,0.09],[550,0.09],[660,0.12]], tr, 0.15, 0.07); break;
-    case "arrowPickup": seq([[330,0.07],[440,0.07],[330,0.05]], sq, 0.10, 0.05); break;
-    case "gemPickup":   seq([[880,0.05],[1100,0.05],[1320,0.07],[1760,0.09]], tr, 0.16, 0.04); break;
-    case "stairs":      seq([[220,0.10],[262,0.10],[330,0.10],[392,0.10],[440,0.14]], sq, 0.18, 0.06); break;
-    case "boss":        seq([[110,0.24],[110,0.24],[165,0.24],[220,0.3],[165,0.2]], sw, 0.32, 0.16); break;
-    case "lightning":   seq([[880,0.06],[660,0.06],[440,0.06],[880,0.06],[660,0.06]], sw, 0.2, 0.04); break;
-    case "fire":        seq([[220,0.07],[330,0.07],[440,0.07],[550,0.07]], sw, 0.18, 0.03); break;
-    case "ice":         seq([[880,0.08],[1100,0.08],[880,0.08],[660,0.08],[880,0.06]], tr, 0.15, 0.05); break;
-    case "heal":        seq([[330,0.11],[392,0.11],[440,0.11],[494,0.11],[523,0.14]], tr, 0.2, 0.07); break;
-    case "gameover":    seq([[440,0.22],[392,0.22],[330,0.22],[262,0.22],[220,0.22],[196,0.22],[175,0.28]], sq, 0.2, 0.18); break;
-  }
-}
-
-const AM = [220, 247, 262, 294, 330, 349, 392, 440];
-const DUNGEON_SEQ = { mel:[4,4,3,4,6,5,4,6,3,4,2,3,1,3,0,2], bass:[0,4,0,6,0,4,5,0,0,4,0,5,4,0,5,0], bpm:118 };
-const BOSS_SEQ    = { mel:[7,6,7,5,7,7,6,4,7,5,4,3,5,4,3,1], bass:[0,0,4,0,0,4,5,0,0,0,4,5,0,4,0,5], bpm:168 };
-
-function startMusic(isBoss = false) {
-  stopMusic(); _mPlay = true;
-  const seq = isBoss ? BOSS_SEQ : DUNGEON_SEQ;
-  const spb = (60 / seq.bpm / 2) * 1000;
-  let step = 0;
-  function tick() {
-    if (!_mPlay) return;
-    const mi = step % seq.mel.length, bi = Math.floor(step/2) % seq.bass.length;
-    const mf = AM[seq.mel[mi]] * (isBoss ? 2 : 1), bf = AM[seq.bass[bi]] / 2;
-    beep(mf, spb*0.0008, "square",   isBoss ? 0.10 : 0.07);
-    beep(bf, spb*0.0016, "triangle", 0.07);
-    if (step%4===0) beep(mf*1.5, spb*0.0005, "square", 0.035);
-    step++; _mTick = setTimeout(tick, spb);
-  }
-  tick();
-}
-function stopMusic() {
-  _mPlay = false; if (_mTick) { clearTimeout(_mTick); _mTick = null; }
-}
-
-// ══════════════════════════════════════════════
-//  DUNGEON GENERATION
-// ══════════════════════════════════════════════
-function genDungeon() {
-  const map = Array.from({ length: ROWS }, () => Array(COLS).fill(T.WALL));
-  const rooms = [];
-  for (let tries = 0; tries < 50 && rooms.length < 7; tries++) {
-    const w = 3 + Math.floor(Math.random() * 5);
-    const h = 3 + Math.floor(Math.random() * 3);
-    const rx = 1 + Math.floor(Math.random() * (COLS - w - 1));
-    const ry = 1 + Math.floor(Math.random() * (ROWS - h - 1));
-    const room = { x:rx, y:ry, w, h, cx:rx+Math.floor(w/2), cy:ry+Math.floor(h/2) };
-    if (!rooms.some(r => rx<r.x+r.w+1 && rx+w+1>r.x && ry<r.y+r.h+1 && ry+h+1>r.y)) {
-      rooms.push(room);
-      for (let y=ry; y<ry+h; y++)
-        for (let x=rx; x<rx+w; x++)
-          map[y][x] = T.FLOOR;
-    }
-  }
-  for (let i=1; i<rooms.length; i++) {
-    const a=rooms[i-1], b=rooms[i];
-    let x=a.cx, y=a.cy;
-    while (x!==b.cx) { map[y][x]=T.FLOOR; x+=x<b.cx?1:-1; }
-    while (y!==b.cy) { map[y][x]=T.FLOOR; y+=y<b.cy?1:-1; }
-  }
-  if (rooms.length > 1) {
-    const last = rooms[rooms.length-1];
-    map[last.cy][last.cx] = T.STAIRS;
-  }
-  return { map, rooms };
-}
-
-function spawnEnemies(rooms, floor) {
-  const isBoss = floor % 5 === 0;
-  const inner  = rooms.slice(1, -1);
-  return inner.map((r, i) => {
-    if (isBoss && i === inner.length-1) {
-      const bi = Math.min(Math.floor(floor/5)-1, BOSS_TYPES.length-1);
-      return { ...BOSS_TYPES[bi], hp:BOSS_TYPES[bi].maxHp, x:r.cx, y:r.cy, id:Date.now()+i, isBoss:true, stunned:0 };
-    }
-    const tier = Math.min(Math.floor(floor/3), ENEMIES.length-1);
-    const pick = Math.max(0, tier-(Math.random()<0.5?1:0));
-    return { ...ENEMIES[pick], hp:ENEMIES[pick].maxHp, x:r.cx, y:r.cy, id:Date.now()+i, isBoss:false, stunned:0 };
-  });
-}
-
-function spawnItems(rooms, floor) {
-  const isBoss = floor % 5 === 0;
-  return rooms.slice(1).flatMap((r, i) => {
-    if (Math.random() > (isBoss ? 0.55 : 0.70)) return [];
-    const roll = Math.random();
-    const type = roll < 0.42 ? "hp" : roll < 0.72 ? "mana" : "arrows";
-    const ox = Math.random() < 0.5 ? -1 : 1;
-    const oy = Math.random() < 0.5 ? -1 : 1;
-    return [{ type, value: type === "arrows" ? 5 : undefined,
-              x: r.cx+ox, y: r.cy+oy, id: Date.now()+i+500 }];
-  });
-}
-
-// ── Module-level helpers (usabili anche fuori dal componente) ──
-function doEnemyTurn(g) {
-  const p = g.player;
-  const log = m => g.messages.push(m);
-  for (const e of g.enemies) {
-    if (e.stunned > 0) { e.stunned--; continue; }
-    const dist = Math.abs(e.x-p.x) + Math.abs(e.y-p.y);
-    if (dist === 1) {
-      const dmg = Math.max(1, e.atk + Math.floor(Math.random()*3) - 1);
-      p.hp -= dmg; sfx("hit");
-      g.floats.push({ x:p.x, y:p.y, text:`-${dmg}`, color:"#ff4444" });
-      log(`${e.name} ti colpisce per ${dmg}!`);
-      if (p.hp <= 0) { p.hp=0; g.status="dead"; sfx("gameover"); stopMusic(); log("Sei caduto..."); break; }
-    } else if (dist < 10) {
-      const steps = [];
-      if (p.x>e.x) steps.push([1,0]); if (p.x<e.x) steps.push([-1,0]);
-      if (p.y>e.y) steps.push([0,1]); if (p.y<e.y) steps.push([0,-1]);
-      for (const [mx,my] of steps) {
-        const tx=e.x+mx, ty=e.y+my;
-        if (g.map[ty]?.[tx]===T.FLOOR &&
-            !g.enemies.some(o=>o!==e&&o.x===tx&&o.y===ty) &&
-            !(tx===p.x&&ty===p.y)) { e.x=tx; e.y=ty; break; }
-      }
-    }
-  }
-}
-
-function dropGem(g, e) {
-  let chance, weights;
-  if (e.isBoss)       { chance=0.92; weights=[0, 5,15,45,35]; }
-  else if (e.xp>=100) { chance=0.62; weights=[15,35,30,15, 5]; }
-  else if (e.xp>=45)  { chance=0.50; weights=[40,40,18, 2, 0]; }
-  else if (e.xp>=25)  { chance=0.42; weights=[65,30, 5, 0, 0]; }
-  else                { chance=0.35; weights=[100,0,  0,  0, 0]; }
-  if (Math.random() > chance) return;
-  const total = weights.reduce((a,b)=>a+b,0);
-  let r = Math.floor(Math.random()*total), tier=0;
-  for (let i=0;i<weights.length;i++) { r-=weights[i]; if(r<0){tier=i;break;} }
-  const gem = GEM_TYPES[tier];
-  g.items.push({ type:"gem", color:gem.color, label:gem.label, value:gem.value,
-                 x:e.x, y:e.y, id:Date.now()+Math.random()*1000 });
-}
-
-function _levelUp(p, log) {
-  while (p.xp >= p.xpNext) {
-    p.xp -= p.xpNext; p.level++;
-    p.maxHp += 6; p.hp = Math.min(p.hp+6, p.maxHp);
-    p.atk += 1; p.xpNext = Math.floor(p.xpNext * 1.6);
-    log(`✦ LEVEL UP! Livello ${p.level}!`); sfx("lvlup");
-    SPELLS.forEach((sp, i) => {
-      if (sp.unlockAt === p.level) log(`✦ Sbloccato: ${sp.icon} ${sp.name}! [${i+1}]`);
-    });
-  }
-}
-
-function newGame(floor = 1, prev = null) {
-  const { map, rooms } = genDungeon();
-  const start = rooms[0] ?? { cx:1, cy:1 };
-  const base  = { x:start.cx, y:start.cy, hp:20, maxHp:20, atk:4,
-                  level:1, xp:0, xpNext:30, mana:0, maxMana:30, spell:0, arrows:0, gems:0 };
-  const player = prev
-    ? { ...prev, x:start.cx, y:start.cy, mana:prev.mana??0, maxMana:30, spell:prev.spell??0, arrows:prev.arrows??0, gems:prev.gems??0 }
-    : base;
-  const isBoss = floor % 5 === 0;
-  return {
-    map, rooms, player,
-    enemies: spawnEnemies(rooms, floor),
-    items:   spawnItems(rooms, floor),
-    floor, turn:0, status:"playing",
-    messages: [isBoss ? `Piano ${floor} — ⚠ BOSS IN ARRIVO!` : `Piano ${floor} — Sei entrato nel dungeon!`],
-    floats: [],
-  };
-}
-
-// ══════════════════════════════════════════════
-//  DRAWING — muri pseudo-3D con faccia frontale
-// ══════════════════════════════════════════════
-
-// IMPORTANTE: chiamare in due passate: prima i pavimenti, poi i muri.
-// La faccia frontale del muro si estende nel tile sotto, sopra il pavimento già disegnato.
-function drawTile(ctx, x, y, type, map) {
-  const px = x*TILE, py = y*TILE;
-
-  if (type === T.WALL) {
-    const southOpen = y < ROWS-1 && map[y+1]?.[x] !== T.WALL;
-    const eastOpen  = map[y]?.[x+1] !== undefined && map[y]?.[x+1] !== T.WALL;
-    const bw = TILE / 2;
-    const row = y % 2;
-
-    // ── Superficie superiore del blocco (vista dall'alto) ──
-    ctx.fillStyle = "#19193c"; ctx.fillRect(px, py, TILE, TILE);
-
-    // Mattoni: variazione colore per brick
-    ctx.fillStyle = ((x+y)%3===0) ? "#1e1e44" : "#161640";
-    ctx.fillRect(px+1,    py+1,  bw-2, 10);
-    ctx.fillRect(px+bw+1, py+12, bw-2, 10);
-    ctx.fillRect(px+1,    py+23, bw-2,  8);
-    ctx.fillRect(px+bw+1, py+1,  bw-2, 10);
-    ctx.fillRect(px+1,    py+12, bw-2, 10);
-    ctx.fillRect(px+bw+1, py+23, bw-2,  8);
-
-    // Giunture (malta) orizzontali
-    ctx.fillStyle = "#0d0d28";
-    ctx.fillRect(px, py+11, TILE, 1);
-    ctx.fillRect(px, py+22, TILE, 1);
-    // Giunture verticali (sfalsate)
-    ctx.fillRect(px+(row?0:bw), py,    1, 11);
-    ctx.fillRect(px+(row?bw:0), py+11, 1, 11);
-    ctx.fillRect(px+(row?0:bw), py+22, 1, 10);
-
-    // Luce dall'alto-sinistra
-    ctx.fillStyle = "rgba(130,150,240,0.12)";
-    ctx.fillRect(px, py, TILE, 2);
-    ctx.fillRect(px, py, 2, TILE);
-    // Ombra destra/basso
-    ctx.fillStyle = "rgba(0,0,0,0.4)";
-    ctx.fillRect(px+TILE-2, py, 2, TILE);
-    ctx.fillRect(px, py+TILE-2, TILE, 2);
-
-    // ── Faccia frontale 3D (lato sud del blocco) ──
-    if (southOpen) {
-      const fy = py + TILE;
-      ctx.fillStyle = "#0d0d28"; ctx.fillRect(px, fy, TILE, FACE_H);
-      // Giunture sulla faccia
-      ctx.fillStyle = "#080820";
-      ctx.fillRect(px, fy+5, TILE, 1);
-      ctx.fillRect(px+(row?0:bw), fy, 1, FACE_H);
-      // Bordo superiore brillante (spigolo del blocco)
-      ctx.fillStyle = "rgba(120,140,220,0.30)";
-      ctx.fillRect(px, fy, TILE, 2);
-      // Bordo sinistro in luce
-      ctx.fillStyle = "rgba(80,100,200,0.20)";
-      ctx.fillRect(px, fy, 2, FACE_H);
-      // Ombra base
-      ctx.fillStyle = "rgba(0,0,0,0.55)";
-      ctx.fillRect(px, fy+FACE_H-2, TILE, 2);
-    }
-
-    // Sfumatura destra (profondità laterale)
-    if (eastOpen) {
-      ctx.fillStyle = "rgba(0,0,0,0.18)";
-      ctx.fillRect(px+TILE-4, py, 4, TILE);
-    }
-
-  } else if (type === T.FLOOR) {
-    // ── Terriccio: base marrone scuro con variazioni ──
-    const seed  = x * 7 + y * 13;
-    const seed2 = x * 11 + y * 17;
-    const bases = ["#1a1208","#1c1409","#1e1509","#191007","#1b1208","#1d1309","#1a1108","#1c1308"];
-    ctx.fillStyle = bases[seed % 8];
-    ctx.fillRect(px, py, TILE, TILE);
-
-    // Macchie di terriccio più chiaro (sabbia/argilla)
-    const v = seed % 23;
-    if (v < 5)  { ctx.fillStyle="rgba(65,38,12,0.55)"; ctx.fillRect(px+3,  py+6,  6, 3); }
-    if (v > 17) { ctx.fillStyle="rgba(50,28,8,0.60)";  ctx.fillRect(px+TILE-9,py+TILE-7,5,3); }
-    if (v>9&&v<14){ ctx.fillStyle="rgba(72,44,14,0.40)"; ctx.fillRect(px+9,py+15,7,2); }
-
-    // Piccoli ciottoli/sassolini sparsi
-    const r2 = seed2 % 31;
-    if (r2 < 6) {
-      ctx.fillStyle="#2c2010";
-      ctx.fillRect(px+4+(r2*4)%20, py+7+(r2*6)%18, 3, 2);
-      ctx.fillStyle="#221808";
-      ctx.fillRect(px+4+(r2*4)%20+1, py+7+(r2*6)%18+1, 1, 1);
-    }
-    if (r2 > 25) {
-      ctx.fillStyle="#28180a";
-      ctx.fillRect(px+14+(r2%7), py+19+(r2%6), 2, 2);
-    }
-    // Secondo ciottolo indipendente
-    const r3 = (seed2 * 3 + 7) % 41;
-    if (r3 < 5) {
-      ctx.fillStyle="#241a0c";
-      ctx.fillRect(px+18+(r3*5)%10, py+5+(r3*7)%22, 2, 2);
-    }
-
-    // Crepe sottili nel terriccio
-    if ((seed2 % 19) === 0) {
-      ctx.fillStyle="rgba(0,0,0,0.28)";
-      ctx.fillRect(px+6, py+10, 10, 1);
-      ctx.fillRect(px+14, py+10, 1, 5);
-    }
-
-    // Bordo tile (grigliatura molto sottile)
-    ctx.fillStyle="rgba(0,0,0,0.22)";
-    ctx.fillRect(px, py, TILE, 1);
-    ctx.fillRect(px, py, 1, TILE);
-
-    // Ombra proiettata dal muro a nord (luce dall'alto)
-    if (map[y-1]?.[x] === T.WALL) {
-      for (let i=0; i<FACE_H+4; i++) {
-        const alpha = 0.55 * (1 - i/(FACE_H+4));
-        ctx.fillStyle = `rgba(0,0,0,${alpha.toFixed(2)})`;
-        ctx.fillRect(px, py+i, TILE, 1);
-      }
-    }
-    // Ombra da muro a ovest
-    if (map[y]?.[x-1] === T.WALL) {
-      for (let i=0; i<8; i++) {
-        const alpha = 0.28 * (1 - i/8);
-        ctx.fillStyle = `rgba(0,0,0,${alpha.toFixed(2)})`;
-        ctx.fillRect(px+i, py, 1, TILE);
-      }
-    }
-
-  } else {
-    // SCALE
-    ctx.fillStyle = "#070712"; ctx.fillRect(px, py, TILE, TILE);
-    ctx.fillStyle = "#705018";
-    for (let s=0; s<4; s++) ctx.fillRect(px+2+s*3, py+5+s*6, TILE-4-s*5, 4);
-    ctx.fillStyle = "#a07028"; ctx.fillRect(px+2, py+5, TILE-4, 1);
-    ctx.fillStyle = "rgba(240,192,64,0.15)"; ctx.fillRect(px, py, TILE, TILE);
-    ctx.fillStyle = "rgba(240,192,64,0.08)"; ctx.fillRect(px-1, py-1, TILE+2, TILE+2);
-  }
-}
-
-// ── Sprite nemici ──────────────────────────────
-function drawSlime(ctx, px, py, s) {
-  ctx.fillStyle = "#2daa3d";
-  ctx.fillRect(px+3, py+10, s-6, s-13); ctx.fillRect(px+5, py+8, s-10, 4); ctx.fillRect(px+8, py+6, s-16, 3);
-  ctx.fillStyle = "rgba(100,255,120,0.3)"; ctx.fillRect(px+5, py+10, 4, 3);
-  ctx.fillStyle = "#fff"; ctx.fillRect(px+7, py+10, 4, 4); ctx.fillRect(px+s-11, py+10, 4, 4);
-  ctx.fillStyle = "#000"; ctx.fillRect(px+8, py+11, 2, 2); ctx.fillRect(px+s-10, py+11, 2, 2);
-}
-function drawSkeleton(ctx, px, py, s) {
-  ctx.fillStyle = "#c0c0c8";
-  ctx.fillRect(px+6, py+2, s-12, 9); ctx.fillRect(px+8, py+1, s-16, 3);
-  ctx.fillStyle = "#000"; ctx.fillRect(px+7, py+4, 4, 4); ctx.fillRect(px+s-11, py+4, 4, 4);
-  ctx.fillStyle = "#880000"; ctx.fillRect(px+8, py+5, 2, 2); ctx.fillRect(px+s-10, py+5, 2, 2);
-  ctx.fillStyle = "#aaaaaa"; ctx.fillRect(px+8, py+11, s-16, s-16);
-  ctx.fillStyle = "#666"; for (let r=0;r<3;r++) ctx.fillRect(px+8, py+12+r*3, s-16, 1);
-  ctx.fillStyle = "#c0c0c8"; ctx.fillRect(px+4, py+12, 3, 7); ctx.fillRect(px+s-7, py+12, 3, 7);
-}
-function drawOrc(ctx, px, py, s) {
-  ctx.fillStyle = "#5a2a08";
-  ctx.fillRect(px+2, py+6, s-4, s-9); ctx.fillRect(px+4, py+2, s-8, 8);
-  ctx.fillStyle = "#2a1004"; ctx.fillRect(px+5, py+3, 5, 2); ctx.fillRect(px+s-10, py+3, 5, 2);
-  ctx.fillStyle = "#cc4400"; ctx.fillRect(px+6, py+5, 3, 3); ctx.fillRect(px+s-9, py+5, 3, 3);
-  ctx.fillStyle = "#000";    ctx.fillRect(px+7, py+6, 1, 1); ctx.fillRect(px+s-8, py+6, 1, 1);
-  ctx.fillStyle = "#eeeecc"; ctx.fillRect(px+7, py+9, 2, 4); ctx.fillRect(px+s-9, py+9, 2, 4);
-  ctx.fillStyle = "#3a1800"; ctx.fillRect(px+2, py+s-8, s-4, 3);
-}
-function drawDragonSprite(ctx, px, py, s) {
-  ctx.fillStyle = "#881111";
-  ctx.fillRect(px, py+6, 4, 10); ctx.fillRect(px+s-4, py+6, 4, 10);
-  ctx.fillRect(px+1, py+4, 3, 4); ctx.fillRect(px+s-4, py+4, 3, 4);
-  ctx.fillStyle = "#cc2222"; ctx.fillRect(px+4, py+5, s-8, s-8);
-  ctx.fillStyle = "#dd3333"; ctx.fillRect(px+6, py+2, s-12, 7);
-  ctx.fillStyle = "#bb1111"; ctx.fillRect(px+9, py+7, s-18, 4);
-  ctx.fillStyle = "#ffff00"; ctx.fillRect(px+7, py+3, 3, 3); ctx.fillRect(px+s-10, py+3, 3, 3);
-  ctx.fillStyle = "#000";    ctx.fillRect(px+8, py+4, 2, 2); ctx.fillRect(px+s-9, py+4, 2, 2);
-  ctx.fillStyle = "#ff4444"; for (let i=0;i<3;i++) ctx.fillRect(px+8+i*5, py+1, 2, 3);
-}
-function drawGenericEnemy(ctx, px, py, s, e) {
-  ctx.fillStyle = e.color; ctx.fillRect(px+4, py+5, s-8, s-6); ctx.fillRect(px+6, py+1, s-12, 7);
-  ctx.fillStyle = "rgba(0,0,0,0.65)"; ctx.fillRect(px+8, py+3, 2, 2); ctx.fillRect(px+s-11, py+3, 2, 2);
-}
-function drawEnemy(ctx, e) {
-  const px=e.x*TILE, py=e.y*TILE, s=TILE;
-  if (e.isBoss) { ctx.shadowColor=e.color; ctx.shadowBlur=18; }
-  switch(e.name) {
-    case "Slime":    drawSlime(ctx,px,py,s); break;
-    case "Skeleton": drawSkeleton(ctx,px,py,s); break;
-    case "Orc":      drawOrc(ctx,px,py,s); break;
-    case "Dragon":   drawDragonSprite(ctx,px,py,s); break;
-    default:         drawGenericEnemy(ctx,px,py,s,e); break;
-  }
-  ctx.shadowBlur = 0;
-  if (e.isBoss) {
-    ctx.fillStyle = "#f0c040";
-    ctx.fillRect(px+3,py-8,3,6); ctx.fillRect(px+8,py-11,3,9); ctx.fillRect(px+13,py-8,3,6);
-    ctx.fillRect(px+3,py-4,13,3);
-    ctx.fillStyle="#ff4444"; ctx.fillRect(px+9,py-9,2,2);
-  }
-  if (e.stunned > 0) {
-    ctx.fillStyle="rgba(100,200,255,0.22)"; ctx.fillRect(px+2,py+2,s-4,s-4);
-    ctx.fillStyle="#aaddff"; ctx.font='7px "Press Start 2P"'; ctx.fillText("❄",px+4,py+s-5);
-  }
-  if (e.hp < e.maxHp) {
-    ctx.fillStyle="#111"; ctx.fillRect(px+1,py-5,s-2,3);
-    ctx.fillStyle=e.isBoss?"#bb44ff":"#cc3333";
-    ctx.fillRect(px+1,py-5,Math.floor((s-2)*e.hp/e.maxHp),3);
-  }
-}
-
-function drawPlayer(ctx, p) {
-  const ox = p.x * TILE + 3;
-  const oy = p.y * TILE + 3;
-  ctx.shadowColor = "#f0c040"; ctx.shadowBlur = 16;
-
-  // ── MANTELLO (strato più basso) ──
-  ctx.fillStyle = "#7a0a0a";
-  ctx.fillRect(ox+6,  oy+9,  2, 14);   // fianco sx
-  ctx.fillRect(ox+18, oy+9,  2, 14);   // fianco dx
-  ctx.fillRect(ox+7,  oy+20, 12, 4);   // fondo mantello
-  ctx.fillStyle = "#550808";
-  ctx.fillRect(ox+8,  oy+22, 10, 2);   // ombra mantello
-
-  // ── GAMBE ──
-  ctx.fillStyle = "#445566";
-  ctx.fillRect(ox+8,  oy+19, 4, 4);
-  ctx.fillRect(ox+14, oy+19, 4, 4);
-  // Stivali
-  ctx.fillStyle = "#261406";
-  ctx.fillRect(ox+7,  oy+21, 6, 4);
-  ctx.fillRect(ox+13, oy+21, 6, 4);
-  ctx.fillStyle = "#382010";
-  ctx.fillRect(ox+8,  oy+21, 2, 1);    // riflesso stivale sx
-  ctx.fillRect(ox+14, oy+21, 2, 1);    // riflesso stivale dx
-
-  // ── CINTURA ──
-  ctx.fillStyle = "#1e1006";
-  ctx.fillRect(ox+7, oy+18, 12, 2);
-  ctx.fillStyle = "#d4a820";
-  ctx.fillRect(ox+12, oy+18, 2, 2);    // fibbia
-
-  // ── BRACCIA ──
-  ctx.fillStyle = "#4a6080";
-  ctx.fillRect(ox+3, oy+9, 4, 8);
-  ctx.fillRect(ox+19, oy+9, 4, 8);
-  // Gomitiere
-  ctx.fillStyle = "#5a7090";
-  ctx.fillRect(ox+3, oy+13, 4, 2);
-  ctx.fillRect(ox+19, oy+13, 4, 2);
-  ctx.fillStyle = "rgba(160,200,240,0.18)";
-  ctx.fillRect(ox+3, oy+9, 4, 2);
-  ctx.fillRect(ox+19, oy+9, 4, 2);
-
-  // ── SCUDO (sinistro) ──
-  ctx.fillStyle = "#162040";
-  ctx.fillRect(ox, oy+9, 3, 11);
-  ctx.fillStyle = "#c8a020";            // bordo oro
-  ctx.fillRect(ox,   oy+9,  1, 11);
-  ctx.fillRect(ox,   oy+9,  3, 1);
-  ctx.fillRect(ox,   oy+19, 3, 1);
-  ctx.fillStyle = "#bb1818";            // croce rossa
-  ctx.fillRect(ox+1, oy+12, 2, 5);
-  ctx.fillRect(ox,   oy+14, 3, 2);
-  ctx.fillStyle = "rgba(120,160,255,0.18)";
-  ctx.fillRect(ox+1, oy+10, 2, 3);     // riflesso
-
-  // ── CORPO / CORAZZA ──
-  ctx.fillStyle = "#4a6080";
-  ctx.fillRect(ox+7, oy+9, 12, 9);
-  // Nervatura centrale
-  ctx.fillStyle = "#3a5070";
-  ctx.fillRect(ox+12, oy+9, 2, 9);
-  // Linea petto orizzontale
-  ctx.fillStyle = "#607898";
-  ctx.fillRect(ox+8, oy+12, 10, 1);
-  // Riflesso corazza in alto a sinistra
-  ctx.fillStyle = "rgba(180,210,250,0.22)";
-  ctx.fillRect(ox+8, oy+9, 4, 4);
-
-  // ── SPALLACCI ──
-  ctx.fillStyle = "#3a5070";
-  ctx.fillRect(ox+4,  oy+7, 5, 4);
-  ctx.fillRect(ox+17, oy+7, 5, 4);
-  ctx.fillStyle = "rgba(180,210,250,0.20)";
-  ctx.fillRect(ox+4,  oy+7, 5, 1);
-  ctx.fillRect(ox+17, oy+7, 5, 1);
-
-  // ── SPADA (destra) ──
-  // Lama
-  ctx.fillStyle = "#d0e4f4";
-  ctx.fillRect(ox+23, oy+1, 2, 12);
-  ctx.fillStyle = "#f0f8ff";            // filo
-  ctx.fillRect(ox+23, oy+1, 1, 12);
-  ctx.fillStyle = "#8090a8";            // dorso
-  ctx.fillRect(ox+24, oy+1, 1, 12);
-  // Guardia
-  ctx.fillStyle = "#c8a020";
-  ctx.fillRect(ox+20, oy+10, 5, 2);
-  ctx.fillStyle = "#e8c030";
-  ctx.fillRect(ox+21, oy+10, 3, 1);    // riflesso guardia
-  // Impugnatura
-  ctx.fillStyle = "#5a3010";
-  ctx.fillRect(ox+23, oy+12, 2, 4);
-  // Pomolo
-  ctx.fillStyle = "#c8a020";
-  ctx.fillRect(ox+23, oy+15, 2, 2);
-
-  // ── COLLO ──
-  ctx.fillStyle = "#c09060";
-  ctx.fillRect(ox+11, oy+7, 4, 3);
-
-  // ── ELMO ──
-  // Cima elmo (arrotondato a pixel)
-  ctx.fillStyle = "#3a5070";
-  ctx.fillRect(ox+10, oy+0, 6, 2);
-  ctx.fillRect(ox+9,  oy+1, 8, 1);
-  // Corpo elmo
-  ctx.fillStyle = "#4a6080";
-  ctx.fillRect(ox+7,  oy+2, 12, 6);
-  // Visiera (slot occhi)
-  ctx.fillStyle = "#08081a";
-  ctx.fillRect(ox+9, oy+4, 8, 2);
-  // Riflessi occhi
-  ctx.fillStyle = "rgba(80,170,255,0.65)";
-  ctx.fillRect(ox+9,  oy+4, 3, 1);
-  ctx.fillRect(ox+14, oy+4, 3, 1);
-  // Nasello
-  ctx.fillStyle = "#3a5070";
-  ctx.fillRect(ox+12, oy+3, 2, 4);
-  // Bordo inferiore elmo
-  ctx.fillStyle = "#2a3a50";
-  ctx.fillRect(ox+7, oy+7, 12, 1);
-  // Riflesso elmo (luce dall'alto sx)
-  ctx.fillStyle = "rgba(190,220,255,0.24)";
-  ctx.fillRect(ox+8, oy+2, 5, 2);
-  // ── Pennacchio rosso ──
-  ctx.fillStyle = "#cc1818";
-  ctx.fillRect(ox+11, oy+0, 4, 1);
-  ctx.fillStyle = "#ee3030";
-  ctx.fillRect(ox+12, oy+0, 2, 1);
-
-  ctx.shadowBlur = 0;
-
-  // ── Barra HP ──
-  const s = TILE - 6;
-  const r = p.hp / p.maxHp;
-  ctx.fillStyle = "#0a0a0a"; ctx.fillRect(ox, oy-5, s, 3);
-  ctx.fillStyle = r>0.5?"#44cc44":r>0.25?"#ccaa22":"#cc3333";
-  ctx.fillRect(ox, oy-5, Math.floor(s*r), 3);
-}
-
-function drawPotion(ctx, item) {
-  const cols = { hp:["#cc2244","#ff4466","#ff88aa"], mana:["#2244cc","#4488ff","#88bbff"] };
-  const c = cols[item.type];
-  const px=item.x*TILE+9, py=item.y*TILE+7;
-  ctx.shadowColor=c[1]; ctx.shadowBlur=10;
-  ctx.fillStyle=c[0];
-  ctx.fillRect(px+3,py+6,8,10); ctx.fillRect(px+4,py+4,6,3); ctx.fillRect(px+5,py+2,4,3);
-  ctx.fillStyle=c[2]; ctx.fillRect(px+4,py+7,2,5);
-  ctx.fillStyle="rgba(255,255,255,0.25)"; ctx.fillRect(px+5,py+3,1,1);
-  ctx.shadowBlur=0;
-}
-
-function drawArrowBundle(ctx, item) {
-  const px=item.x*TILE, py=item.y*TILE;
-  ctx.shadowColor="#c8a030"; ctx.shadowBlur=8;
-  [px+8, px+13, px+18].forEach(sx => {
-    ctx.fillStyle="#8b6020"; ctx.fillRect(sx, py+8, 2, 16);       // asta
-    ctx.fillStyle="#c0c0c0"; ctx.fillRect(sx-1,py+5,4,4);         // punta (triang)
-    ctx.fillRect(sx, py+4, 2, 2);
-    ctx.fillStyle="#aa2200"; ctx.fillRect(sx-1,py+22,4,3);        // penne
-    ctx.fillRect(sx,py+24,2,2);
-  });
-  ctx.fillStyle="#6b4010"; ctx.fillRect(px+6,py+14,16,2);         // legatura
-  ctx.shadowBlur=0;
-  ctx.font='5px "Press Start 2P"'; ctx.fillStyle="#c8a030"; ctx.textBaseline="top";
-  ctx.fillText("x5",px+8,py+26); ctx.textBaseline="middle";
-}
-
-function drawGem(ctx, item) {
-  const cx = item.x * TILE + TILE/2;
-  const cy = item.y * TILE + TILE/2 - 2;
-  const c  = item.color;
-  ctx.shadowColor = c; ctx.shadowBlur = 10;
-
-  // Corpo diamante
-  ctx.fillStyle = c;
-  ctx.fillRect(cx-2, cy-7, 4, 1);    // punta top
-  ctx.fillRect(cx-4, cy-6, 8, 2);
-  ctx.fillRect(cx-5, cy-4, 10, 4);   // fascia centrale
-  ctx.fillRect(cx-4, cy+0, 8, 2);
-  ctx.fillRect(cx-3, cy+2, 6, 2);
-  ctx.fillRect(cx-2, cy+4, 4, 2);
-  ctx.fillRect(cx-1, cy+6, 2, 1);    // punta bottom
-
-  // Taglio superiore (riflesso luce)
-  ctx.fillStyle = "rgba(255,255,255,0.55)";
-  ctx.fillRect(cx-4, cy-6, 4, 1);
-  ctx.fillRect(cx-5, cy-4, 4, 2);
-  ctx.fillRect(cx-4, cy+0, 3, 1);
-
-  // Bordo scuro (profondità)
-  ctx.fillStyle = "rgba(0,0,0,0.32)";
-  ctx.fillRect(cx+2, cy-4, 3, 4);
-  ctx.fillRect(cx+1, cy+0, 3, 2);
-
-  ctx.shadowBlur = 0;
-  // Valore sotto la gemma
-  ctx.font = '5px "Press Start 2P"'; ctx.fillStyle = c;
-  ctx.textBaseline = "top";
-  ctx.fillText(`${item.value}`, item.x*TILE + TILE/2 - 3, item.y*TILE + TILE - 7);
-  ctx.textBaseline = "middle";
-}
-
-function drawFloats(ctx, floats) {
-  if (!floats.length) return;
-  ctx.font='7px "Press Start 2P"'; ctx.textBaseline="top";
-  floats.forEach(f => { ctx.fillStyle=f.color??"#ffffff"; ctx.fillText(f.text,f.x*TILE+4,f.y*TILE-4); });
-  ctx.textBaseline="middle";
-}
-
-function drawFlashEffect(ctx, type, enemies, player) {
-  const sp = SPELLS.find(s=>s.id===type); if (!sp) return;
-  ctx.fillStyle=sp.fc; ctx.fillRect(0,0,W,H);
-  if (type==="lightning") {
-    ctx.strokeStyle="#ffffff"; ctx.lineWidth=2;
-    enemies.forEach(e=>{
-      const cx=e.x*TILE+TILE/2, cy=e.y*TILE+TILE/2;
-      ctx.beginPath(); ctx.moveTo(cx,0);
-      ctx.lineTo(cx-6,cy-14); ctx.lineTo(cx+5,cy-14); ctx.lineTo(cx,cy+4); ctx.stroke();
-      ctx.fillStyle="#ffff88"; ctx.fillRect(cx-3,cy-3,6,6);
-    });
-  } else if (type==="fire") {
-    const e=enemies[0]; if (!e) return;
-    ctx.fillStyle="#ff8800";
-    [[-3,-5],[3,-7],[0,-4],[-4,-3],[4,-3]].forEach(([ox,oy])=>
-      ctx.fillRect(e.x*TILE+TILE/2+ox*3-3,e.y*TILE+TILE/2+oy*3,7,7));
-  } else if (type==="ice") {
-    const e=enemies[0]; if (!e) return;
-    ctx.strokeStyle="#aaddff"; ctx.lineWidth=1;
-    const cx=e.x*TILE+TILE/2, cy=e.y*TILE+TILE/2;
-    for (let a=0;a<6;a++) {
-      const ang=(a/6)*Math.PI*2;
-      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+Math.cos(ang)*16,cy+Math.sin(ang)*16); ctx.stroke();
-    }
-  } else if (type==="heal") {
-    ctx.fillStyle="#88ff88";
-    const cx=player.x*TILE+TILE/2, cy=player.y*TILE+TILE/2;
-    [[0,-13],[0,13],[-13,0],[13,0]].forEach(([ox,oy])=>ctx.fillRect(cx+ox-2,cy+oy-2,5,5));
-    ctx.fillRect(cx-1,cy-9,2,18); ctx.fillRect(cx-9,cy-1,18,2);
-  }
-}
-
-function drawBar(ctx, label, lx, y, val, max, barColor, labelColor, font, bw=105) {
-  ctx.font=`8px ${font}`; ctx.fillStyle=labelColor; ctx.fillText(label,lx,y);
-  ctx.fillStyle="#151528"; ctx.fillRect(lx+24,y-6,bw,10);
-  ctx.fillStyle=barColor; ctx.fillRect(lx+24,y-6,Math.floor(bw*Math.min(val/max,1)),10);
-  ctx.strokeStyle="#2e3a6e"; ctx.lineWidth=1; ctx.strokeRect(lx+24,y-6,bw,10);
-  ctx.font=`6px ${font}`; ctx.fillStyle="#888"; ctx.fillText(`${val}/${max}`,lx+24+bw+4,y);
-}
-
-function drawHUD(ctx, g) {
-  const hy=H, p=g.player, font='"Press Start 2P"';
-  ctx.fillStyle="#05050e"; ctx.fillRect(0,hy,W,HUD);
-  ctx.fillStyle="#2e3a6e"; ctx.fillRect(0,hy,W,2);
-  ctx.textBaseline="middle";
-
-  // ── Barre (sinistra, 95px) — stats su riga separata per evitare overlap ──
-  const hpR=p.hp/p.maxHp;
-  drawBar(ctx,"HP",6,hy+16,p.hp,  p.maxHp,  hpR>0.5?"#44cc44":hpR>0.25?"#ccaa22":"#cc3333","#7a8aaa",font,95);
-  drawBar(ctx,"MP",6,hy+34,p.mana,p.maxMana,"#3a6ee8","#6677aa",font,95);
-  drawBar(ctx,"XP",6,hy+52,p.xp,  p.xpNext, "#5560c8","#445",   font,95);
-
-  // ── Stats: riga dedicata sotto le barre ──────
-  ctx.font=`7px ${font}`;
-  ctx.fillStyle="#f0c040";                         ctx.fillText(`LV.${p.level}`,  6, hy+70);
-  ctx.fillStyle="#ff8888";                         ctx.fillText(`ATK ${p.atk}`, 50, hy+70);
-  const boss=g.floor%5===0;
-  ctx.fillStyle=boss?"#ff4444":"#5b8dee";          ctx.fillText(`P.${g.floor}${boss?" ⚠":""}`, 96, hy+70);
-  ctx.fillStyle=p.arrows>0?"#c8a030":"#252525";    ctx.fillText(`🏹 ${p.arrows}`, 138, hy+70);
-  ctx.fillStyle=p.gems>0?"#cc44ee":"#252525";      ctx.fillText(`💎 ${p.gems}`,   178, hy+70);
-
-  // ── Messaggi ────────────────────────────────
-  const msgs=g.messages.slice(-2);
-  ctx.font=`6px ${font}`;
-  msgs.forEach((m,i)=>{
-    ctx.fillStyle=i===msgs.length-1?"#c0d0e0":"#333a4a";
-    ctx.fillText(m.slice(0,34),6,hy+88+i*18);
-  });
-
-  // ── 4 Slot spell (x=240, 4×106px) ───────────
-  const slotX=240, slotW=106, gap=2, slotH=HUD-8;
-
-  SPELLS.forEach((sp, i) => {
-    const locked  = sp.unlockAt > p.level;
-    const active  = i === p.spell;
-    const canCast = !locked && p.mana >= sp.cost;
-    const bx = slotX + i*(slotW+gap);
-    const by = hy+4;
-    const cx = bx+slotW/2;
-
-    ctx.strokeStyle = active ? (canCast?"#5599ff":"#aa9900") : (locked?"#181828":"#222240");
-    ctx.lineWidth=2; ctx.strokeRect(bx,by,slotW,slotH);
-    ctx.fillStyle = active ? "#060622" : "#020212";
-    ctx.fillRect(bx+1,by+1,slotW-2,slotH-2);
-    if (active) {
-      ctx.fillStyle = canCast?"#f0c040":"#886600";
-      ctx.fillRect(bx+1,by+1,slotW-2,3);
-    }
-
-    ctx.textAlign="center";
-    if (locked) {
-      ctx.font=`18px ${font}`; ctx.fillStyle="#1c1c34";
-      ctx.fillText(sp.icon, cx, by+26);
-      ctx.font=`7px ${font}`; ctx.fillStyle="#443322";
-      ctx.fillText(sp.name, cx, by+48);
-      ctx.fillStyle="#cc5533";
-      ctx.fillText(`🔒 LV.${sp.unlockAt}`, cx, by+66);
-      ctx.fillStyle="#332";
-      ctx.fillText(`[${i+1}]`, cx, by+84);
-    } else {
-      ctx.font=`20px ${font}`;
-      ctx.fillStyle = active ? (canCast?"#ffffff":"#ddcc44") : "#5566aa";
-      ctx.fillText(sp.icon, cx, by+26);
-      ctx.font=`7px ${font}`;
-      ctx.fillStyle = active ? "#d0e8ff" : "#4a5a7a";
-      ctx.fillText(sp.name, cx, by+48);
-      ctx.font=`6px ${font}`;
-      ctx.fillStyle = canCast ? "#44aaff" : "#553333";
-      ctx.fillText(`${sp.cost} MP`, cx, by+64);
-      ctx.fillStyle = active ? "#3a5090" : "#222838";
-      ctx.fillText(`[${i+1}]`, cx, by+80);
-      if (active) {
-        ctx.fillStyle = canCast?"#2a5080":"#3a2200";
-        ctx.fillText("SPACE", cx, by+98);
-      }
-    }
-    ctx.textAlign="left";
-  });
-}
-
-function drawOverlay(ctx, status) {
-  if (status==="playing") return;
-  ctx.fillStyle="rgba(0,0,0,0.84)"; ctx.fillRect(0,0,W,H);
-  ctx.textAlign="center"; ctx.textBaseline="middle";
-  ctx.fillStyle="#cc2222"; ctx.font='16px "Press Start 2P"';
-  ctx.fillText("GAME  OVER",W/2,H/2-28);
-  ctx.fillStyle="#666"; ctx.font='7px "Press Start 2P"';
-  ctx.fillText("[ R ] Ricomincia dall'inizio",W/2,H/2+8);
-  ctx.textAlign="left";
-}
-
-// ══════════════════════════════════════════════
-//  COMPONENT
-// ══════════════════════════════════════════════
 export default function Gioco() {
   const canvasRef    = useRef(null);
   const gameRef      = useRef(newGame(1));
@@ -812,7 +18,6 @@ export default function Gioco() {
   const [isMobile, setIsMobile]         = useState(false);
   const [muted, setMuted]               = useState(false);
 
-  // Rileva mobile e ascolta eventi fullscreen
   useEffect(() => {
     setIsMobile(navigator.maxTouchPoints > 0);
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -831,8 +36,8 @@ export default function Gioco() {
   };
 
   const toggleMute = () => {
-    const next = !_muted;
-    _muted = next;
+    const next = !getMuted();
+    setAudioMuted(next);
     setMuted(next);
     if (next) stopMusic();
     else startMusic(gameRef.current.floor % 5 === 0);
@@ -845,251 +50,133 @@ export default function Gioco() {
   }
 
   const draw = useCallback((flashType = null) => {
-    const canvas=canvasRef.current; if (!canvas) return;
-    const ctx=canvas.getContext("2d");
-    const g=gameRef.current;
-    ctx.fillStyle="#040410"; ctx.fillRect(0,0,W,H+HUD);
+    const canvas = canvasRef.current; if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const g = gameRef.current;
+    ctx.fillStyle = "#040410"; ctx.fillRect(0, 0, W, H + HUD);
 
-    // Pass 1: pavimenti (così la faccia frontale del muro sovrascrive il pavimento sotto)
-    for (let y=0; y<ROWS; y++)
-      for (let x=0; x<COLS; x++)
-        if (g.map[y][x] !== T.WALL) drawTile(ctx,x,y,g.map[y][x],g.map);
-    // Pass 2: muri (con faccia frontale che sporge nel tile sotto)
-    for (let y=0; y<ROWS; y++)
-      for (let x=0; x<COLS; x++)
-        if (g.map[y][x] === T.WALL) drawTile(ctx,x,y,g.map[y][x],g.map);
+    for (let y = 0; y < ROWS; y++)
+      for (let x = 0; x < COLS; x++)
+        if (g.map[y][x] !== T.WALL) drawTile(ctx, x, y, g.map[y][x], g.map);
+    for (let y = 0; y < ROWS; y++)
+      for (let x = 0; x < COLS; x++)
+        if (g.map[y][x] === T.WALL) drawTile(ctx, x, y, g.map[y][x], g.map);
 
     g.items.forEach(it => {
-      if (it.type==="arrows") drawArrowBundle(ctx,it);
-      else if (it.type==="gem") drawGem(ctx,it);
-      else drawPotion(ctx,it);
+      if (it.type === "arrows") drawArrowBundle(ctx, it);
+      else if (it.type === "gem") drawGem(ctx, it);
+      else drawPotion(ctx, it);
     });
-    g.enemies.forEach(e=>drawEnemy(ctx,e));
-    drawPlayer(ctx,g.player);
-    drawFloats(ctx,g.floats);
+    g.enemies.forEach(e => drawEnemy(ctx, e));
+    drawPlayer(ctx, g.player);
+    drawFloats(ctx, g.floats);
 
     if (flashType) {
-      const nearest=g.enemies.reduce((b,e)=>{
-        const d=Math.abs(e.x-g.player.x)+Math.abs(e.y-g.player.y);
-        return(!b||d<Math.abs(b.x-g.player.x)+Math.abs(b.y-g.player.y))?e:b;
-      },null);
-      drawFlashEffect(ctx,flashType,nearest?[nearest]:g.enemies,g.player);
+      const nearest = g.enemies.reduce((b, e) => {
+        const d = Math.abs(e.x - g.player.x) + Math.abs(e.y - g.player.y);
+        return (!b || d < Math.abs(b.x - g.player.x) + Math.abs(b.y - g.player.y)) ? e : b;
+      }, null);
+      drawFlashEffect(ctx, flashType, nearest ? [nearest] : g.enemies, g.player);
     }
 
-    drawHUD(ctx,g);
-    drawOverlay(ctx,g.status);
-    g.floats=[];
-  },[]);
+    drawHUD(ctx, g);
+    drawOverlay(ctx, g.status);
+    g.floats = [];
+  }, []);
 
-  // ── Arco ──────────────────────────────────────
-  const shoot = useCallback(()=>{
+  const move = useCallback((dx, dy) => {
     initAudio();
-    const g=gameRef.current;
-    if (g.status!=="playing") return;
-    const p=g.player, log=m=>g.messages.push(m);
-    if (p.arrows<=0) { log("🏹 Niente frecce! Trovane nel dungeon."); draw(); return; }
-    const nearest=g.enemies.reduce((b,e)=>{
-      const d=Math.abs(e.x-p.x)+Math.abs(e.y-p.y);
-      return(!b||d<Math.abs(b.x-p.x)+Math.abs(b.y-p.y))?e:b;
-    },null);
-    if (!nearest) { log("Nessun bersaglio!"); draw(); return; }
-    p.arrows--;
-    const dmg=Math.max(2,8+p.level*3+Math.floor(Math.random()*4)-2);
-    nearest.hp-=dmg;
-    g.floats.push({x:nearest.x,y:nearest.y,text:`-${dmg}🏹`,color:"#c8a030"});
-    log(`🏹 Freccia! ${dmg} danni a ${nearest.name}! (rimaste:${p.arrows})`);
-    sfx("bowShoot");
-    if (nearest.hp<=0) {
-      const idx=g.enemies.indexOf(nearest);
-      dropGem(g,nearest);
-      g.enemies.splice(idx,1);
-      log(`${nearest.name} abbattuto! +${nearest.xp} XP`);
-      sfx("kill"); p.xp+=nearest.xp; _levelUp(p,log);
-    }
-    // L'arco usa un turno: i nemici si muovono
-    p.mana=Math.min(p.mana+2,p.maxMana);
-    doEnemyTurn(g);
-    g.messages=g.messages.slice(-30); g.turn++;
-    draw();
-  },[draw]);
-
-  // ── Lancia spell ──────────────────────────────
-  const castSpell = useCallback(()=>{
-    initAudio();
-    const g=gameRef.current;
-    if (g.status!=="playing") return;
-    const p=g.player, sp=SPELLS[p.spell], log=m=>g.messages.push(m);
-    if (sp.unlockAt>p.level) { log(`${sp.name} si sblocca al livello ${sp.unlockAt}!`); draw(); return; }
-    if (p.mana<sp.cost) { log("Mana insufficiente!"); draw(); return; }
-    p.mana-=sp.cost;
-
-    let flashId=sp.id;
-    if (sp.id==="lightning") {
-      const dmg=6+p.level*2;
-      g.enemies.forEach(e=>{e.hp-=dmg;g.floats.push({x:e.x,y:e.y,text:`-${dmg}`,color:"#88aaff"});});
-      log(`⚡ FULMINE! ${dmg} danni a tutti!`); sfx("lightning");
-    } else if (sp.id==="fire") {
-      const ne=g.enemies.reduce((b,e)=>{const d=Math.abs(e.x-p.x)+Math.abs(e.y-p.y);return(!b||d<Math.abs(b.x-p.x)+Math.abs(b.y-p.y))?e:b;},null);
-      if (!ne){log("Nessun bersaglio!");draw();return;}
-      const dmg=18+p.level*4; ne.hp-=dmg;
-      g.floats.push({x:ne.x,y:ne.y,text:`-${dmg}🔥`,color:"#ff8844"});
-      log(`🔥 FIAMMA! ${dmg} danni a ${ne.name}!`); sfx("fire");
-    } else if (sp.id==="ice") {
-      const ne=g.enemies.reduce((b,e)=>{const d=Math.abs(e.x-p.x)+Math.abs(e.y-p.y);return(!b||d<Math.abs(b.x-p.x)+Math.abs(b.y-p.y))?e:b;},null);
-      if (!ne){log("Nessun bersaglio!");draw();return;}
-      ne.stunned=2; g.floats.push({x:ne.x,y:ne.y,text:"GELO❄",color:"#aaddff"});
-      log(`❄ GELO! ${ne.name} stordito!`); sfx("ice");
-    } else if (sp.id==="heal") {
-      const heal=12+p.level*3; p.hp=Math.min(p.hp+heal,p.maxHp);
-      g.floats.push({x:p.x,y:p.y,text:`+${heal}HP`,color:"#88ff88"});
-      log(`💚 CURA! +${heal} HP`); sfx("heal");
-    }
-    const before=g.enemies.length; let xpG=0;
-    g.enemies.forEach(e=>{if(e.hp<=0){xpG+=e.xp;dropGem(g,e);}});
-    g.enemies=g.enemies.filter(e=>e.hp>0);
-    if (before-g.enemies.length>0){p.xp+=xpG;log(`+${xpG} XP`);sfx("kill");_levelUp(p,log);}
-    g.messages=g.messages.slice(-30);
-    draw(flashId); setTimeout(()=>draw(null),160);
-  },[draw]);
-
-  // ── Muovi / turno ─────────────────────────────
-  const move = useCallback((dx,dy)=>{
-    initAudio();
-    const g=gameRef.current;
-    if (g.status!=="playing") return;
-    const p=g.player, nx=p.x+dx, ny=p.y+dy, log=m=>g.messages.push(m);
-    if (nx<0||ny<0||nx>=COLS||ny>=ROWS) return;
-    if (g.map[ny][nx]===T.WALL) return;
-
-    // Raccogliti oggetto
-    const pi=g.items.findIndex(it=>it.x===nx&&it.y===ny);
-    if (pi!==-1) {
-      const it=g.items.splice(pi,1)[0];
-      if (it.type==="hp") {
-        const h=15+p.level*2; p.hp=Math.min(p.hp+h,p.maxHp);
-        g.floats.push({x:nx,y:ny,text:`+${h}HP`,color:"#88ff88"}); log(`♥ +${h} HP`); sfx("potHp");
-      } else if (it.type==="mana") {
-        p.mana=Math.min(p.mana+20,p.maxMana);
-        g.floats.push({x:nx,y:ny,text:"+20MP",color:"#88aaff"}); log(`✦ +20 Mana`); sfx("potMp");
-      } else if (it.type==="gem") {
-        p.gems+=it.value;
-        g.floats.push({x:nx,y:ny,text:`+${it.value}💎`,color:it.color});
-        log(`💎 ${it.label}! +${it.value} (tot. ${p.gems})`); sfx("gemPickup");
-      } else {
-        p.arrows+=it.value;
-        g.floats.push({x:nx,y:ny,text:`+${it.value}🏹`,color:"#c8a030"});
-        log(`🏹 +${it.value} frecce! (${p.arrows} totali)`); sfx("arrowPickup");
-      }
-    }
-
-    // Attacco o movimento
-    const ei=g.enemies.findIndex(e=>e.x===nx&&e.y===ny);
-    if (ei!==-1) {
-      const e=g.enemies[ei];
-      const dmg=Math.max(1,p.atk+Math.floor(Math.random()*3)-1);
-      e.hp-=dmg; g.floats.push({x:e.x,y:e.y,text:`-${dmg}`,color:"#ffaa44"});
-      log(`Attacchi ${e.name} per ${dmg}!`); sfx("swing");
-      if (e.hp<=0){log(`${e.name} sconfitto!${e.isBoss?" BOSS DOWN!":""} +${e.xp} XP`);p.xp+=e.xp;dropGem(g,e);g.enemies.splice(ei,1);sfx("kill");_levelUp(p,log);}
-    } else {
-      p.x=nx; p.y=ny;
-      if (g.map[ny][nx]===T.STAIRS) {
-        sfx("stairs");
-        const nf=g.floor+1; gameRef.current=newGame(nf,p);
-        if(nf%5===0)sfx("boss"); startMusic(nf%5===0);
-        draw(); return;
-      }
-    }
-
-    p.mana=Math.min(p.mana+2,p.maxMana);
-    doEnemyTurn(g);
-    g.messages=g.messages.slice(-30); g.turn++;
-    draw();
-  },[draw]);
-
-  useEffect(()=>{ document.fonts.ready.then(()=>draw()); },[draw]);
-
-  useEffect(()=>{
-    const DIRS={
-      ArrowUp:[0,-1],ArrowDown:[0,1],ArrowLeft:[-1,0],ArrowRight:[1,0],
-      w:[0,-1],s:[0,1],a:[-1,0],d:[1,0],W:[0,-1],S:[0,1],A:[-1,0],D:[1,0],
-    };
-    const onKey=e=>{
-      const g=gameRef.current;
-      if((e.key==="r"||e.key==="R")&&g.status==="dead"){gameRef.current=newGame(1);startMusic(false);draw();return;}
-      if(e.key===" "){e.preventDefault();castSpell();return;}
-      if(e.key==="f"||e.key==="F"){shoot();return;}
-      if(["1","2","3","4"].includes(e.key)){
-        const idx=+e.key-1;
-        if(SPELLS[idx].unlockAt<=g.player.level) g.player.spell=idx;
-        else g.messages.push(`⚠ ${SPELLS[idx].name} si sblocca al livello ${SPELLS[idx].unlockAt}!`);
-        draw(); return;
-      }
-      const dir=DIRS[e.key];
-      if(dir){e.preventDefault();move(...dir);}
-    };
-    window.addEventListener("keydown",onKey);
-    return ()=>{ window.removeEventListener("keydown",onKey); stopMusic(); };
-  },[move,draw,castSpell,shoot]);
-
-  const onTouchStart=e=>{ touchRef.current={x:e.touches[0].clientX,y:e.touches[0].clientY}; };
-  const onTouchEnd=e=>{
-    if(!touchRef.current)return;
-    const dx=e.changedTouches[0].clientX-touchRef.current.x;
-    const dy=e.changedTouches[0].clientY-touchRef.current.y;
-    if(Math.abs(dx)<10&&Math.abs(dy)<10)return;
-    Math.abs(dx)>Math.abs(dy)?move(dx>0?1:-1,0):move(0,dy>0?1:-1);
-    touchRef.current=null;
-  };
-
-  const DPAD=[[1,"↑",0,-1],[3,"←",-1,0],[5,"→",1,0],[7,"↓",0,1]];
-
-  const btnBase = { fontFamily:'"Press Start 2P"', cursor:"pointer", borderRadius:4, border:"none" };
-  const sz = 44;  // celle D-pad (sempre compatto in side layout)
-
-  const selectSpell = (i) => {
     const g = gameRef.current;
-    if (SPELLS[i].unlockAt <= g.player.level) { g.player.spell=i; draw(); }
+    if (g.status !== "playing") return;
+    const result = actionMove(g, dx, dy);
+    if (result?.stairs) {
+      const nf = result.nextFloor;
+      gameRef.current = newGame(nf, result.player);
+      if (nf % 5 === 0) sfx("boss");
+      startMusic(nf % 5 === 0);
+    }
+    draw();
+  }, [draw]);
+
+  const shoot = useCallback(() => {
+    initAudio();
+    const g = gameRef.current;
+    if (g.status !== "playing") return;
+    actionShoot(g);
+    draw();
+  }, [draw]);
+
+  const castSpell = useCallback(() => {
+    initAudio();
+    const g = gameRef.current;
+    if (g.status !== "playing") return;
+    const flashId = actionCastSpell(g);
+    if (flashId) { draw(flashId); setTimeout(() => draw(null), 160); }
+    else draw();
+  }, [draw]);
+
+  const selectSpell = useCallback((i) => {
+    const g = gameRef.current;
+    if (SPELLS[i].unlockAt <= g.player.level) { g.player.spell = i; draw(); }
     else { g.messages.push(`${SPELLS[i].name}: LV${SPELLS[i].unlockAt}`); draw(); }
+  }, [draw]);
+
+  const reset = useCallback(() => {
+    gameRef.current = newGame(1); startMusic(false); draw();
+  }, [draw]);
+
+  useEffect(() => { document.fonts.ready.then(() => draw()); }, [draw]);
+
+  useEffect(() => {
+    const onKey = createKeyHandler({
+      move, shoot, castSpell, reset, selectSpell,
+      getStatus: () => gameRef.current.status,
+    });
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("keydown", onKey); stopMusic(); };
+  }, [move, shoot, castSpell, reset, selectSpell]);
+
+  const onTouchStart = e => { touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const onTouchEnd = e => {
+    if (!touchRef.current) return;
+    const dx = e.changedTouches[0].clientX - touchRef.current.x;
+    const dy = e.changedTouches[0].clientY - touchRef.current.y;
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+    Math.abs(dx) > Math.abs(dy) ? move(dx > 0 ? 1 : -1, 0) : move(0, dy > 0 ? 1 : -1);
+    touchRef.current = null;
   };
 
-  // ══════════════════════════════════════════════
-  //  LAYOUT SEMPRE A FIANCO: [D-PAD] [CANVAS] [SPELL]
-  //  Il canvas scala in altezza in base al viewport
-  // ══════════════════════════════════════════════
+  const btnBase = { fontFamily: '"Press Start 2P"', cursor: "pointer", borderRadius: 4, border: "none" };
+  const sz = 44;
   const panelStyle = {
-    display:"flex", flexDirection:"column",
-    alignItems:"center", justifyContent:"center",
-    gap:6, flexShrink:0, padding:"0 4px",
+    display: "flex", flexDirection: "column",
+    alignItems: "center", justifyContent: "center",
+    gap: 6, flexShrink: 0, padding: "0 4px",
   };
-
-  // Canvas: altezza = viewport - topbar(56px) - padding, larghezza automatica
   const canvasH = isFullscreen ? "100dvh" : "calc(100dvh - 64px)";
 
   return (
     <div ref={containerRef}
       style={{
-        display:"flex", flexDirection:"row",
-        alignItems:"center", justifyContent:"center",
-        width:"100%", flex:1,
-        gap:"0.35rem",
-        ...(isFullscreen ? { background:"#040410", height:"100dvh" } : {}),
+        display: "flex", flexDirection: "row",
+        alignItems: "center", justifyContent: "center",
+        width: "100%", flex: 1, gap: "0.35rem",
+        ...(isFullscreen ? { background: "#040410", height: "100dvh" } : {}),
       }}>
 
       {/* ── Sinistra: D-pad ── */}
       <div style={panelStyle}>
-        <div style={{display:"grid",
-                     gridTemplateColumns:`repeat(3,${sz}px)`,
-                     gridTemplateRows:`repeat(3,${sz}px)`,gap:3}}>
-          {Array.from({length:9},(_,i)=>{
-            const d=DPAD.find(([gi])=>gi===i);
+        <div style={{ display: "grid", gridTemplateColumns: `repeat(3,${sz}px)`, gridTemplateRows: `repeat(3,${sz}px)`, gap: 3 }}>
+          {Array.from({ length: 9 }, (_, i) => {
+            const d = DPAD_DIRS.find(([gi]) => gi === i);
             return (
-              <button key={i} onClick={()=>d&&move(d[2],d[3])}
-                style={{...btnBase,background:d?"#12122a":"transparent",
-                        border:d?"2px solid #2e3a6e":"none",
-                        color:"#f0c040",fontSize:18,
-                        display:"flex",alignItems:"center",justifyContent:"center",
-                        cursor:d?"pointer":"default"}}>
-                {d?d[1]:""}
+              <button key={i} onClick={() => d && move(d[2], d[3])}
+                style={{ ...btnBase, background: d ? "#12122a" : "transparent",
+                         border: d ? "2px solid #2e3a6e" : "none",
+                         color: "#f0c040", fontSize: 18,
+                         display: "flex", alignItems: "center", justifyContent: "center",
+                         cursor: d ? "pointer" : "default" }}>
+                {d ? d[1] : ""}
               </button>
             );
           })}
@@ -1098,61 +185,53 @@ export default function Gioco() {
 
       {/* ── Centro: canvas ── */}
       <canvas
-        ref={canvasRef} width={W} height={H+HUD}
+        ref={canvasRef} width={W} height={H + HUD}
         onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
         style={{
-          imageRendering:"pixelated",
-          border:"2px solid #2e3a6e",
-          boxShadow:"0 0 32px rgba(60,80,200,0.25)",
-          borderRadius:4, touchAction:"none", cursor:"crosshair",
-          maxHeight: canvasH,
-          width:"auto", display:"block", flexShrink:1,
+          imageRendering: "pixelated",
+          border: "2px solid #2e3a6e",
+          boxShadow: "0 0 32px rgba(60,80,200,0.25)",
+          borderRadius: 4, touchAction: "none", cursor: "crosshair",
+          maxHeight: canvasH, width: "auto", display: "block", flexShrink: 1,
         }}
       />
 
       {/* ── Destra: spell + azioni ── */}
       <div style={panelStyle}>
-        {/* Griglia 2×2 selezione spell */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}}>
-          {SPELLS.map((sp,i)=>(
-            <button key={sp.id} onClick={()=>selectSpell(i)}
-              style={{...btnBase,background:"#0a0a1e",border:"2px solid #2a3050",
-                      color:"#aaa",padding:"0.3rem 0.35rem",fontSize:"0.38rem",
-                      textAlign:"center",lineHeight:1.6}}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3 }}>
+          {SPELLS.map((sp, i) => (
+            <button key={sp.id} onClick={() => selectSpell(i)}
+              style={{ ...btnBase, background: "#0a0a1e", border: "2px solid #2a3050",
+                       color: "#aaa", padding: "0.3rem 0.35rem", fontSize: "0.38rem",
+                       textAlign: "center", lineHeight: 1.6 }}>
               {sp.icon}<br/>{i+1}
             </button>
           ))}
         </div>
-        {/* Arco */}
         <button onClick={shoot}
-          style={{...btnBase,background:"#0a0800",border:"2px solid #8b6020",
-                  color:"#c8a030",padding:"0.4rem 0.5rem",fontSize:"0.38rem",width:"100%"}}>
+          style={{ ...btnBase, background: "#0a0800", border: "2px solid #8b6020",
+                   color: "#c8a030", padding: "0.4rem 0.5rem", fontSize: "0.38rem", width: "100%" }}>
           🏹 ARCO
         </button>
-        {/* Lancia spell */}
         <button onClick={castSpell}
-          style={{...btnBase,background:"#0a0a2a",border:"2px solid #3a6ee8",
-                  color:"#88aaff",padding:"0.4rem 0.5rem",fontSize:"0.38rem",width:"100%"}}>
+          style={{ ...btnBase, background: "#0a0a2a", border: "2px solid #3a6ee8",
+                   color: "#88aaff", padding: "0.4rem 0.5rem", fontSize: "0.38rem", width: "100%" }}>
           SPELL
         </button>
-        {/* Mute */}
         <button onClick={toggleMute}
-          style={{...btnBase,background:"#080810",border:"2px solid #334",
-                  color:muted?"#cc4444":"#446",padding:"0.3rem 0.5rem",
-                  fontSize:"0.7rem",width:"100%"}}>
-          {muted?"🔇":"🔊"}
+          style={{ ...btnBase, background: "#080810", border: "2px solid #334",
+                   color: muted ? "#cc4444" : "#446", padding: "0.3rem 0.5rem", fontSize: "0.7rem", width: "100%" }}>
+          {muted ? "🔇" : "🔊"}
         </button>
-        {/* Fullscreen (solo touch) */}
         {isMobile && (
           <button onClick={toggleFullscreen}
-            style={{...btnBase,background:"#08080e",border:"2px solid #2a3060",
-                    color:"#334",padding:"0.3rem 0.5rem",fontSize:"0.7rem",width:"100%"}}>
-            {isFullscreen?"✕":"⛶"}
+            style={{ ...btnBase, background: "#08080e", border: "2px solid #2a3060",
+                     color: "#334", padding: "0.3rem 0.5rem", fontSize: "0.7rem", width: "100%" }}>
+            {isFullscreen ? "✕" : "⛶"}
           </button>
         )}
-        {/* Legenda mini */}
-        <p style={{fontFamily:'"Press Start 2P"',fontSize:"0.3rem",color:"#2a3050",
-                   textAlign:"center",lineHeight:2,margin:0}}>
+        <p style={{ fontFamily: '"Press Start 2P"', fontSize: "0.3rem", color: "#2a3050",
+                    textAlign: "center", lineHeight: 2, margin: 0 }}>
           WASD/↑↓←→<br/>F=arco<br/>1-4 spell<br/>R reset
         </p>
       </div>
