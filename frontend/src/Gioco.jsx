@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════
 //  PIXEL DUNGEON  —  Roguelike a turni
 // ═══════════════════════════════════════════════
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 
 const TILE   = 32;
 const COLS   = 21;
@@ -36,7 +36,7 @@ const SPELLS = [
 // ══════════════════════════════════════════════
 //  AUDIO ENGINE
 // ══════════════════════════════════════════════
-let _ctx = null, _mTick = null, _mPlay = false;
+let _ctx = null, _mTick = null, _mPlay = false, _muted = false;
 
 function ac() {
   if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -44,6 +44,7 @@ function ac() {
   return _ctx;
 }
 function beep(freq, dur, type = "square", vol = 0.15, t0 = 0) {
+  if (_muted) return;
   try {
     const c = ac(), o = c.createOscillator(), g = c.createGain();
     o.connect(g); g.connect(c.destination);
@@ -579,10 +580,41 @@ function drawOverlay(ctx, status) {
 //  COMPONENT
 // ══════════════════════════════════════════════
 export default function Gioco() {
-  const canvasRef  = useRef(null);
-  const gameRef    = useRef(newGame(1));
-  const touchRef   = useRef(null);
-  const audioReady = useRef(false);
+  const canvasRef    = useRef(null);
+  const gameRef      = useRef(newGame(1));
+  const touchRef     = useRef(null);
+  const audioReady   = useRef(false);
+  const containerRef = useRef(null);
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMobile, setIsMobile]         = useState(false);
+  const [muted, setMuted]               = useState(false);
+
+  // Rileva mobile e ascolta eventi fullscreen
+  useEffect(() => {
+    setIsMobile(navigator.maxTouchPoints > 0);
+    const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    if (!document.fullscreenElement) {
+      await containerRef.current?.requestFullscreen();
+      try { await screen.orientation.lock("landscape-primary"); } catch (_) {}
+    } else {
+      await document.exitFullscreen();
+      try { screen.orientation.unlock(); } catch (_) {}
+    }
+  };
+
+  const toggleMute = () => {
+    const next = !_muted;
+    _muted = next;
+    setMuted(next);
+    if (next) stopMusic();
+    else startMusic(gameRef.current.floor % 5 === 0);
+  };
 
   function initAudio() {
     if (audioReady.current) return;
@@ -779,58 +811,147 @@ export default function Gioco() {
 
   const DPAD=[[1,"↑",0,-1],[3,"←",-1,0],[5,"→",1,0],[7,"↓",0,1]];
 
-  return (
-    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.75rem"}}>
-      <canvas
-        ref={canvasRef} width={W} height={H+HUD}
-        onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-        style={{imageRendering:"pixelated",border:"2px solid #2e3a6e",
-                boxShadow:"0 0 32px rgba(60,80,200,0.25)",borderRadius:4,
-                maxWidth:"100%",touchAction:"none",cursor:"crosshair"}}
-      />
+  // Stili pulsanti riutilizzabili
+  const btnBase = { fontFamily:'"Press Start 2P"', cursor:"pointer", borderRadius:4, border:"none" };
+  const sz  = isFullscreen ? 46 : 52;   // dimensione celle D-pad
+  const fsz = isFullscreen ? 18 : 20;   // font icona D-pad
 
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.5rem"}}>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(3,52px)",gridTemplateRows:"repeat(3,52px)",gap:4}}>
-          {Array.from({length:9},(_,i)=>{
-            const d=DPAD.find(([gi])=>gi===i);
-            return (
-              <button key={i} onClick={()=>d&&move(d[2],d[3])}
-                style={{background:d?"#12122a":"transparent",border:d?"2px solid #2e3a6e":"none",
-                        borderRadius:4,color:"#f0c040",fontFamily:'"Press Start 2P"',fontSize:20,
-                        cursor:d?"pointer":"default",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                {d?d[1]:""}
-              </button>
-            );
-          })}
+  const selectSpell = (i) => {
+    const g = gameRef.current;
+    if (SPELLS[i].unlockAt <= g.player.level) { g.player.spell=i; draw(); }
+    else { g.messages.push(`${SPELLS[i].name}: LV${SPELLS[i].unlockAt}`); draw(); }
+  };
+
+  // ── D-Pad ─────────────────────────────────────
+  const DPad = () => (
+    <div style={{display:"grid",gridTemplateColumns:`repeat(3,${sz}px)`,
+                 gridTemplateRows:`repeat(3,${sz}px)`,gap:3}}>
+      {Array.from({length:9},(_,i)=>{
+        const d=DPAD.find(([gi])=>gi===i);
+        return (
+          <button key={i} onClick={()=>d&&move(d[2],d[3])}
+            style={{...btnBase,background:d?"#12122a":"transparent",
+                    border:d?"2px solid #2e3a6e":"none",
+                    color:"#f0c040",fontSize:fsz,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    cursor:d?"pointer":"default"}}>
+            {d?d[1]:""}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // ── Pulsanti azione ────────────────────────────
+  const SpellGrid = () => (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}}>
+      {SPELLS.map((sp,i)=>(
+        <button key={sp.id} onClick={()=>selectSpell(i)}
+          style={{...btnBase,background:"#0a0a1e",border:"2px solid #2a3050",
+                  color:"#aaa",padding:"0.3rem 0.4rem",
+                  fontSize:isFullscreen?"0.38rem":"0.45rem"}}>
+          {sp.icon} {i+1}
+        </button>
+      ))}
+    </div>
+  );
+
+  const ActionBtns = () => (
+    <div style={{display:"flex",flexDirection:isFullscreen?"column":"row",
+                 gap:3,alignItems:"stretch"}}>
+      <button onClick={castSpell}
+        style={{...btnBase,background:"#0a0a2a",border:"2px solid #3a6ee8",
+                color:"#88aaff",padding:"0.3rem 0.5rem",
+                fontSize:isFullscreen?"0.38rem":"0.45rem"}}>
+        SPELL
+      </button>
+      <button onClick={shoot}
+        style={{...btnBase,background:"#0a0800",border:"2px solid #8b6020",
+                color:"#c8a030",padding:"0.3rem 0.5rem",
+                fontSize:isFullscreen?"0.38rem":"0.45rem"}}>
+        🏹 ARCO
+      </button>
+      <button onClick={toggleMute} title={muted?"Attiva audio":"Muta audio"}
+        style={{...btnBase,background:"#080810",border:"2px solid #334",
+                color:muted?"#cc4444":"#556",padding:"0.3rem 0.5rem",
+                fontSize:isFullscreen?"0.38rem":"0.45rem"}}>
+        {muted?"🔇":"🔊"}
+      </button>
+    </div>
+  );
+
+  // ── Canvas ────────────────────────────────────
+  const Canvas = () => (
+    <canvas
+      ref={canvasRef} width={W} height={H+HUD}
+      onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+      style={{imageRendering:"pixelated",border:"2px solid #2e3a6e",
+              boxShadow:"0 0 32px rgba(60,80,200,0.25)",borderRadius:4,
+              touchAction:"none",cursor:"crosshair",
+              ...(isFullscreen
+                ? { height:"100dvh", width:"auto", maxHeight:"100dvh", display:"block" }
+                : { maxWidth:"100%" })}}
+    />
+  );
+
+  // ── Pulsante fullscreen (visibile solo su touch) ──
+  const FsBtn = ({ style }) => isMobile && (
+    <button onClick={toggleFullscreen} title={isFullscreen?"Esci fullscreen":"Fullscreen"}
+      style={{...btnBase,background:"#08080e",border:"2px solid #2a3060",
+              color:"#445",padding:"0.3rem 0.5rem",fontSize:"0.8rem",...style}}>
+      {isFullscreen?"✕":"⛶"}
+    </button>
+  );
+
+  // ══════════════════════════════════════════════
+  //  LAYOUT FULLSCREEN: controlli ai lati del canvas
+  // ══════════════════════════════════════════════
+  if (isFullscreen) {
+    return (
+      <div ref={containerRef}
+        style={{display:"flex",flexDirection:"row",alignItems:"center",justifyContent:"center",
+                background:"#040410",width:"100%",height:"100%",gap:"0.4rem",boxSizing:"border-box"}}>
+
+        {/* Sinistra: D-pad */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",
+                     justifyContent:"center",gap:6,flex:"0 0 auto",padding:"0 4px"}}>
+          <DPad />
         </div>
 
-        <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap",justifyContent:"center"}}>
-          {SPELLS.map((sp,i)=>(
-            <button key={sp.id}
-              onClick={()=>{const g=gameRef.current;if(sp.unlockAt<=g.player.level){g.player.spell=i;draw();}else{g.messages.push(`${sp.name}: LV${sp.unlockAt}`);draw();}}}
-              style={{fontFamily:'"Press Start 2P"',fontSize:"0.45rem",
-                      background:"#0a0a1e",border:`2px solid #2a3050`,
-                      color:"#aaa",padding:"0.35rem 0.6rem",borderRadius:4,cursor:"pointer"}}>
-              {sp.icon} {i+1}
-            </button>
-          ))}
-          <button onClick={castSpell}
-            style={{fontFamily:'"Press Start 2P"',fontSize:"0.45rem",
-                    background:"#0a0a2a",border:"2px solid #3a6ee8",
-                    color:"#88aaff",padding:"0.35rem 0.8rem",borderRadius:4,cursor:"pointer"}}>
-            SPELL
-          </button>
-          <button onClick={shoot}
-            style={{fontFamily:'"Press Start 2P"',fontSize:"0.45rem",
-                    background:"#0a0800",border:"2px solid #8b6020",
-                    color:"#c8a030",padding:"0.35rem 0.8rem",borderRadius:4,cursor:"pointer"}}>
-            🏹 ARCO
-          </button>
+        {/* Centro: canvas */}
+        <Canvas />
+
+        {/* Destra: spell + azioni */}
+        <div style={{display:"flex",flexDirection:"column",alignItems:"center",
+                     justifyContent:"center",gap:6,flex:"0 0 auto",padding:"0 4px"}}>
+          <SpellGrid />
+          <ActionBtns />
+          <FsBtn />
+        </div>
+      </div>
+    );
+  }
+
+  // ══════════════════════════════════════════════
+  //  LAYOUT NORMALE (desktop / verticale)
+  // ══════════════════════════════════════════════
+  return (
+    <div ref={containerRef}
+      style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.75rem"}}>
+      <Canvas />
+
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.5rem"}}>
+        <DPad />
+        <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap",justifyContent:"center",alignItems:"center"}}>
+          <SpellGrid />
+          <ActionBtns />
+          <FsBtn />
         </div>
       </div>
 
-      <p style={{fontFamily:'"Press Start 2P"',fontSize:"0.4rem",color:"#3a4a7a",textAlign:"center",lineHeight:2.2}}>
-        WASD/↑↓←→ muovi · SPACE spell · F arco · 1-4 cambia spell · R ricomincia
+      <p style={{fontFamily:'"Press Start 2P"',fontSize:"0.4rem",color:"#3a4a7a",
+                 textAlign:"center",lineHeight:2.2}}>
+        WASD/↑↓←→ muovi · SPACE spell · F arco · 1-4 cambia · R ricomincia
       </p>
     </div>
   );
