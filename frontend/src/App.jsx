@@ -6,28 +6,37 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
 function App() {
   const [utente, setUtente] = useState(null);
+  const [token, setToken] = useState(null);
   const [utenti, setUtenti] = useState([]);
   const [pagina, setPagina] = useState("login");
 
+  const handleAuth = (data) => {
+    const { token, ...userData } = data;
+    setToken(token);
+    setUtente(userData);
+  };
+
   useEffect(() => {
-    if (!utente) return;
-    fetch(`${API_URL}/utenti`)
+    if (!utente || !token) return;
+    fetch(`${API_URL}/utenti`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then((res) => res.json())
       .then(setUtenti);
-  }, [utente]);
+  }, [utente, token]);
 
   if (!utente) {
     if (pagina === "registrazione") {
       return (
         <Registrazione
-          onRegistrato={setUtente}
+          onRegistrato={handleAuth}
           onVaiLogin={() => setPagina("login")}
         />
       );
     }
     return (
       <Login
-        onLogin={setUtente}
+        onLogin={handleAuth}
         onVaiRegistrazione={() => setPagina("registrazione")}
       />
     );
@@ -37,7 +46,7 @@ function App() {
     <div className="home-container">
       <div className="topbar">
         <h1>Ciao, {utente.nome}!</h1>
-        <button className="btn btn-danger" onClick={() => setUtente(null)}>
+        <button className="btn btn-danger" onClick={() => { setUtente(null); setToken(null); }}>
           Logout
         </button>
       </div>
