@@ -1,4 +1,6 @@
-﻿var builder = WebApplication.CreateBuilder(args);
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors(options =>
 {
@@ -10,37 +12,69 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    var connStr = builder.Configuration.GetConnectionString("Default");
+    if (string.IsNullOrEmpty(connStr))
+        options.UseSqlite("Data Source=locale.db");
+    else
+        options.UseNpgsql(connStr);
+});
+
 var app = builder.Build();
 
 app.UseCors();
 
-var utenti = new List<Utente>
+// Crea le tabelle automaticamente all'avvio
+using (var scope = app.Services.CreateScope())
 {
-    new(1, "Mario", "Rossi", "mario.rossi@email.com"),
-    new(2, "Giulia", "Bianchi", "giulia.bianchi@email.com"),
-    new(3, "Luca", "Verdi", "luca.verdi@email.com"),
-};
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
+}
 
-var credenziali = new List<Account>
+app.MapGet("/utenti", async (AppDbContext db) =>
+    await db.Utenti.ToListAsync());
+
+app.MapPost("/login", async (LoginRequest req, AppDbContext db) =>
 {
-    new("mario.rossi@email.com", "password123"),
-    new("giulia.bianchi@email.com", "password123"),
-};
-
-app.MapGet("/utenti", () => utenti);
-
-app.MapPost("/login", (LoginRequest req) =>
-{
-    var account = credenziali.FirstOrDefault(a => a.Email == req.Email && a.Password == req.Password);
-    if (account is null)
+    var utente = await db.Utenti.FirstOrDefaultAsync(u => u.Email == req.Email && u.Password == req.Password);
+    if (utente is null)
         return Results.Unauthorized();
+    return Results.Ok(utente);
+});
 
-    var utente = utenti.FirstOrDefault(u => u.Email == req.Email);
+app.MapPost("/registrati", async (RegistrazioneRequest req, AppDbContext db) =>
+{
+    if (await db.Utenti.AnyAsync(u => u.Email == req.Email))
+        return Results.Conflict("Email già in uso");
+
+    var utente = new Utente
+    {
+        Nome = req.Nome,
+        Cognome = req.Cognome,
+        Email = req.Email,
+        Password = req.Password,
+    };
+    db.Utenti.Add(utente);
+    await db.SaveChangesAsync();
     return Results.Ok(utente);
 });
 
 app.Run();
 
-record Utente(int Id, string Nome, string Cognome, string Email);
-record Account(string Email, string Password);
+class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+{
+    public DbSet<Utente> Utenti => Set<Utente>();
+}
+
+class Utente
+{
+    public int Id { get; set; }
+    public string Nome { get; set; } = "";
+    public string Cognome { get; set; } = "";
+    public string Email { get; set; } = "";
+    public string Password { get; set; } = "";
+}
+
 record LoginRequest(string Email, string Password);
+record RegistrazioneRequest(string Nome, string Cognome, string Email, string Password);
