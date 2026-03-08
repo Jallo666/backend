@@ -151,38 +151,40 @@ function App() {
         </div>
       </header>
 
-      <main className="home-content">
-        {tab === "utenti" && (
-          <>
-            <h2 className="section-title">▸ MEMBRI DELLA GILDA</h2>
-            <div className="utenti-list">
-              {utenti.map((u) => (
-                <div className="utente-item" key={u.id}>
-                  <div className={`avatar ${u.ruolo === "admin" ? "avatar-admin" : ""}`}>
-                    {u.nome[0]}{u.cognome?.[0] ?? ""}
-                  </div>
-                  <div className="utente-info">
-                    <strong>{u.nome} {u.cognome}</strong>
-                    <span>{u.email}</span>
-                    {u.ruolo === "admin" && <span className="badge-admin">ADMIN</span>}
-                  </div>
-                  {isAdmin && u.id !== utente.id && (
-                    <button
-                      className="btn-delete"
-                      onClick={() => handleDelete(u.id)}
-                      title="Rimuovi dalla gilda"
-                    >
-                      ✕
-                    </button>
-                  )}
+      {tab === "utenti" && (
+        <main className="home-content">
+          <h2 className="section-title">▸ MEMBRI DELLA GILDA</h2>
+          <div className="utenti-list">
+            {utenti.map((u) => (
+              <div className="utente-item" key={u.id}>
+                <div className={`avatar ${u.ruolo === "admin" ? "avatar-admin" : ""}`}>
+                  {u.nome[0]}{u.cognome?.[0] ?? ""}
                 </div>
-              ))}
-            </div>
-          </>
-        )}
+                <div className="utente-info">
+                  <strong>{u.nome} {u.cognome}</strong>
+                  <span>{u.email}</span>
+                  {u.ruolo === "admin" && <span className="badge-admin">ADMIN</span>}
+                </div>
+                {isAdmin && u.id !== utente.id && (
+                  <button
+                    className="btn-delete"
+                    onClick={() => handleDelete(u.id)}
+                    title="Rimuovi dalla gilda"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </main>
+      )}
 
-        {tab === "gioca" && <Gioco />}
-      </main>
+      {tab === "gioca" && (
+        <div className="gioca-wrapper">
+          <Gioco />
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,7 @@ const COLS   = 21;
 const ROWS   = 15;
 const W      = COLS * TILE;
 const H      = ROWS * TILE;
-const HUD    = 112;
+const HUD    = 132;
 const FACE_H = 10;   // altezza faccia frontale muro (effetto 3D)
 
 const T = { WALL: 0, FLOOR: 1, STAIRS: 2 };
@@ -26,6 +26,14 @@ const BOSS_TYPES = [
 ];
 
 // Spell si sbloccano salendo di livello
+const GEM_TYPES = [
+  { color:"#cc2222", label:"Rubino",   value:1  },
+  { color:"#22cc44", label:"Smeraldo", value:3  },
+  { color:"#2266ee", label:"Zaffiro",  value:8  },
+  { color:"#9922cc", label:"Ametista", value:20 },
+  { color:"#d4a820", label:"Topazio",  value:50 },
+];
+
 const SPELLS = [
   { id:"heal",      name:"CURA",    icon:"💚", cost:18, desc:"Recupera HP",   fc:"rgba(50,200,80,0.35)",   unlockAt:1 },
   { id:"ice",       name:"GELO",    icon:"❄",  cost:15, desc:"Stordisce",     fc:"rgba(100,220,255,0.35)", unlockAt:3 },
@@ -68,6 +76,7 @@ function sfx(name) {
     case "potHp":       seq([[392,0.10],[494,0.10],[659,0.14]], tr, 0.18, 0.08); break;
     case "potMp":       seq([[330,0.09],[440,0.09],[550,0.09],[660,0.12]], tr, 0.15, 0.07); break;
     case "arrowPickup": seq([[330,0.07],[440,0.07],[330,0.05]], sq, 0.10, 0.05); break;
+    case "gemPickup":   seq([[880,0.05],[1100,0.05],[1320,0.07],[1760,0.09]], tr, 0.16, 0.04); break;
     case "stairs":      seq([[220,0.10],[262,0.10],[330,0.10],[392,0.10],[440,0.14]], sq, 0.18, 0.06); break;
     case "boss":        seq([[110,0.24],[110,0.24],[165,0.24],[220,0.3],[165,0.2]], sw, 0.32, 0.16); break;
     case "lightning":   seq([[880,0.06],[660,0.06],[440,0.06],[880,0.06],[660,0.06]], sw, 0.2, 0.04); break;
@@ -188,6 +197,22 @@ function doEnemyTurn(g) {
   }
 }
 
+function dropGem(g, e) {
+  let chance, weights;
+  if (e.isBoss)       { chance=0.92; weights=[0, 5,15,45,35]; }
+  else if (e.xp>=100) { chance=0.62; weights=[15,35,30,15, 5]; }
+  else if (e.xp>=45)  { chance=0.50; weights=[40,40,18, 2, 0]; }
+  else if (e.xp>=25)  { chance=0.42; weights=[65,30, 5, 0, 0]; }
+  else                { chance=0.35; weights=[100,0,  0,  0, 0]; }
+  if (Math.random() > chance) return;
+  const total = weights.reduce((a,b)=>a+b,0);
+  let r = Math.floor(Math.random()*total), tier=0;
+  for (let i=0;i<weights.length;i++) { r-=weights[i]; if(r<0){tier=i;break;} }
+  const gem = GEM_TYPES[tier];
+  g.items.push({ type:"gem", color:gem.color, label:gem.label, value:gem.value,
+                 x:e.x, y:e.y, id:Date.now()+Math.random()*1000 });
+}
+
 function _levelUp(p, log) {
   while (p.xp >= p.xpNext) {
     p.xp -= p.xpNext; p.level++;
@@ -204,9 +229,9 @@ function newGame(floor = 1, prev = null) {
   const { map, rooms } = genDungeon();
   const start = rooms[0] ?? { cx:1, cy:1 };
   const base  = { x:start.cx, y:start.cy, hp:20, maxHp:20, atk:4,
-                  level:1, xp:0, xpNext:30, mana:0, maxMana:30, spell:0, arrows:0 };
+                  level:1, xp:0, xpNext:30, mana:0, maxMana:30, spell:0, arrows:0, gems:0 };
   const player = prev
-    ? { ...prev, x:start.cx, y:start.cy, mana:prev.mana??0, maxMana:30, spell:prev.spell??0, arrows:prev.arrows??0 }
+    ? { ...prev, x:start.cx, y:start.cy, mana:prev.mana??0, maxMana:30, spell:prev.spell??0, arrows:prev.arrows??0, gems:prev.gems??0 }
     : base;
   const isBoss = floor % 5 === 0;
   return {
@@ -290,22 +315,54 @@ function drawTile(ctx, x, y, type, map) {
     }
 
   } else if (type === T.FLOOR) {
-    ctx.fillStyle = "#070712"; ctx.fillRect(px, py, TILE, TILE);
+    // ── Terriccio: base marrone scuro con variazioni ──
+    const seed  = x * 7 + y * 13;
+    const seed2 = x * 11 + y * 17;
+    const bases = ["#1a1208","#1c1409","#1e1509","#191007","#1b1208","#1d1309","#1a1108","#1c1308"];
+    ctx.fillStyle = bases[seed % 8];
+    ctx.fillRect(px, py, TILE, TILE);
 
-    // Texture pietra irregolare
-    const g = (x*7+y*13) % 23;
-    if (g < 3)  { ctx.fillStyle="#0a0a1c"; ctx.fillRect(px+4, py+4, 4, 4); }
-    if (g > 18) { ctx.fillStyle="#0a0a1c"; ctx.fillRect(px+TILE-7, py+TILE-7, 3, 3); }
+    // Macchie di terriccio più chiaro (sabbia/argilla)
+    const v = seed % 23;
+    if (v < 5)  { ctx.fillStyle="rgba(65,38,12,0.55)"; ctx.fillRect(px+3,  py+6,  6, 3); }
+    if (v > 17) { ctx.fillStyle="rgba(50,28,8,0.60)";  ctx.fillRect(px+TILE-9,py+TILE-7,5,3); }
+    if (v>9&&v<14){ ctx.fillStyle="rgba(72,44,14,0.40)"; ctx.fillRect(px+9,py+15,7,2); }
 
-    // Grigliatura sottile (linee tra le pietre del pavimento)
-    ctx.fillStyle = "rgba(0,0,20,0.35)";
+    // Piccoli ciottoli/sassolini sparsi
+    const r2 = seed2 % 31;
+    if (r2 < 6) {
+      ctx.fillStyle="#2c2010";
+      ctx.fillRect(px+4+(r2*4)%20, py+7+(r2*6)%18, 3, 2);
+      ctx.fillStyle="#221808";
+      ctx.fillRect(px+4+(r2*4)%20+1, py+7+(r2*6)%18+1, 1, 1);
+    }
+    if (r2 > 25) {
+      ctx.fillStyle="#28180a";
+      ctx.fillRect(px+14+(r2%7), py+19+(r2%6), 2, 2);
+    }
+    // Secondo ciottolo indipendente
+    const r3 = (seed2 * 3 + 7) % 41;
+    if (r3 < 5) {
+      ctx.fillStyle="#241a0c";
+      ctx.fillRect(px+18+(r3*5)%10, py+5+(r3*7)%22, 2, 2);
+    }
+
+    // Crepe sottili nel terriccio
+    if ((seed2 % 19) === 0) {
+      ctx.fillStyle="rgba(0,0,0,0.28)";
+      ctx.fillRect(px+6, py+10, 10, 1);
+      ctx.fillRect(px+14, py+10, 1, 5);
+    }
+
+    // Bordo tile (grigliatura molto sottile)
+    ctx.fillStyle="rgba(0,0,0,0.22)";
     ctx.fillRect(px, py, TILE, 1);
     ctx.fillRect(px, py, 1, TILE);
 
     // Ombra proiettata dal muro a nord (luce dall'alto)
     if (map[y-1]?.[x] === T.WALL) {
       for (let i=0; i<FACE_H+4; i++) {
-        const alpha = 0.50 * (1 - i/(FACE_H+4));
+        const alpha = 0.55 * (1 - i/(FACE_H+4));
         ctx.fillStyle = `rgba(0,0,0,${alpha.toFixed(2)})`;
         ctx.fillRect(px, py+i, TILE, 1);
       }
@@ -313,7 +370,7 @@ function drawTile(ctx, x, y, type, map) {
     // Ombra da muro a ovest
     if (map[y]?.[x-1] === T.WALL) {
       for (let i=0; i<8; i++) {
-        const alpha = 0.25 * (1 - i/8);
+        const alpha = 0.28 * (1 - i/8);
         ctx.fillStyle = `rgba(0,0,0,${alpha.toFixed(2)})`;
         ctx.fillRect(px+i, py, 1, TILE);
       }
@@ -400,23 +457,144 @@ function drawEnemy(ctx, e) {
 }
 
 function drawPlayer(ctx, p) {
-  const px=p.x*TILE+3, py=p.y*TILE+3, s=TILE-6;
-  ctx.shadowColor="#f0c040"; ctx.shadowBlur=12;
-  ctx.fillStyle="#223380"; ctx.fillRect(px+3,py+9,s-6,s-10);
-  ctx.fillStyle="#3344aa"; ctx.fillRect(px+2,py+13,3,6); ctx.fillRect(px+s-5,py+13,3,6);
-  ctx.fillStyle="#c8a060"; ctx.fillRect(px+6,py+8,s-12,s-10);
-  ctx.fillStyle="#e8c870"; ctx.fillRect(px+7,py+1,s-14,9);
-  ctx.fillStyle="#d4a850"; ctx.fillRect(px+7,py+8,s-14,2);
-  ctx.fillStyle="#000"; ctx.fillRect(px+9,py+3,2,2); ctx.fillRect(px+s-12,py+3,2,2);
-  ctx.fillStyle="#ffffaa"; ctx.fillRect(px+10,py+3,1,1); ctx.fillRect(px+s-11,py+3,1,1);
-  ctx.fillStyle="#c8c8ff"; ctx.fillRect(px+s-4,py+5,2,13);
-  ctx.fillStyle="#ffdd88"; ctx.fillRect(px+s-6,py+9,6,2);
-  ctx.fillStyle="#886622"; ctx.fillRect(px+s-3,py+17,3,3);
-  ctx.shadowBlur=0;
-  const r=p.hp/p.maxHp;
-  ctx.fillStyle="#0a0a0a"; ctx.fillRect(px,py-5,s,3);
-  ctx.fillStyle=r>0.5?"#44cc44":r>0.25?"#ccaa22":"#cc3333";
-  ctx.fillRect(px,py-5,Math.floor(s*r),3);
+  const ox = p.x * TILE + 3;
+  const oy = p.y * TILE + 3;
+  ctx.shadowColor = "#f0c040"; ctx.shadowBlur = 16;
+
+  // ── MANTELLO (strato più basso) ──
+  ctx.fillStyle = "#7a0a0a";
+  ctx.fillRect(ox+6,  oy+9,  2, 14);   // fianco sx
+  ctx.fillRect(ox+18, oy+9,  2, 14);   // fianco dx
+  ctx.fillRect(ox+7,  oy+20, 12, 4);   // fondo mantello
+  ctx.fillStyle = "#550808";
+  ctx.fillRect(ox+8,  oy+22, 10, 2);   // ombra mantello
+
+  // ── GAMBE ──
+  ctx.fillStyle = "#445566";
+  ctx.fillRect(ox+8,  oy+19, 4, 4);
+  ctx.fillRect(ox+14, oy+19, 4, 4);
+  // Stivali
+  ctx.fillStyle = "#261406";
+  ctx.fillRect(ox+7,  oy+21, 6, 4);
+  ctx.fillRect(ox+13, oy+21, 6, 4);
+  ctx.fillStyle = "#382010";
+  ctx.fillRect(ox+8,  oy+21, 2, 1);    // riflesso stivale sx
+  ctx.fillRect(ox+14, oy+21, 2, 1);    // riflesso stivale dx
+
+  // ── CINTURA ──
+  ctx.fillStyle = "#1e1006";
+  ctx.fillRect(ox+7, oy+18, 12, 2);
+  ctx.fillStyle = "#d4a820";
+  ctx.fillRect(ox+12, oy+18, 2, 2);    // fibbia
+
+  // ── BRACCIA ──
+  ctx.fillStyle = "#4a6080";
+  ctx.fillRect(ox+3, oy+9, 4, 8);
+  ctx.fillRect(ox+19, oy+9, 4, 8);
+  // Gomitiere
+  ctx.fillStyle = "#5a7090";
+  ctx.fillRect(ox+3, oy+13, 4, 2);
+  ctx.fillRect(ox+19, oy+13, 4, 2);
+  ctx.fillStyle = "rgba(160,200,240,0.18)";
+  ctx.fillRect(ox+3, oy+9, 4, 2);
+  ctx.fillRect(ox+19, oy+9, 4, 2);
+
+  // ── SCUDO (sinistro) ──
+  ctx.fillStyle = "#162040";
+  ctx.fillRect(ox, oy+9, 3, 11);
+  ctx.fillStyle = "#c8a020";            // bordo oro
+  ctx.fillRect(ox,   oy+9,  1, 11);
+  ctx.fillRect(ox,   oy+9,  3, 1);
+  ctx.fillRect(ox,   oy+19, 3, 1);
+  ctx.fillStyle = "#bb1818";            // croce rossa
+  ctx.fillRect(ox+1, oy+12, 2, 5);
+  ctx.fillRect(ox,   oy+14, 3, 2);
+  ctx.fillStyle = "rgba(120,160,255,0.18)";
+  ctx.fillRect(ox+1, oy+10, 2, 3);     // riflesso
+
+  // ── CORPO / CORAZZA ──
+  ctx.fillStyle = "#4a6080";
+  ctx.fillRect(ox+7, oy+9, 12, 9);
+  // Nervatura centrale
+  ctx.fillStyle = "#3a5070";
+  ctx.fillRect(ox+12, oy+9, 2, 9);
+  // Linea petto orizzontale
+  ctx.fillStyle = "#607898";
+  ctx.fillRect(ox+8, oy+12, 10, 1);
+  // Riflesso corazza in alto a sinistra
+  ctx.fillStyle = "rgba(180,210,250,0.22)";
+  ctx.fillRect(ox+8, oy+9, 4, 4);
+
+  // ── SPALLACCI ──
+  ctx.fillStyle = "#3a5070";
+  ctx.fillRect(ox+4,  oy+7, 5, 4);
+  ctx.fillRect(ox+17, oy+7, 5, 4);
+  ctx.fillStyle = "rgba(180,210,250,0.20)";
+  ctx.fillRect(ox+4,  oy+7, 5, 1);
+  ctx.fillRect(ox+17, oy+7, 5, 1);
+
+  // ── SPADA (destra) ──
+  // Lama
+  ctx.fillStyle = "#d0e4f4";
+  ctx.fillRect(ox+23, oy+1, 2, 12);
+  ctx.fillStyle = "#f0f8ff";            // filo
+  ctx.fillRect(ox+23, oy+1, 1, 12);
+  ctx.fillStyle = "#8090a8";            // dorso
+  ctx.fillRect(ox+24, oy+1, 1, 12);
+  // Guardia
+  ctx.fillStyle = "#c8a020";
+  ctx.fillRect(ox+20, oy+10, 5, 2);
+  ctx.fillStyle = "#e8c030";
+  ctx.fillRect(ox+21, oy+10, 3, 1);    // riflesso guardia
+  // Impugnatura
+  ctx.fillStyle = "#5a3010";
+  ctx.fillRect(ox+23, oy+12, 2, 4);
+  // Pomolo
+  ctx.fillStyle = "#c8a020";
+  ctx.fillRect(ox+23, oy+15, 2, 2);
+
+  // ── COLLO ──
+  ctx.fillStyle = "#c09060";
+  ctx.fillRect(ox+11, oy+7, 4, 3);
+
+  // ── ELMO ──
+  // Cima elmo (arrotondato a pixel)
+  ctx.fillStyle = "#3a5070";
+  ctx.fillRect(ox+10, oy+0, 6, 2);
+  ctx.fillRect(ox+9,  oy+1, 8, 1);
+  // Corpo elmo
+  ctx.fillStyle = "#4a6080";
+  ctx.fillRect(ox+7,  oy+2, 12, 6);
+  // Visiera (slot occhi)
+  ctx.fillStyle = "#08081a";
+  ctx.fillRect(ox+9, oy+4, 8, 2);
+  // Riflessi occhi
+  ctx.fillStyle = "rgba(80,170,255,0.65)";
+  ctx.fillRect(ox+9,  oy+4, 3, 1);
+  ctx.fillRect(ox+14, oy+4, 3, 1);
+  // Nasello
+  ctx.fillStyle = "#3a5070";
+  ctx.fillRect(ox+12, oy+3, 2, 4);
+  // Bordo inferiore elmo
+  ctx.fillStyle = "#2a3a50";
+  ctx.fillRect(ox+7, oy+7, 12, 1);
+  // Riflesso elmo (luce dall'alto sx)
+  ctx.fillStyle = "rgba(190,220,255,0.24)";
+  ctx.fillRect(ox+8, oy+2, 5, 2);
+  // ── Pennacchio rosso ──
+  ctx.fillStyle = "#cc1818";
+  ctx.fillRect(ox+11, oy+0, 4, 1);
+  ctx.fillStyle = "#ee3030";
+  ctx.fillRect(ox+12, oy+0, 2, 1);
+
+  ctx.shadowBlur = 0;
+
+  // ── Barra HP ──
+  const s = TILE - 6;
+  const r = p.hp / p.maxHp;
+  ctx.fillStyle = "#0a0a0a"; ctx.fillRect(ox, oy-5, s, 3);
+  ctx.fillStyle = r>0.5?"#44cc44":r>0.25?"#ccaa22":"#cc3333";
+  ctx.fillRect(ox, oy-5, Math.floor(s*r), 3);
 }
 
 function drawPotion(ctx, item) {
@@ -445,6 +623,41 @@ function drawArrowBundle(ctx, item) {
   ctx.shadowBlur=0;
   ctx.font='5px "Press Start 2P"'; ctx.fillStyle="#c8a030"; ctx.textBaseline="top";
   ctx.fillText("x5",px+8,py+26); ctx.textBaseline="middle";
+}
+
+function drawGem(ctx, item) {
+  const cx = item.x * TILE + TILE/2;
+  const cy = item.y * TILE + TILE/2 - 2;
+  const c  = item.color;
+  ctx.shadowColor = c; ctx.shadowBlur = 10;
+
+  // Corpo diamante
+  ctx.fillStyle = c;
+  ctx.fillRect(cx-2, cy-7, 4, 1);    // punta top
+  ctx.fillRect(cx-4, cy-6, 8, 2);
+  ctx.fillRect(cx-5, cy-4, 10, 4);   // fascia centrale
+  ctx.fillRect(cx-4, cy+0, 8, 2);
+  ctx.fillRect(cx-3, cy+2, 6, 2);
+  ctx.fillRect(cx-2, cy+4, 4, 2);
+  ctx.fillRect(cx-1, cy+6, 2, 1);    // punta bottom
+
+  // Taglio superiore (riflesso luce)
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  ctx.fillRect(cx-4, cy-6, 4, 1);
+  ctx.fillRect(cx-5, cy-4, 4, 2);
+  ctx.fillRect(cx-4, cy+0, 3, 1);
+
+  // Bordo scuro (profondità)
+  ctx.fillStyle = "rgba(0,0,0,0.32)";
+  ctx.fillRect(cx+2, cy-4, 3, 4);
+  ctx.fillRect(cx+1, cy+0, 3, 2);
+
+  ctx.shadowBlur = 0;
+  // Valore sotto la gemma
+  ctx.font = '5px "Press Start 2P"'; ctx.fillStyle = c;
+  ctx.textBaseline = "top";
+  ctx.fillText(`${item.value}`, item.x*TILE + TILE/2 - 3, item.y*TILE + TILE - 7);
+  ctx.textBaseline = "middle";
 }
 
 function drawFloats(ctx, floats) {
@@ -486,12 +699,12 @@ function drawFlashEffect(ctx, type, enemies, player) {
   }
 }
 
-function drawBar(ctx, label, lx, y, val, max, barColor, labelColor, font) {
+function drawBar(ctx, label, lx, y, val, max, barColor, labelColor, font, bw=105) {
   ctx.font=`8px ${font}`; ctx.fillStyle=labelColor; ctx.fillText(label,lx,y);
-  ctx.fillStyle="#151528"; ctx.fillRect(lx+28,y-6,115,10);
-  ctx.fillStyle=barColor; ctx.fillRect(lx+28,y-6,Math.floor(115*Math.min(val/max,1)),10);
-  ctx.strokeStyle="#2e3a6e"; ctx.lineWidth=1; ctx.strokeRect(lx+28,y-6,115,10);
-  ctx.font=`6px ${font}`; ctx.fillStyle="#888"; ctx.fillText(`${val}/${max}`,lx+149,y);
+  ctx.fillStyle="#151528"; ctx.fillRect(lx+24,y-6,bw,10);
+  ctx.fillStyle=barColor; ctx.fillRect(lx+24,y-6,Math.floor(bw*Math.min(val/max,1)),10);
+  ctx.strokeStyle="#2e3a6e"; ctx.lineWidth=1; ctx.strokeRect(lx+24,y-6,bw,10);
+  ctx.font=`6px ${font}`; ctx.fillStyle="#888"; ctx.fillText(`${val}/${max}`,lx+24+bw+4,y);
 }
 
 function drawHUD(ctx, g) {
@@ -500,68 +713,77 @@ function drawHUD(ctx, g) {
   ctx.fillStyle="#2e3a6e"; ctx.fillRect(0,hy,W,2);
   ctx.textBaseline="middle";
 
-  // Barre
+  // ── Barre (sinistra, 95px) — stats su riga separata per evitare overlap ──
   const hpR=p.hp/p.maxHp;
-  drawBar(ctx,"HP",8,hy+16,p.hp,  p.maxHp,  hpR>0.5?"#44cc44":hpR>0.25?"#ccaa22":"#cc3333","#888",font);
-  drawBar(ctx,"MP",8,hy+34,p.mana,p.maxMana,"#3a6ee8","#8888cc",font);
-  drawBar(ctx,"XP",8,hy+52,p.xp,  p.xpNext, "#5560c8","#555",   font);
+  drawBar(ctx,"HP",6,hy+16,p.hp,  p.maxHp,  hpR>0.5?"#44cc44":hpR>0.25?"#ccaa22":"#cc3333","#7a8aaa",font,95);
+  drawBar(ctx,"MP",6,hy+34,p.mana,p.maxMana,"#3a6ee8","#6677aa",font,95);
+  drawBar(ctx,"XP",6,hy+52,p.xp,  p.xpNext, "#5560c8","#445",   font,95);
 
-  // Stats
-  ctx.font=`8px ${font}`;
-  ctx.fillStyle="#f0c040"; ctx.fillText(`LV.${p.level}`,  222,hy+16);
-  ctx.fillStyle="#ff8888"; ctx.fillText(`ATK ${p.atk}`,   222,hy+34);
-  const boss=g.floor%5===0;
-  ctx.fillStyle=boss?"#ff4444":"#5b8dee"; ctx.fillText(`P.${g.floor}${boss?" ⚠":""}`,222,hy+52);
+  // ── Stats: riga dedicata sotto le barre ──────
   ctx.font=`7px ${font}`;
-  ctx.fillStyle=p.arrows>0?"#c8a030":"#2a2a2a";
-  ctx.fillText(`🏹 ${p.arrows}`,222,hy+70);
+  ctx.fillStyle="#f0c040";                         ctx.fillText(`LV.${p.level}`,  6, hy+70);
+  ctx.fillStyle="#ff8888";                         ctx.fillText(`ATK ${p.atk}`, 50, hy+70);
+  const boss=g.floor%5===0;
+  ctx.fillStyle=boss?"#ff4444":"#5b8dee";          ctx.fillText(`P.${g.floor}${boss?" ⚠":""}`, 96, hy+70);
+  ctx.fillStyle=p.arrows>0?"#c8a030":"#252525";    ctx.fillText(`🏹 ${p.arrows}`, 138, hy+70);
+  ctx.fillStyle=p.gems>0?"#cc44ee":"#252525";      ctx.fillText(`💎 ${p.gems}`,   178, hy+70);
 
-  // 4 slot spell
-  const slotX=318, slotW=42, slotH=HUD-6, gap=2;
+  // ── Messaggi ────────────────────────────────
+  const msgs=g.messages.slice(-2);
+  ctx.font=`6px ${font}`;
+  msgs.forEach((m,i)=>{
+    ctx.fillStyle=i===msgs.length-1?"#c0d0e0":"#333a4a";
+    ctx.fillText(m.slice(0,34),6,hy+88+i*18);
+  });
+
+  // ── 4 Slot spell (x=240, 4×106px) ───────────
+  const slotX=240, slotW=106, gap=2, slotH=HUD-8;
+
   SPELLS.forEach((sp, i) => {
     const locked  = sp.unlockAt > p.level;
     const active  = i === p.spell;
     const canCast = !locked && p.mana >= sp.cost;
     const bx = slotX + i*(slotW+gap);
+    const by = hy+4;
+    const cx = bx+slotW/2;
 
-    ctx.strokeStyle = active ? (canCast?"#5588ff":"#887700") : (locked?"#1a1a2a":"#252540");
-    ctx.lineWidth=1; ctx.strokeRect(bx,hy+3,slotW,slotH);
-    ctx.fillStyle = active?"#07072a":"#020210"; ctx.fillRect(bx+1,hy+4,slotW-2,slotH-2);
+    ctx.strokeStyle = active ? (canCast?"#5599ff":"#aa9900") : (locked?"#181828":"#222240");
+    ctx.lineWidth=2; ctx.strokeRect(bx,by,slotW,slotH);
+    ctx.fillStyle = active ? "#060622" : "#020212";
+    ctx.fillRect(bx+1,by+1,slotW-2,slotH-2);
+    if (active) {
+      ctx.fillStyle = canCast?"#f0c040":"#886600";
+      ctx.fillRect(bx+1,by+1,slotW-2,3);
+    }
 
     ctx.textAlign="center";
     if (locked) {
-      ctx.font=`9px ${font}`; ctx.fillStyle="#222";
-      ctx.fillText(sp.icon, bx+slotW/2, hy+18);
-      ctx.font=`4px ${font}`; ctx.fillStyle="#2a2a3a";
-      ctx.fillText(sp.name,    bx+slotW/2, hy+32);
-      ctx.fillText(`LV${sp.unlockAt}`,bx+slotW/2, hy+44);
-      ctx.fillText("LOCK",     bx+slotW/2, hy+56);
+      ctx.font=`18px ${font}`; ctx.fillStyle="#1c1c34";
+      ctx.fillText(sp.icon, cx, by+26);
+      ctx.font=`7px ${font}`; ctx.fillStyle="#443322";
+      ctx.fillText(sp.name, cx, by+48);
+      ctx.fillStyle="#cc5533";
+      ctx.fillText(`🔒 LV.${sp.unlockAt}`, cx, by+66);
+      ctx.fillStyle="#332";
+      ctx.fillText(`[${i+1}]`, cx, by+84);
     } else {
-      ctx.font=`10px ${font}`; ctx.fillStyle=active?(canCast?"#ffffff":"#cccc44"):"#778";
-      ctx.fillText(sp.icon, bx+slotW/2, hy+18);
-      ctx.font=`4px ${font}`; ctx.fillStyle=active?"#aabbff":"#445";
-      ctx.fillText(sp.name,    bx+slotW/2, hy+32);
-      ctx.fillStyle=canCast?"#4488ff":"#333";
-      ctx.fillText(`${sp.cost}MP`, bx+slotW/2, hy+44);
-      ctx.fillStyle="#555"; ctx.fillText(`[${i+1}]`,bx+slotW/2, hy+56);
-      if (active) { ctx.fillStyle="#f0c040"; ctx.fillRect(bx+1,hy+3,slotW-2,2); }
+      ctx.font=`20px ${font}`;
+      ctx.fillStyle = active ? (canCast?"#ffffff":"#ddcc44") : "#5566aa";
+      ctx.fillText(sp.icon, cx, by+26);
+      ctx.font=`7px ${font}`;
+      ctx.fillStyle = active ? "#d0e8ff" : "#4a5a7a";
+      ctx.fillText(sp.name, cx, by+48);
+      ctx.font=`6px ${font}`;
+      ctx.fillStyle = canCast ? "#44aaff" : "#553333";
+      ctx.fillText(`${sp.cost} MP`, cx, by+64);
+      ctx.fillStyle = active ? "#3a5090" : "#222838";
+      ctx.fillText(`[${i+1}]`, cx, by+80);
+      if (active) {
+        ctx.fillStyle = canCast?"#2a5080":"#3a2200";
+        ctx.fillText("SPACE", cx, by+98);
+      }
     }
     ctx.textAlign="left";
-  });
-
-  // Hint
-  const hx = slotX + 4*(slotW+gap) + 4;
-  ctx.font=`5px ${font}`; ctx.fillStyle="#2a3050";
-  ctx.fillText("SPACE",hx,hy+14); ctx.fillText("lancia",hx,hy+24);
-  ctx.fillText("F",hx,hy+38);     ctx.fillText("arco",hx,hy+48);
-  ctx.fillText("1-4",hx,hy+62);   ctx.fillText("spell",hx,hy+72);
-
-  // Messaggi
-  const msgs=g.messages.slice(-2);
-  ctx.font=`6px ${font}`;
-  msgs.forEach((m,i)=>{
-    ctx.fillStyle=i===msgs.length-1?"#b8c8d8":"#2a3040";
-    ctx.fillText(m.slice(0,48),8,hy+82+i*16);
   });
 }
 
@@ -637,7 +859,11 @@ export default function Gioco() {
       for (let x=0; x<COLS; x++)
         if (g.map[y][x] === T.WALL) drawTile(ctx,x,y,g.map[y][x],g.map);
 
-    g.items.forEach(it => it.type==="arrows" ? drawArrowBundle(ctx,it) : drawPotion(ctx,it));
+    g.items.forEach(it => {
+      if (it.type==="arrows") drawArrowBundle(ctx,it);
+      else if (it.type==="gem") drawGem(ctx,it);
+      else drawPotion(ctx,it);
+    });
     g.enemies.forEach(e=>drawEnemy(ctx,e));
     drawPlayer(ctx,g.player);
     drawFloats(ctx,g.floats);
@@ -674,7 +900,9 @@ export default function Gioco() {
     log(`🏹 Freccia! ${dmg} danni a ${nearest.name}! (rimaste:${p.arrows})`);
     sfx("bowShoot");
     if (nearest.hp<=0) {
-      const idx=g.enemies.indexOf(nearest); g.enemies.splice(idx,1);
+      const idx=g.enemies.indexOf(nearest);
+      dropGem(g,nearest);
+      g.enemies.splice(idx,1);
       log(`${nearest.name} abbattuto! +${nearest.xp} XP`);
       sfx("kill"); p.xp+=nearest.xp; _levelUp(p,log);
     }
@@ -717,7 +945,7 @@ export default function Gioco() {
       log(`💚 CURA! +${heal} HP`); sfx("heal");
     }
     const before=g.enemies.length; let xpG=0;
-    g.enemies.forEach(e=>{if(e.hp<=0)xpG+=e.xp;});
+    g.enemies.forEach(e=>{if(e.hp<=0){xpG+=e.xp;dropGem(g,e);}});
     g.enemies=g.enemies.filter(e=>e.hp>0);
     if (before-g.enemies.length>0){p.xp+=xpG;log(`+${xpG} XP`);sfx("kill");_levelUp(p,log);}
     g.messages=g.messages.slice(-30);
@@ -743,6 +971,10 @@ export default function Gioco() {
       } else if (it.type==="mana") {
         p.mana=Math.min(p.mana+20,p.maxMana);
         g.floats.push({x:nx,y:ny,text:"+20MP",color:"#88aaff"}); log(`✦ +20 Mana`); sfx("potMp");
+      } else if (it.type==="gem") {
+        p.gems+=it.value;
+        g.floats.push({x:nx,y:ny,text:`+${it.value}💎`,color:it.color});
+        log(`💎 ${it.label}! +${it.value} (tot. ${p.gems})`); sfx("gemPickup");
       } else {
         p.arrows+=it.value;
         g.floats.push({x:nx,y:ny,text:`+${it.value}🏹`,color:"#c8a030"});
@@ -757,7 +989,7 @@ export default function Gioco() {
       const dmg=Math.max(1,p.atk+Math.floor(Math.random()*3)-1);
       e.hp-=dmg; g.floats.push({x:e.x,y:e.y,text:`-${dmg}`,color:"#ffaa44"});
       log(`Attacchi ${e.name} per ${dmg}!`); sfx("swing");
-      if (e.hp<=0){log(`${e.name} sconfitto!${e.isBoss?" BOSS DOWN!":""} +${e.xp} XP`);p.xp+=e.xp;g.enemies.splice(ei,1);sfx("kill");_levelUp(p,log);}
+      if (e.hp<=0){log(`${e.name} sconfitto!${e.isBoss?" BOSS DOWN!":""} +${e.xp} XP`);p.xp+=e.xp;dropGem(g,e);g.enemies.splice(ei,1);sfx("kill");_levelUp(p,log);}
     } else {
       p.x=nx; p.y=ny;
       if (g.map[ny][nx]===T.STAIRS) {
@@ -811,10 +1043,8 @@ export default function Gioco() {
 
   const DPAD=[[1,"↑",0,-1],[3,"←",-1,0],[5,"→",1,0],[7,"↓",0,1]];
 
-  // Stili pulsanti riutilizzabili
   const btnBase = { fontFamily:'"Press Start 2P"', cursor:"pointer", borderRadius:4, border:"none" };
-  const sz  = isFullscreen ? 46 : 52;   // dimensione celle D-pad
-  const fsz = isFullscreen ? 18 : 20;   // font icona D-pad
+  const sz = 44;  // celle D-pad (sempre compatto in side layout)
 
   const selectSpell = (i) => {
     const g = gameRef.current;
@@ -822,137 +1052,110 @@ export default function Gioco() {
     else { g.messages.push(`${SPELLS[i].name}: LV${SPELLS[i].unlockAt}`); draw(); }
   };
 
-  // ── D-Pad ─────────────────────────────────────
-  const DPad = () => (
-    <div style={{display:"grid",gridTemplateColumns:`repeat(3,${sz}px)`,
-                 gridTemplateRows:`repeat(3,${sz}px)`,gap:3}}>
-      {Array.from({length:9},(_,i)=>{
-        const d=DPAD.find(([gi])=>gi===i);
-        return (
-          <button key={i} onClick={()=>d&&move(d[2],d[3])}
-            style={{...btnBase,background:d?"#12122a":"transparent",
-                    border:d?"2px solid #2e3a6e":"none",
-                    color:"#f0c040",fontSize:fsz,
-                    display:"flex",alignItems:"center",justifyContent:"center",
-                    cursor:d?"pointer":"default"}}>
-            {d?d[1]:""}
-          </button>
-        );
-      })}
-    </div>
-  );
-
-  // ── Pulsanti azione ────────────────────────────
-  const SpellGrid = () => (
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}}>
-      {SPELLS.map((sp,i)=>(
-        <button key={sp.id} onClick={()=>selectSpell(i)}
-          style={{...btnBase,background:"#0a0a1e",border:"2px solid #2a3050",
-                  color:"#aaa",padding:"0.3rem 0.4rem",
-                  fontSize:isFullscreen?"0.38rem":"0.45rem"}}>
-          {sp.icon} {i+1}
-        </button>
-      ))}
-    </div>
-  );
-
-  const ActionBtns = () => (
-    <div style={{display:"flex",flexDirection:isFullscreen?"column":"row",
-                 gap:3,alignItems:"stretch"}}>
-      <button onClick={castSpell}
-        style={{...btnBase,background:"#0a0a2a",border:"2px solid #3a6ee8",
-                color:"#88aaff",padding:"0.3rem 0.5rem",
-                fontSize:isFullscreen?"0.38rem":"0.45rem"}}>
-        SPELL
-      </button>
-      <button onClick={shoot}
-        style={{...btnBase,background:"#0a0800",border:"2px solid #8b6020",
-                color:"#c8a030",padding:"0.3rem 0.5rem",
-                fontSize:isFullscreen?"0.38rem":"0.45rem"}}>
-        🏹 ARCO
-      </button>
-      <button onClick={toggleMute} title={muted?"Attiva audio":"Muta audio"}
-        style={{...btnBase,background:"#080810",border:"2px solid #334",
-                color:muted?"#cc4444":"#556",padding:"0.3rem 0.5rem",
-                fontSize:isFullscreen?"0.38rem":"0.45rem"}}>
-        {muted?"🔇":"🔊"}
-      </button>
-    </div>
-  );
-
-  // ── Canvas ────────────────────────────────────
-  const Canvas = () => (
-    <canvas
-      ref={canvasRef} width={W} height={H+HUD}
-      onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
-      style={{imageRendering:"pixelated",border:"2px solid #2e3a6e",
-              boxShadow:"0 0 32px rgba(60,80,200,0.25)",borderRadius:4,
-              touchAction:"none",cursor:"crosshair",
-              ...(isFullscreen
-                ? { height:"100dvh", width:"auto", maxHeight:"100dvh", display:"block" }
-                : { maxWidth:"100%" })}}
-    />
-  );
-
-  // ── Pulsante fullscreen (visibile solo su touch) ──
-  const FsBtn = ({ style }) => isMobile && (
-    <button onClick={toggleFullscreen} title={isFullscreen?"Esci fullscreen":"Fullscreen"}
-      style={{...btnBase,background:"#08080e",border:"2px solid #2a3060",
-              color:"#445",padding:"0.3rem 0.5rem",fontSize:"0.8rem",...style}}>
-      {isFullscreen?"✕":"⛶"}
-    </button>
-  );
-
   // ══════════════════════════════════════════════
-  //  LAYOUT FULLSCREEN: controlli ai lati del canvas
+  //  LAYOUT SEMPRE A FIANCO: [D-PAD] [CANVAS] [SPELL]
+  //  Il canvas scala in altezza in base al viewport
   // ══════════════════════════════════════════════
-  if (isFullscreen) {
-    return (
-      <div ref={containerRef}
-        style={{display:"flex",flexDirection:"row",alignItems:"center",justifyContent:"center",
-                background:"#040410",width:"100%",height:"100%",gap:"0.4rem",boxSizing:"border-box"}}>
+  const panelStyle = {
+    display:"flex", flexDirection:"column",
+    alignItems:"center", justifyContent:"center",
+    gap:6, flexShrink:0, padding:"0 4px",
+  };
 
-        {/* Sinistra: D-pad */}
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-                     justifyContent:"center",gap:6,flex:"0 0 auto",padding:"0 4px"}}>
-          <DPad />
-        </div>
+  // Canvas: altezza = viewport - topbar(56px) - padding, larghezza automatica
+  const canvasH = isFullscreen ? "100dvh" : "calc(100dvh - 64px)";
 
-        {/* Centro: canvas */}
-        <Canvas />
-
-        {/* Destra: spell + azioni */}
-        <div style={{display:"flex",flexDirection:"column",alignItems:"center",
-                     justifyContent:"center",gap:6,flex:"0 0 auto",padding:"0 4px"}}>
-          <SpellGrid />
-          <ActionBtns />
-          <FsBtn />
-        </div>
-      </div>
-    );
-  }
-
-  // ══════════════════════════════════════════════
-  //  LAYOUT NORMALE (desktop / verticale)
-  // ══════════════════════════════════════════════
   return (
     <div ref={containerRef}
-      style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.75rem"}}>
-      <Canvas />
+      style={{
+        display:"flex", flexDirection:"row",
+        alignItems:"center", justifyContent:"center",
+        width:"100%", flex:1,
+        gap:"0.35rem",
+        ...(isFullscreen ? { background:"#040410", height:"100dvh" } : {}),
+      }}>
 
-      <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"0.5rem"}}>
-        <DPad />
-        <div style={{display:"flex",gap:"0.4rem",flexWrap:"wrap",justifyContent:"center",alignItems:"center"}}>
-          <SpellGrid />
-          <ActionBtns />
-          <FsBtn />
+      {/* ── Sinistra: D-pad ── */}
+      <div style={panelStyle}>
+        <div style={{display:"grid",
+                     gridTemplateColumns:`repeat(3,${sz}px)`,
+                     gridTemplateRows:`repeat(3,${sz}px)`,gap:3}}>
+          {Array.from({length:9},(_,i)=>{
+            const d=DPAD.find(([gi])=>gi===i);
+            return (
+              <button key={i} onClick={()=>d&&move(d[2],d[3])}
+                style={{...btnBase,background:d?"#12122a":"transparent",
+                        border:d?"2px solid #2e3a6e":"none",
+                        color:"#f0c040",fontSize:18,
+                        display:"flex",alignItems:"center",justifyContent:"center",
+                        cursor:d?"pointer":"default"}}>
+                {d?d[1]:""}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <p style={{fontFamily:'"Press Start 2P"',fontSize:"0.4rem",color:"#3a4a7a",
-                 textAlign:"center",lineHeight:2.2}}>
-        WASD/↑↓←→ muovi · SPACE spell · F arco · 1-4 cambia · R ricomincia
-      </p>
+      {/* ── Centro: canvas ── */}
+      <canvas
+        ref={canvasRef} width={W} height={H+HUD}
+        onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}
+        style={{
+          imageRendering:"pixelated",
+          border:"2px solid #2e3a6e",
+          boxShadow:"0 0 32px rgba(60,80,200,0.25)",
+          borderRadius:4, touchAction:"none", cursor:"crosshair",
+          maxHeight: canvasH,
+          width:"auto", display:"block", flexShrink:1,
+        }}
+      />
+
+      {/* ── Destra: spell + azioni ── */}
+      <div style={panelStyle}>
+        {/* Griglia 2×2 selezione spell */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:3}}>
+          {SPELLS.map((sp,i)=>(
+            <button key={sp.id} onClick={()=>selectSpell(i)}
+              style={{...btnBase,background:"#0a0a1e",border:"2px solid #2a3050",
+                      color:"#aaa",padding:"0.3rem 0.35rem",fontSize:"0.38rem",
+                      textAlign:"center",lineHeight:1.6}}>
+              {sp.icon}<br/>{i+1}
+            </button>
+          ))}
+        </div>
+        {/* Arco */}
+        <button onClick={shoot}
+          style={{...btnBase,background:"#0a0800",border:"2px solid #8b6020",
+                  color:"#c8a030",padding:"0.4rem 0.5rem",fontSize:"0.38rem",width:"100%"}}>
+          🏹 ARCO
+        </button>
+        {/* Lancia spell */}
+        <button onClick={castSpell}
+          style={{...btnBase,background:"#0a0a2a",border:"2px solid #3a6ee8",
+                  color:"#88aaff",padding:"0.4rem 0.5rem",fontSize:"0.38rem",width:"100%"}}>
+          SPELL
+        </button>
+        {/* Mute */}
+        <button onClick={toggleMute}
+          style={{...btnBase,background:"#080810",border:"2px solid #334",
+                  color:muted?"#cc4444":"#446",padding:"0.3rem 0.5rem",
+                  fontSize:"0.7rem",width:"100%"}}>
+          {muted?"🔇":"🔊"}
+        </button>
+        {/* Fullscreen (solo touch) */}
+        {isMobile && (
+          <button onClick={toggleFullscreen}
+            style={{...btnBase,background:"#08080e",border:"2px solid #2a3060",
+                    color:"#334",padding:"0.3rem 0.5rem",fontSize:"0.7rem",width:"100%"}}>
+            {isFullscreen?"✕":"⛶"}
+          </button>
+        )}
+        {/* Legenda mini */}
+        <p style={{fontFamily:'"Press Start 2P"',fontSize:"0.3rem",color:"#2a3050",
+                   textAlign:"center",lineHeight:2,margin:0}}>
+          WASD/↑↓←→<br/>F=arco<br/>1-4 spell<br/>R reset
+        </p>
+      </div>
     </div>
   );
 }

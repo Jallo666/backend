@@ -551,6 +551,16 @@ input:focus {
   user-select: none;
 }
 
+/* ── GIOCA WRAPPER (full-viewport, fuori dal max-width) */
+.gioca-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0.25rem;
+}
+
 /* ── RESPONSIVE ────────────────────────────────────── */
 @media (max-width: 480px) {
   .topbar {
