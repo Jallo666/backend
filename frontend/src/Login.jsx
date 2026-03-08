@@ -19,39 +19,41 @@ function Login({ onLogin, onVaiRegistrazione }) {
       if (res.ok) {
         onLogin(await res.json());
       } else {
-        setErrore("Email o password non validi");
+        setErrore("► Credenziali non valide");
       }
     } catch {
-      setErrore("Impossibile contattare il server");
+      setErrore("► Impossibile contattare il server");
     }
   };
 
   return (
     <div className="auth-container">
       <div className="auth-box">
+        <div className="game-title">⚔ QUEST BOARD ⚔</div>
+        <p className="game-subtitle">─── Accedi al tuo account ───</p>
         <div className="card">
-          <h1>Bentornato</h1>
-          <p className="subtitle">Accedi al tuo account</p>
+          <h1>ACCESSO</h1>
+          <p className="subtitle">Inserisci le credenziali dell'eroe</p>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <input
                 type="email"
-                placeholder="Email"
+                placeholder="✉ Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
               <input
                 type="password"
-                placeholder="Password"
+                placeholder="🔑 Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
-            <button type="submit" className="btn btn-primary">Accedi</button>
+            <button type="submit" className="btn btn-primary">▶ ENTRA</button>
             <button type="button" className="btn btn-secondary" onClick={onVaiRegistrazione}>
-              Crea un account
+              Crea nuovo personaggio
             </button>
             {errore && <p className="error">{errore}</p>}
           </form>

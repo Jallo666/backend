@@ -20,24 +20,26 @@ function Registrazione({ onRegistrato, onVaiLogin }) {
       onRegistrato(await res.json());
     } else {
       const msg = await res.text();
-      setErrore(msg || "Errore durante la registrazione");
+      setErrore("► " + (msg || "Errore durante la registrazione"));
     }
   };
 
   return (
     <div className="auth-container">
       <div className="auth-box">
+        <div className="game-title">⚔ QUEST BOARD ⚔</div>
+        <p className="game-subtitle">─── Crea il tuo personaggio ───</p>
         <div className="card">
-          <h1>Crea account</h1>
-          <p className="subtitle">Registrati per iniziare</p>
+          <h1>NUOVO EROE</h1>
+          <p className="subtitle">Scegli il tuo nome e unisciti alla gilda</p>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <input placeholder="Nome" value={form.nome} onChange={set("nome")} required />
-              <input placeholder="Cognome" value={form.cognome} onChange={set("cognome")} required />
-              <input type="email" placeholder="Email" value={form.email} onChange={set("email")} required />
-              <input type="password" placeholder="Password" value={form.password} onChange={set("password")} required />
+              <input placeholder="★ Nome" value={form.nome} onChange={set("nome")} required />
+              <input placeholder="★ Cognome" value={form.cognome} onChange={set("cognome")} required />
+              <input type="email" placeholder="✉ Email" value={form.email} onChange={set("email")} required />
+              <input type="password" placeholder="🔑 Password" value={form.password} onChange={set("password")} required />
             </div>
-            <button type="submit" className="btn btn-primary">Registrati</button>
+            <button type="submit" className="btn btn-primary">▶ REGISTRATI</button>
             <button type="button" className="btn btn-secondary" onClick={onVaiLogin}>
               Hai già un account? Accedi
             </button>
