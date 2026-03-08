@@ -1,4 +1,18 @@
-﻿var app = WebApplication.CreateBuilder(args).Build();
+﻿var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+var app = builder.Build();
+
+app.UseCors();
 
 var utenti = new List<Utente>
 {

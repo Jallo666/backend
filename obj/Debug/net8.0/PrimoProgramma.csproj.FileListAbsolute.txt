@@ -25,3 +25,5 @@ C:\Users\gianl\PrimoProgramma\obj\Debug\net8.0\refint\PrimoProgramma.dll
 C:\Users\gianl\PrimoProgramma\obj\Debug\net8.0\PrimoProgramma.pdb
 C:\Users\gianl\PrimoProgramma\obj\Debug\net8.0\PrimoProgramma.genruntimeconfig.cache
 C:\Users\gianl\PrimoProgramma\obj\Debug\net8.0\ref\PrimoProgramma.dll
+C:\Users\gianl\PrimoProgramma\bin\Debug\net8.0\frontend\package-lock.json
+C:\Users\gianl\PrimoProgramma\bin\Debug\net8.0\frontend\package.json
