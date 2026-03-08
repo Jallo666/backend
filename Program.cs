@@ -43,8 +43,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     }
     else
     {
-        // Render fornisce l'URL nel formato postgres://user:pass@host:port/db
-        // Npgsql vuole il formato ADO.NET, quindi convertiamo
         if (connStr.StartsWith("postgres://") || connStr.StartsWith("postgresql://"))
         {
             var uri = new Uri(connStr);
@@ -66,10 +64,32 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+
+    // Migrazione manuale: aggiunge Ruolo se la tabella esiste già senza quella colonna
+    try
+    {
+        db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Ruolo\" text NOT NULL DEFAULT 'user'");
+    }
+    catch { /* colonna già presente */ }
+
+    // Seed admin
+    if (!db.Utenti.Any(u => u.Ruolo == "admin"))
+    {
+        var adminPassword = app.Configuration["Admin:Password"] ?? "Admin123!";
+        db.Utenti.Add(new Utente
+        {
+            Nome = "Admin",
+            Cognome = "",
+            Email = "admin@admin.com",
+            Password = BCrypt.Net.BCrypt.HashPassword(adminPassword),
+            Ruolo = "admin"
+        });
+        db.SaveChanges();
+    }
 }
 
 app.MapGet("/utenti", async (AppDbContext db) =>
-    await db.Utenti.Select(u => new { u.Id, u.Nome, u.Cognome, u.Email }).ToListAsync())
+    await db.Utenti.Select(u => new { u.Id, u.Nome, u.Cognome, u.Email, u.Ruolo }).ToListAsync())
     .RequireAuthorization();
 
 app.MapPost("/login", async (LoginRequest req, AppDbContext db) =>
@@ -79,7 +99,7 @@ app.MapPost("/login", async (LoginRequest req, AppDbContext db) =>
         return Results.Unauthorized();
 
     var token = GeneraToken(utente, key);
-    return Results.Ok(new { utente.Id, utente.Nome, utente.Cognome, utente.Email, token });
+    return Results.Ok(new { utente.Id, utente.Nome, utente.Cognome, utente.Email, utente.Ruolo, token });
 });
 
 app.MapPost("/registrati", async (RegistrazioneRequest req, AppDbContext db) =>
@@ -93,13 +113,29 @@ app.MapPost("/registrati", async (RegistrazioneRequest req, AppDbContext db) =>
         Cognome = req.Cognome,
         Email = req.Email,
         Password = BCrypt.Net.BCrypt.HashPassword(req.Password),
+        Ruolo = "user",
     };
     db.Utenti.Add(utente);
     await db.SaveChangesAsync();
 
     var token = GeneraToken(utente, key);
-    return Results.Ok(new { utente.Id, utente.Nome, utente.Cognome, utente.Email, token });
+    return Results.Ok(new { utente.Id, utente.Nome, utente.Cognome, utente.Email, utente.Ruolo, token });
 });
+
+app.MapDelete("/utenti/{id}", async (int id, ClaimsPrincipal user, AppDbContext db) =>
+{
+    var currentUserId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    if (currentUserId == id)
+        return Results.BadRequest("Non puoi eliminare te stesso");
+
+    var utente = await db.Utenti.FindAsync(id);
+    if (utente is null)
+        return Results.NotFound();
+
+    db.Utenti.Remove(utente);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+}).RequireAuthorization(p => p.RequireRole("admin"));
 
 app.Run();
 
@@ -108,7 +144,8 @@ string GeneraToken(Utente utente, SymmetricSecurityKey key)
     var claims = new[]
     {
         new Claim(ClaimTypes.NameIdentifier, utente.Id.ToString()),
-        new Claim(ClaimTypes.Email, utente.Email)
+        new Claim(ClaimTypes.Email, utente.Email),
+        new Claim(ClaimTypes.Role, utente.Ruolo)
     };
     var jwt = new JwtSecurityToken(
         claims: claims,
@@ -130,6 +167,7 @@ class Utente
     public string Cognome { get; set; } = "";
     public string Email { get; set; } = "";
     public string Password { get; set; } = "";
+    public string Ruolo { get; set; } = "user";
 }
 
 record LoginRequest(string Email, string Password);

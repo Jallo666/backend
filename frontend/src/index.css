@@ -177,3 +177,36 @@ input:focus {
   font-size: 0.85rem;
   color: #888;
 }
+
+.badge-admin {
+  display: inline-block;
+  background: #6c63ff;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  letter-spacing: 0.05em;
+  margin-top: 0.2rem;
+}
+
+.avatar-admin {
+  background: #ff4d4f;
+}
+
+.btn-delete {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #ccc;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.btn-delete:hover {
+  color: #ff4d4f;
+  background: #fff0f0;
+}
