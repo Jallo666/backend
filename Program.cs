@@ -38,9 +38,21 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var connStr = builder.Configuration.GetConnectionString("Default");
     if (string.IsNullOrEmpty(connStr))
+    {
         options.UseSqlite("Data Source=locale.db");
+    }
     else
+    {
+        // Render fornisce l'URL nel formato postgres://user:pass@host:port/db
+        // Npgsql vuole il formato ADO.NET, quindi convertiamo
+        if (connStr.StartsWith("postgres://") || connStr.StartsWith("postgresql://"))
+        {
+            var uri = new Uri(connStr);
+            var userInfo = uri.UserInfo.Split(':');
+            connStr = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+        }
         options.UseNpgsql(connStr);
+    }
 });
 
 var app = builder.Build();
