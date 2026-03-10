@@ -7,9 +7,32 @@ import { drawTile, drawEnemy, drawPlayer, drawPotion, drawArrowBundle, drawGem,
 import { actionMove, actionShoot, actionCastSpell } from "./game/actions.js";
 import { DPAD_DIRS, createKeyHandler } from "./game/input.js";
 
-export default function Gioco() {
+const SAVE_KEY = "qb_game_stats";
+
+function saveStats(g) {
+  try {
+    const p = g.player;
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      floor:   g.floor,
+      level:   p.level,
+      hp:      p.hp,
+      maxHp:   p.maxHp,
+      mana:    p.mana,
+      maxMana: p.maxMana,
+      atk:     p.atk,
+      xp:      p.xp,
+      xpNext:  p.xpNext,
+      arrows:  p.arrows,
+      gems:    p.gems,
+      gold:    p.gold ?? 0,
+      spell:   p.spell,
+    }));
+  } catch {}
+}
+
+export default function Gioco({ startFloor = 1, saveData = null, onBackToMenu }) {
   const canvasRef    = useRef(null);
-  const gameRef      = useRef(newGame(1));
+  const gameRef      = useRef(newGame(startFloor, saveData));
   const touchRef     = useRef(null);
   const audioReady   = useRef(false);
   const containerRef = useRef(null);
@@ -82,6 +105,9 @@ export default function Gioco() {
     drawHUD(ctx, g);
     drawOverlay(ctx, g.status);
     g.floats = [];
+
+    // Salva stats in localStorage dopo ogni frame
+    saveStats(g);
   }, []);
 
   const move = useCallback((dx, dy) => {
@@ -181,6 +207,14 @@ export default function Gioco() {
             );
           })}
         </div>
+        {onBackToMenu && (
+          <button onClick={onBackToMenu}
+            style={{ ...btnBase, background: "#0a0810", border: "2px solid #2a2060",
+                     color: "#6060aa", padding: "0.3rem 0.5rem", fontSize: "0.35rem",
+                     marginTop: 6, width: `${sz * 3 + 6}px` }}>
+            ← MENU
+          </button>
+        )}
       </div>
 
       {/* ── Centro: canvas ── */}

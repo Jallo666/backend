@@ -1,0 +1,267 @@
+// ── Stato di gioco Quest Board ────────────────────────────────────────────────
+import {
+  getValidMoves, resolveCombat, checkWin,
+  createRotationTracker, registerMove, applyEndRoundHeal,
+  canMoveInRotation, isBlocked,
+} from "./qb_rules.js";
+import { chooseBestMove, createAiFormation } from "./qb_ai.js";
+import { fromApi } from "./qb_pieces.js";
+
+// ── Crea stato iniziale ───────────────────────────────────────────────────────
+// formazioneSalvata: [{id (uid pezzo), row, col, isRe}] dal backend
+// inventario: pezzi dal backend
+export function createGame(inventario, formazioneSalvata) {
+  // inventario è già convertito via fromApi in Formazione.jsx
+  // ogni pezzo ha: { uid: numericDbId, id: "guerriero", ... }
+  const pezziMap = Object.fromEntries(inventario.map(p => [p.uid, p]));
+
+  // Costruisci pezzi giocatore dalla formazione salvata
+  // ogni slot ha: { uid: numericDbId, row, col, isRe }
+  const playerPieces = formazioneSalvata.map((slot, i) => {
+    const base = pezziMap[slot.uid];
+    if (!base) return null;
+    return {
+      ...base,
+      hp:   base.hpMax, // ripristina HP pieni a inizio partita
+      row:  slot.row,
+      col:  slot.col,
+      isRe: slot.isRe,
+      side: "player",
+      uid:  `player_${base.uid}_${i}`,
+    };
+  }).filter(Boolean);
+
+  const aiPieces = createAiFormation();
+
+  return {
+    playerPieces,
+    aiPieces,
+    turn:   "player",          // "player" | "ai"
+    round:  1,
+    status: "coinflip",        // "coinflip" | "playing" | "over"
+    winner: null,              // null | "player" | "ai" | "draw"
+    playerRotation: createRotationTracker(playerPieces),
+    aiRotation:     createRotationTracker(aiPieces),
+    log:    [],                // messaggi di partita
+    combatAnim: null,          // animazione combattimento in corso
+    selected: null,            // uid pezzo selezionato dal giocatore
+    validMoves: [],            // mosse valide per il pezzo selezionato
+  };
+}
+
+// ── Coin flip ─────────────────────────────────────────────────────────────────
+export function resolveCoinFlip(state, playerChoosesFirst) {
+  return {
+    ...state,
+    turn:   playerChoosesFirst ? "player" : "ai",
+    status: "playing",
+    log:    [playerChoosesFirst
+      ? "Hai vinto il tiro! Vai per primo."
+      : "L'avversario va per primo."],
+  };
+}
+
+// ── Selezione pezzo giocatore ─────────────────────────────────────────────────
+export function selectPiece(state, uid) {
+  if (state.turn !== "player" || state.status !== "playing") return state;
+
+  const piece = state.playerPieces.find(p => p.uid === uid);
+  if (!piece) return { ...state, selected: null, validMoves: [] };
+
+  // Controlla rotazione
+  if (!canMoveInRotation(uid, state.playerRotation)) {
+    return {
+      ...state,
+      selected: null,
+      validMoves: [],
+      log: [...state.log, `${piece.nome} ha già mosso in questo ciclo.`],
+    };
+  }
+
+  // Controlla blocco
+  if (isBlocked(piece, [...state.playerPieces, ...state.aiPieces].filter(p => p.uid !== uid))) {
+    return {
+      ...state,
+      selected: uid,
+      validMoves: [],
+      log: [...state.log, `${piece.nome} è bloccato — salta il turno.`],
+    };
+  }
+
+  const allOthers = [...state.playerPieces, ...state.aiPieces].filter(p => p.uid !== uid);
+  const moves = getValidMoves(piece, allOthers)
+    .filter(m => !m.target || m.target.side === "ai"); // può attaccare solo nemici
+
+  return { ...state, selected: uid, validMoves: moves };
+}
+
+// ── Mossa del giocatore ───────────────────────────────────────────────────────
+export function applyPlayerMove(state, toRow, toCol) {
+  if (state.turn !== "player" || !state.selected) return state;
+
+  const piece = state.playerPieces.find(p => p.uid === state.selected);
+  if (!piece) return state;
+
+  const move = state.validMoves.find(m => m.row === toRow && m.col === toCol);
+  if (!move) return state;
+
+  return _applyMove(state, piece, move, "player");
+}
+
+// ── Turno AI (sincrono — restituisce lo stato aggiornato) ────────────────────
+export function applyAiTurn(state) {
+  if (state.turn !== "ai" || state.status !== "playing") return state;
+
+  const choice = chooseBestMove(state.aiPieces, state.playerPieces, state.aiRotation);
+
+  if (!choice) {
+    // Nessuna mossa AI possibile — passa al giocatore
+    return _endTurn(state, "ai");
+  }
+
+  return _applyMove(state, choice.piece, choice.move, "ai");
+}
+
+// ── Peek mossa AI (solo calcolo, nessuna modifica allo stato) ─────────────────
+export function peekAiMove(state) {
+  if (state.turn !== "ai" || state.status !== "playing") return null;
+  return chooseBestMove(state.aiPieces, state.playerPieces, state.aiRotation);
+}
+
+// ── Applica una scelta AI pre-calcolata (uid pezzo + riga/colonna destinazione) ─
+export function applyAiChoice(state, pieceUid, toRow, toCol) {
+  if (state.turn !== "ai" || state.status !== "playing") return state;
+  const piece = state.aiPieces.find(p => p.uid === pieceUid);
+  if (!piece) return _endTurn(state, "ai");
+  const allOthers = [...state.aiPieces, ...state.playerPieces].filter(p => p.uid !== pieceUid);
+  const moves = getValidMoves(piece, allOthers).filter(m => !m.target || m.target.side === "player");
+  const move  = moves.find(m => m.row === toRow && m.col === toCol);
+  if (!move) return _endTurn(state, "ai");
+  return _applyMove(state, piece, move, "ai");
+}
+
+// ── Funzione interna: applica una mossa ───────────────────────────────────────
+function _applyMove(state, piece, move, side) {
+  let newLog = [...state.log];
+  let newPlayerPieces = [...state.playerPieces];
+  let newAiPieces     = [...state.aiPieces];
+  let combatAnim = null;
+
+  if (move.isAttack && move.target) {
+    // Combattimento
+    const target = move.target;
+    const result = resolveCombat(piece, target);
+    newLog.push(
+      `${piece.nome} attacca ${target.nome}!` +
+      ` (${piece.hp}HP vs ${target.hp}HP)` +
+      ` → ${result.attackerWins ? `${piece.nome} vince` : `${target.nome} resiste`}`
+    );
+
+    combatAnim = {
+      attackerUid: piece.uid,
+      defenderUid: target.uid,
+      log: result.log,
+    };
+
+    // Aggiorna HP e posizioni
+    const updatePiece = (p) => {
+      if (p.uid === piece.uid) {
+        const alive = result.attackerHp > 0;
+        return alive
+          ? { ...p, hp: result.attackerHp, row: alive ? move.row : p.row, col: alive ? move.col : p.col }
+          : null; // rimosso
+      }
+      if (p.uid === target.uid) {
+        return result.defenderHp > 0 ? { ...p, hp: result.defenderHp } : null;
+      }
+      return p;
+    };
+
+    newPlayerPieces = newPlayerPieces.map(updatePiece).filter(Boolean);
+    newAiPieces     = newAiPieces.map(updatePiece).filter(Boolean);
+
+    // Avanzata dell'attaccante se ha vinto (difensore eliminato)
+    if (result.attackerHp > 0 && result.defenderHp <= 0) {
+      const list = side === "player" ? newPlayerPieces : newAiPieces;
+      const idx  = list.findIndex(p => p.uid === piece.uid);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], row: move.row, col: move.col };
+      }
+    }
+  } else {
+    // Semplice spostamento
+    const list = side === "player" ? newPlayerPieces : newAiPieces;
+    const idx  = list.findIndex(p => p.uid === piece.uid);
+    if (idx !== -1) list[idx] = { ...list[idx], row: move.row, col: move.col };
+  }
+
+  // Aggiorna tracker rotazione
+  const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
+  const tracker = side === "player" ? state.playerRotation : state.aiRotation;
+  const newTracker = registerMove(piece.uid, tracker, aliveSidePieces);
+
+  let newState = {
+    ...state,
+    playerPieces: newPlayerPieces,
+    aiPieces:     newAiPieces,
+    log:          newLog.slice(-40),
+    selected:     null,
+    validMoves:   [],
+    combatAnim,
+    ...(side === "player"
+      ? { playerRotation: newTracker }
+      : { aiRotation: newTracker }),
+  };
+
+  // Controlla vittoria
+  const winner = checkWin(newPlayerPieces, newAiPieces);
+  if (winner) {
+    newLog.push(winner === "player" ? "⚜ VITTORIA! Hai sconfitto il Re nemico!" :
+                winner === "ai"     ? "☠ SCONFITTA. Il tuo Re è caduto." :
+                                      "Pareggio.");
+    return { ...newState, status: "over", winner, log: newLog.slice(-40) };
+  }
+
+  // Passa al turno successivo
+  newState = _endTurn(newState, side);
+
+  // Fine ciclo: cura e incremento round
+  if (newTracker.cycleComplete) {
+    const round = newState.round;
+    newState = {
+      ...newState,
+      round: round + 1,
+      playerPieces: applyEndRoundHeal(newState.playerPieces, round),
+      aiPieces:     applyEndRoundHeal(newState.aiPieces, round),
+    };
+    const heal = _getHealText(round);
+    if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
+  }
+
+  return newState;
+}
+
+function _endTurn(state, currentSide) {
+  return { ...state, turn: currentSide === "player" ? "ai" : "player" };
+}
+
+function _getHealText(round) {
+  if (round <= 3) return "+5 HP a tutti i sopravvissuti";
+  if (round <= 6) return "+3 HP a tutti i sopravvissuti";
+  if (round <= 9) return "+1 HP a tutti i sopravvissuti";
+  return null;
+}
+
+// ── Gestione pezzo bloccato ───────────────────────────────────────────────────
+// Se il pezzo selezionato è bloccato, skippa il suo turno nella rotazione
+export function skipBlockedPiece(state, uid) {
+  const piece = state.playerPieces.find(p => p.uid === uid);
+  if (!piece) return state;
+  const newTracker = registerMove(uid, state.playerRotation, state.playerPieces);
+  return _endTurn({
+    ...state,
+    playerRotation: newTracker,
+    selected: null,
+    validMoves: [],
+  }, "player");
+}

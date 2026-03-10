@@ -1,0 +1,51 @@
+// ── Pezzi classici (template di riferimento) ─────────────────────────────────
+// Ogni utente ne riceve una copia al momento della registrazione (via backend).
+// id corrisponde al campo Nome nel backend (lowercase).
+
+// Simboli scacchistici per tipo pezzo (override dell'icona API)
+export const CHESS_ICONS = {
+  guerriero:   "♞",   // cavallo  — combattente corpo a corpo
+  arciere:     "♝",   // alfiere  — attacco a distanza diagonale
+  scudiero:    "♜",   // torre    — difensore solido
+  esploratore: "♟",   // pedone   — ricognitore veloce
+  mago:        "♛",   // regina   — potere magico devastante
+  campione:    "♚",   // re-forma — campione dell'esercito
+};
+
+export const CLASSIC_PIECES = [
+  { id: "guerriero",   nome: "Guerriero",   icona: CHESS_ICONS.guerriero,   hp: 14, hpMax: 14, atk: 4, def: 3, mov: 2 },
+  { id: "arciere",     nome: "Arciere",     icona: CHESS_ICONS.arciere,     hp: 8,  hpMax: 8,  atk: 6, def: 1, mov: 3 },
+  { id: "scudiero",    nome: "Scudiero",    icona: CHESS_ICONS.scudiero,    hp: 18, hpMax: 18, atk: 2, def: 5, mov: 1 },
+  { id: "esploratore", nome: "Esploratore", icona: CHESS_ICONS.esploratore, hp: 9,  hpMax: 9,  atk: 3, def: 2, mov: 4 },
+  { id: "mago",        nome: "Mago",        icona: CHESS_ICONS.mago,        hp: 7,  hpMax: 7,  atk: 7, def: 1, mov: 2 },
+  { id: "campione",    nome: "Campione",    icona: CHESS_ICONS.campione,    hp: 15, hpMax: 15, atk: 5, def: 4, mov: 2 },
+];
+
+// Colori per tipo pezzo (usati nell'UI)
+export const PIECE_COLORS = {
+  guerriero:   { bg: "#2a1a0e", border: "#8b5020", glow: "#c87030" },
+  arciere:     { bg: "#0e1a0e", border: "#206020", glow: "#40c040" },
+  scudiero:    { bg: "#0a0a2a", border: "#203880", glow: "#4060d0" },
+  esploratore: { bg: "#1a1a0a", border: "#706020", glow: "#d0b030" },
+  mago:        { bg: "#1a0a2a", border: "#602080", glow: "#a040e0" },
+  campione:    { bg: "#2a1a0a", border: "#906020", glow: "#e0a030" },
+};
+
+// Converte un pezzo dal formato backend al formato di gioco interno
+export function fromApi(apiPiece) {
+  const id = apiPiece.nome.toLowerCase().replace(/\s+/g, "_");
+  const colors = PIECE_COLORS[id] ?? PIECE_COLORS["guerriero"];
+  return {
+    uid:   apiPiece.id,          // id univoco del pezzo dell'utente
+    id,
+    nome:  apiPiece.nome,
+    icona: CHESS_ICONS[id] ?? apiPiece.icona,   // usa simbolo scacchistico se disponibile
+    hp:    apiPiece.hp,
+    hpMax: apiPiece.hpMax,
+    atk:   apiPiece.atk,
+    def:   apiPiece.def,
+    mov:   apiPiece.mov,
+    isClassico: apiPiece.isClassico,
+    ...colors,
+  };
+}

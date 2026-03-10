@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import Login from "./Login";
 import Registrazione from "./Registrazione";
 import Gioco from "./Gioco";
+import MainMenu from "./MainMenu";
+import CittaPage from "./CittaPage";
+import Formazione from "./Formazione";
+import QuestBoardGame from "./QuestBoardGame";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
+const API_URL     = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 const SESSION_KEY = "qb_session";
 
-// Decodifica il payload del JWT e controlla se è ancora valido
 function jwtValid(token) {
   try {
     const { exp } = JSON.parse(atob(token.split(".")[1]));
@@ -16,15 +19,27 @@ function jwtValid(token) {
   }
 }
 
-function App() {
-  const [utente, setUtente]   = useState(null);
-  const [token, setToken]     = useState(null);
-  const [utenti, setUtenti]   = useState([]);
-  const [pagina, setPagina]   = useState("login");
-  const [tab, setTab]         = useState("utenti");
-  const [checking, setChecking] = useState(true); // controlla localStorage al mount
+// ── Pagine: login|registrazione|mainmenu|dungeon|gilda|citta|formazione|questboard
 
-  // Ripristina sessione salvata
+function App() {
+  const [utente,   setUtente]   = useState(null);
+  const [token,    setToken]    = useState(null);
+  const [utenti,   setUtenti]   = useState([]);
+  const [pagina,   setPagina]   = useState("login");
+  const [checking, setChecking] = useState(true);
+
+  // Dungeon
+  const [startFloor, setStartFloor] = useState(1);
+  const [saveData,   setSaveData]   = useState(null);
+
+  // Città
+  const [cittaSub, setCittaSub] = useState(null);
+
+  // Quest Board — dati passati da Formazione a QuestBoardGame
+  const [qbInventario,  setQbInventario]  = useState([]);
+  const [qbFormazione,  setQbFormazione]  = useState([]);
+
+  // ── Ripristina sessione ──
   useEffect(() => {
     try {
       const raw = localStorage.getItem(SESSION_KEY);
@@ -33,8 +48,9 @@ function App() {
         if (savedToken && jwtValid(savedToken)) {
           setToken(savedToken);
           setUtente(savedUser);
+          setPagina("mainmenu");
         } else {
-          localStorage.removeItem(SESSION_KEY); // token scaduto
+          localStorage.removeItem(SESSION_KEY);
         }
       }
     } catch {
@@ -48,6 +64,7 @@ function App() {
     const { token, ...userData } = data;
     setToken(token);
     setUtente(userData);
+    setPagina("mainmenu");
     if (ricordate) {
       localStorage.setItem(SESSION_KEY, JSON.stringify({ token, ...userData }));
     }
@@ -56,18 +73,14 @@ function App() {
   const handleLogout = () => {
     setUtente(null);
     setToken(null);
+    setPagina("login");
     localStorage.removeItem(SESSION_KEY);
   };
 
   const caricaUtenti = (tok) => {
-    fetch(`${API_URL}/utenti`, {
-      headers: { Authorization: `Bearer ${tok}` },
-    })
-      .then((res) => {
-        if (res.status === 401) { handleLogout(); return null; }
-        return res.json();
-      })
-      .then((data) => { if (data) setUtenti(data); });
+    fetch(`${API_URL}/utenti`, { headers: { Authorization: `Bearer ${tok}` } })
+      .then(res => { if (res.status === 401) { handleLogout(); return null; } return res.json(); })
+      .then(data => { if (data) setUtenti(data); });
   };
 
   useEffect(() => {
@@ -80,82 +93,124 @@ function App() {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
-    setUtenti((prev) => prev.filter((u) => u.id !== id));
+    setUtenti(prev => prev.filter(u => u.id !== id));
   };
 
-  // Schermata di verifica sessione (brevissima)
+  // ── Navigazione ──
+  const enterDungeon = (floor = 1, player = null) => {
+    setStartFloor(floor); setSaveData(player); setPagina("dungeon");
+  };
+  const enterCitta = (sub = null) => {
+    setCittaSub(sub); setPagina("citta");
+  };
+  const enterLocanda = () => {
+    setCittaSub("locanda"); setPagina("citta");
+  };
+  const enterFormazione = () => setPagina("formazione");
+  const avviaPartita = (inv, form) => {
+    setQbInventario(inv);
+    setQbFormazione(form);
+    setPagina("questboard");
+  };
+
+  // ── Loading ──
   if (checking) {
     return (
-      <div style={{
-        display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        minHeight: "100vh", gap: "1.5rem",
-      }}>
-        <span style={{ fontSize: "2.5rem", animation: "rpgSpin 1s steps(8,end) infinite" }}>⚔</span>
-        <p style={{ fontFamily: '"Press Start 2P", monospace', fontSize: "0.55rem",
-                    color: "#f0c040", letterSpacing: "0.08em" }}>
-          CARICAMENTO...
-        </p>
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
+                    justifyContent:"center", minHeight:"100vh", gap:"1.5rem" }}>
+        <span style={{ fontSize:"2.5rem", animation:"rpgSpin 1s steps(8,end) infinite" }}>⚔</span>
+        <p style={{ fontFamily:'"Press Start 2P", monospace', fontSize:"0.55rem",
+                    color:"#f0c040", letterSpacing:"0.08em" }}>CARICAMENTO...</p>
         <style>{`@keyframes rpgSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
       </div>
     );
   }
 
+  // ── Non autenticato ──
   if (!utente) {
     if (pagina === "registrazione") {
-      return (
-        <Registrazione
-          onRegistrato={(data) => handleAuth(data, false)}
-          onVaiLogin={() => setPagina("login")}
-        />
-      );
+      return <Registrazione onRegistrato={d => handleAuth(d, false)} onVaiLogin={() => setPagina("login")} />;
     }
-    return (
-      <Login
-        onLogin={handleAuth}
-        onVaiRegistrazione={() => setPagina("registrazione")}
-      />
-    );
+    return <Login onLogin={handleAuth} onVaiRegistrazione={() => setPagina("registrazione")} />;
   }
 
   const isAdmin = utente.ruolo === "admin";
 
-  return (
-    <div className="home-wrapper">
-      <header className="topbar">
-        <span className="topbar-brand">⚔ QUEST BOARD</span>
+  if (pagina === "mainmenu") {
+    return (
+      <MainMenu
+        utente={utente}
+        onEnterDungeon={enterDungeon}
+        onEnterCitta={enterCitta}
+        onGilda={() => setPagina("gilda")}
+        onLogout={handleLogout}
+      />
+    );
+  }
 
-        <nav className="topbar-nav">
-          <button
-            className={`nav-btn ${tab === "utenti" ? "active" : ""}`}
-            onClick={() => setTab("utenti")}
-          >
-            [ GILDA ]
-          </button>
-          <button
-            className={`nav-btn ${tab === "gioca" ? "active" : ""}`}
-            onClick={() => setTab("gioca")}
-          >
-            [ GIOCA ]
-          </button>
-        </nav>
-
-        <div className="topbar-right">
-          <span className="topbar-user">
-            {isAdmin && <span className="badge-admin">ADMIN</span>}
-            {utente.nome}
-          </span>
-          <button className="btn btn-danger" onClick={handleLogout}>
-            ESCI
-          </button>
+  if (pagina === "dungeon") {
+    return (
+      <div style={{ display:"flex", flexDirection:"column", minHeight:"100dvh", background:"#040410" }}>
+        <div className="gioca-wrapper" style={{ flex:1 }}>
+          <Gioco startFloor={startFloor} saveData={saveData} onBackToMenu={() => setPagina("mainmenu")} />
         </div>
-      </header>
+      </div>
+    );
+  }
 
-      {tab === "utenti" && (
+  if (pagina === "citta") {
+    return (
+      <CittaPage
+        subPage={cittaSub}
+        onNavigate={sub => setCittaSub(sub)}
+        onBackToMenu={() => setPagina("mainmenu")}
+        onEntraLocanda={enterLocanda}
+        onApriFormazione={enterFormazione}
+      />
+    );
+  }
+
+  if (pagina === "formazione") {
+    return (
+      <Formazione
+        token={token}
+        onAvvia={avviaPartita}
+        onBack={() => { setCittaSub("locanda"); setPagina("citta"); }}
+      />
+    );
+  }
+
+  if (pagina === "questboard") {
+    return (
+      <QuestBoardGame
+        inventario={qbInventario}
+        formazione={qbFormazione}
+        utente={utente}
+        onBack={() => { setCittaSub("locanda"); setPagina("citta"); }}
+      />
+    );
+  }
+
+  if (pagina === "gilda") {
+    return (
+      <div className="home-wrapper">
+        <header className="topbar">
+          <span className="topbar-brand">⚔ QUEST BOARD</span>
+          <nav className="topbar-nav">
+            <button className="nav-btn active" onClick={() => setPagina("mainmenu")}>← MENU</button>
+          </nav>
+          <div className="topbar-right">
+            <span className="topbar-user">
+              {isAdmin && <span className="badge-admin">ADMIN</span>}
+              {utente.nome}
+            </span>
+            <button className="btn btn-danger" onClick={handleLogout}>ESCI</button>
+          </div>
+        </header>
         <main className="home-content">
           <h2 className="section-title">▸ MEMBRI DELLA GILDA</h2>
           <div className="utenti-list">
-            {utenti.map((u) => (
+            {utenti.map(u => (
               <div className="utente-item" key={u.id}>
                 <div className={`avatar ${u.ruolo === "admin" ? "avatar-admin" : ""}`}>
                   {u.nome[0]}{u.cognome?.[0] ?? ""}
@@ -166,27 +221,17 @@ function App() {
                   {u.ruolo === "admin" && <span className="badge-admin">ADMIN</span>}
                 </div>
                 {isAdmin && u.id !== utente.id && (
-                  <button
-                    className="btn-delete"
-                    onClick={() => handleDelete(u.id)}
-                    title="Rimuovi dalla gilda"
-                  >
-                    ✕
-                  </button>
+                  <button className="btn-delete" onClick={() => handleDelete(u.id)} title="Rimuovi dalla gilda">✕</button>
                 )}
               </div>
             ))}
           </div>
         </main>
-      )}
+      </div>
+    );
+  }
 
-      {tab === "gioca" && (
-        <div className="gioca-wrapper">
-          <Gioco />
-        </div>
-      )}
-    </div>
-  );
+  return null;
 }
 
 export default App;

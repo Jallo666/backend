@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,34 +61,119 @@ app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// ── Startup: migrazioni manuali + seed ────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 
-    // Migrazione manuale: aggiunge Ruolo se la tabella esiste già senza quella colonna
+    // Migrazione: colonna Ruolo (legacy)
+    try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Ruolo\" text NOT NULL DEFAULT 'user'"); }
+    catch { }
+
+    // Migrazione: tabella PezziUtente
     try
     {
-        db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Ruolo\" text NOT NULL DEFAULT 'user'");
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS ""PezziUtente"" (
+                ""Id""         INTEGER PRIMARY KEY AUTOINCREMENT,
+                ""UtenteId""   INTEGER NOT NULL,
+                ""Nome""       TEXT    NOT NULL DEFAULT '',
+                ""Icona""      TEXT    NOT NULL DEFAULT '⚔',
+                ""Hp""         INTEGER NOT NULL DEFAULT 0,
+                ""HpMax""      INTEGER NOT NULL DEFAULT 0,
+                ""Atk""        INTEGER NOT NULL DEFAULT 0,
+                ""Def""        INTEGER NOT NULL DEFAULT 0,
+                ""Mov""        INTEGER NOT NULL DEFAULT 0,
+                ""IsClassico"" INTEGER NOT NULL DEFAULT 1,
+                ""Materiali""  TEXT
+            )");
     }
-    catch { /* colonna già presente */ }
+    catch { }
+
+    // Migrazione: tabella Formazioni
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            CREATE TABLE IF NOT EXISTS ""Formazioni"" (
+                ""Id""       INTEGER PRIMARY KEY AUTOINCREMENT,
+                ""UtenteId"" INTEGER NOT NULL UNIQUE,
+                ""Data""     TEXT    NOT NULL DEFAULT '[]'
+            )");
+    }
+    catch { }
 
     // Seed admin
     if (!db.Utenti.Any(u => u.Ruolo == "admin"))
     {
         var adminPassword = app.Configuration["Admin:Password"] ?? "Admin123!";
-        db.Utenti.Add(new Utente
+        var adminUtente = new Utente
         {
-            Nome = "Admin",
-            Cognome = "",
-            Email = "admin@admin.com",
-            Password = BCrypt.Net.BCrypt.HashPassword(adminPassword),
-            Ruolo = "admin"
-        });
+            Nome = "Admin", Cognome = "", Email = "admin@admin.com",
+            Password = BCrypt.Net.BCrypt.HashPassword(adminPassword), Ruolo = "admin"
+        };
+        db.Utenti.Add(adminUtente);
+        db.SaveChanges();
+        SeedPezziClassici(db, adminUtente.Id);
         db.SaveChanges();
     }
+
+    // Seed pezzi classici per utenti che non li hanno ancora
+    var utentiSenzaPezzi = db.Utenti
+        .Where(u => !db.PezziUtente.Any(p => p.UtenteId == u.Id))
+        .ToList();
+    foreach (var u in utentiSenzaPezzi)
+        SeedPezziClassici(db, u.Id);
+    if (utentiSenzaPezzi.Any()) db.SaveChanges();
 }
 
+// ── Endpoint: statistiche giocatore ──────────────────────────────────────────
+// I dati di gioco sono persistiti lato frontend (localStorage).
+// Endpoint placeholder per futura persistenza server-side.
+app.MapGet("/api/player/stats", (ClaimsPrincipal user) =>
+    Results.Ok(new { floor = 1, level = 1, hp = 20, maxHp = 20, gems = 0, gold = 0 }))
+    .RequireAuthorization();
+
+// ── Endpoint: inventario pezzi ────────────────────────────────────────────────
+app.MapGet("/api/inventario", async (ClaimsPrincipal user, AppDbContext db) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    var pezzi = await db.PezziUtente
+        .Where(p => p.UtenteId == utenteId)
+        .Select(p => new {
+            p.Id, p.Nome, p.Icona,
+            p.Hp, p.HpMax, p.Atk, p.Def, p.Mov,
+            p.IsClassico, p.Materiali
+        })
+        .ToListAsync();
+    return Results.Ok(pezzi);
+}).RequireAuthorization();
+
+// ── Endpoint: formazione salvata ──────────────────────────────────────────────
+app.MapGet("/api/formazione", async (ClaimsPrincipal user, AppDbContext db) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    var formazione = await db.Formazioni.FirstOrDefaultAsync(f => f.UtenteId == utenteId);
+    return Results.Ok(new { data = formazione?.Data ?? "[]" });
+}).RequireAuthorization();
+
+app.MapPut("/api/formazione", async (ClaimsPrincipal user, FormazioneRequest req, AppDbContext db) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    var formazione = await db.Formazioni.FirstOrDefaultAsync(f => f.UtenteId == utenteId);
+    if (formazione is null)
+    {
+        db.Formazioni.Add(new Formazione { UtenteId = utenteId, Data = req.Data });
+    }
+    else
+    {
+        formazione.Data = req.Data;
+    }
+    await db.SaveChangesAsync();
+    return Results.Ok();
+}).RequireAuthorization();
+
+// ── Endpoint: utenti ──────────────────────────────────────────────────────────
 app.MapGet("/utenti", async (AppDbContext db) =>
     await db.Utenti.Select(u => new { u.Id, u.Nome, u.Cognome, u.Email, u.Ruolo }).ToListAsync())
     .RequireAuthorization();
@@ -109,13 +195,16 @@ app.MapPost("/registrati", async (RegistrazioneRequest req, AppDbContext db) =>
 
     var utente = new Utente
     {
-        Nome = req.Nome,
-        Cognome = req.Cognome,
+        Nome = req.Nome, Cognome = req.Cognome,
         Email = req.Email,
         Password = BCrypt.Net.BCrypt.HashPassword(req.Password),
         Ruolo = "user",
     };
     db.Utenti.Add(utente);
+    await db.SaveChangesAsync();
+
+    // Seed pezzi classici al nuovo utente
+    SeedPezziClassici(db, utente.Id);
     await db.SaveChangesAsync();
 
     var token = GeneraToken(utente, key);
@@ -129,8 +218,7 @@ app.MapDelete("/utenti/{id}", async (int id, ClaimsPrincipal user, AppDbContext 
         return Results.BadRequest("Non puoi eliminare te stesso");
 
     var utente = await db.Utenti.FindAsync(id);
-    if (utente is null)
-        return Results.NotFound();
+    if (utente is null) return Results.NotFound();
 
     db.Utenti.Remove(utente);
     await db.SaveChangesAsync();
@@ -139,6 +227,7 @@ app.MapDelete("/utenti/{id}", async (int id, ClaimsPrincipal user, AppDbContext 
 
 app.Run();
 
+// ── Helper: genera JWT ────────────────────────────────────────────────────────
 string GeneraToken(Utente utente, SymmetricSecurityKey key)
 {
     var claims = new[]
@@ -155,20 +244,61 @@ string GeneraToken(Utente utente, SymmetricSecurityKey key)
     return new JwtSecurityTokenHandler().WriteToken(jwt);
 }
 
+// ── Helper: seed 6 pezzi classici per un utente ───────────────────────────────
+void SeedPezziClassici(AppDbContext db, int utenteId)
+{
+    var classici = new[]
+    {
+        new PezzoUtente { UtenteId=utenteId, Nome="Guerriero",   Icona="⚔",  Hp=14, HpMax=14, Atk=4, Def=3, Mov=2 },
+        new PezzoUtente { UtenteId=utenteId, Nome="Arciere",     Icona="🏹", Hp=8,  HpMax=8,  Atk=6, Def=1, Mov=3 },
+        new PezzoUtente { UtenteId=utenteId, Nome="Scudiero",    Icona="🛡", Hp=18, HpMax=18, Atk=2, Def=5, Mov=1 },
+        new PezzoUtente { UtenteId=utenteId, Nome="Esploratore", Icona="🔭", Hp=9,  HpMax=9,  Atk=3, Def=2, Mov=4 },
+        new PezzoUtente { UtenteId=utenteId, Nome="Mago",        Icona="✨", Hp=7,  HpMax=7,  Atk=7, Def=1, Mov=2 },
+        new PezzoUtente { UtenteId=utenteId, Nome="Campione",    Icona="🏆", Hp=15, HpMax=15, Atk=5, Def=4, Mov=2 },
+    };
+    db.PezziUtente.AddRange(classici);
+}
+
+// ── Modelli ───────────────────────────────────────────────────────────────────
 class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
-    public DbSet<Utente> Utenti => Set<Utente>();
+    public DbSet<Utente>      Utenti      => Set<Utente>();
+    public DbSet<PezzoUtente> PezziUtente => Set<PezzoUtente>();
+    public DbSet<Formazione>  Formazioni  => Set<Formazione>();
 }
 
 class Utente
 {
-    public int Id { get; set; }
-    public string Nome { get; set; } = "";
-    public string Cognome { get; set; } = "";
-    public string Email { get; set; } = "";
+    public int    Id       { get; set; }
+    public string Nome     { get; set; } = "";
+    public string Cognome  { get; set; } = "";
+    public string Email    { get; set; } = "";
     public string Password { get; set; } = "";
-    public string Ruolo { get; set; } = "user";
+    public string Ruolo    { get; set; } = "user";
+}
+
+class PezzoUtente
+{
+    public int     Id         { get; set; }
+    public int     UtenteId   { get; set; }
+    public string  Nome       { get; set; } = "";
+    public string  Icona      { get; set; } = "⚔";
+    public int     Hp         { get; set; }
+    public int     HpMax      { get; set; }
+    public int     Atk        { get; set; }
+    public int     Def        { get; set; }
+    public int     Mov        { get; set; }
+    public bool    IsClassico { get; set; } = true;
+    public string? Materiali  { get; set; } // JSON per pezzi craftati futuri
+}
+
+class Formazione
+{
+    public int    Id       { get; set; }
+    public int    UtenteId { get; set; }
+    public string Data     { get; set; } = "[]"; // JSON: [{id,row,col,isRe}]
 }
 
 record LoginRequest(string Email, string Password);
 record RegistrazioneRequest(string Nome, string Cognome, string Email, string Password);
+record FormazioneRequest(string Data);

@@ -1,0 +1,252 @@
+/* ══════════════════════════════════════
+   MainMenu.css — Hearthstone warm palette, fixed px
+   ══════════════════════════════════════ */
+
+.mm-root {
+  --hs-gold:     #f0c040;
+  --hs-gold-dim: #c8900a;
+  --hs-cream:    #f5e0b0;
+  --hs-wood-rim: #5a3510;
+
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  background: radial-gradient(ellipse at 30% 25%, #3d200a 0%, #1e0e04 55%, #120804 100%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--hs-cream);
+  font-family: 'Press Start 2P', monospace;
+}
+
+/* ── Stars ── */
+.mm-stars { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.mm-star {
+  position: absolute; border-radius: 50%; background: #fff;
+  animation: mmStarTwinkle linear infinite;
+}
+@keyframes mmStarTwinkle {
+  0%,100% { opacity: 0.1; transform: scale(0.7); }
+  50%     { opacity: 0.85; transform: scale(1.4); }
+}
+
+/* ── Header ── */
+.mm-header {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px;
+  background: rgba(10, 5, 1, 0.95);
+  border-bottom: 2px solid var(--hs-wood-rim);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.7);
+  min-height: 52px; flex-shrink: 0;
+}
+.mm-header-left, .mm-header-right {
+  display: flex; align-items: center; gap: 12px; min-width: 160px;
+}
+.mm-header-right { justify-content: flex-end; }
+.mm-title-area { text-align: center; flex: 1; }
+
+.mm-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 20px;
+  color: var(--hs-gold);
+  text-shadow: 0 0 30px rgba(240,192,64,0.5), 0 2px 4px rgba(0,0,0,0.8);
+  margin: 0 0 4px;
+  letter-spacing: 0.1em;
+}
+.mm-subtitle {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: #c8a060;
+  margin: 0;
+  opacity: 0.7;
+}
+
+.mm-gilda-btn {
+  font-family: 'Press Start 2P', monospace; font-size: 9px;
+  background: transparent; border: 1px solid var(--hs-gold);
+  color: var(--hs-gold); padding: 6px 10px; cursor: pointer;
+  border-radius: 3px; opacity: 0.65; transition: opacity 0.2s;
+}
+.mm-gilda-btn:hover { opacity: 1; }
+
+.mm-username {
+  font-family: 'Press Start 2P', monospace; font-size: 10px;
+  color: var(--hs-cream); opacity: 0.75;
+}
+.mm-logout-btn {
+  font-family: 'Press Start 2P', monospace; font-size: 9px;
+  background: transparent; border: 1px solid #884444;
+  color: #cc6666; padding: 6px 10px; cursor: pointer;
+  border-radius: 3px; transition: all 0.2s;
+}
+.mm-logout-btn:hover { background: #441818; color: #ff8888; }
+
+/* ── 4-Panel Grid ── */
+.mm-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  flex: 1;
+  position: relative; z-index: 1;
+  gap: 0;
+  min-height: 0;
+}
+
+.mm-panel {
+  display: flex; flex-direction: column;
+  padding: 20px 24px 20px;
+  position: relative; overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(90, 53, 16, 0.4);
+  transition: background 0.25s;
+  gap: 0;
+}
+.mm-panel::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, var(--panel-accent, #5a3510) 0%, transparent 70%);
+  opacity: 0.08;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.mm-panel:hover::before { opacity: 0.18; }
+.mm-panel:hover { border-color: rgba(240,192,64,0.25); }
+
+/* Panel-specific backgrounds */
+.mm-panel-dungeon    { background: linear-gradient(175deg, #200a36 0%, #100418 100%); }
+.mm-panel-questboard { background: linear-gradient(175deg, #0a1830 0%, #050d1a 100%); }
+.mm-panel-mercante   { background: linear-gradient(175deg, #241408 0%, #100a04 100%); }
+.mm-panel-fabbro     { background: linear-gradient(175deg, #2a0c08 0%, #130604 100%); }
+
+/* Top-left and top-right border separation */
+.mm-panel-dungeon    { border-right: 1px solid var(--hs-wood-rim); border-bottom: 1px solid var(--hs-wood-rim); }
+.mm-panel-questboard { border-bottom: 1px solid var(--hs-wood-rim); }
+.mm-panel-mercante   { border-right: 1px solid var(--hs-wood-rim); }
+.mm-panel-fabbro     { }
+
+/* ── Scene ── */
+.mm-panel-scene {
+  flex: 1; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 140px; max-height: 220px; overflow: hidden;
+}
+
+.mm-arch-svg {
+  width: 100%; max-width: 240px; height: auto;
+  position: relative; z-index: 1;
+  filter: drop-shadow(0 0 14px rgba(120, 40, 200, 0.35));
+}
+
+.mm-panel-big-icon {
+  font-size: 80px; line-height: 1;
+  animation: mmIconFloat 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px var(--panel-accent, #5a3510));
+}
+@keyframes mmIconFloat {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-8px); }
+}
+
+/* ── Torches ── */
+.mm-torch {
+  position: absolute; top: 8px;
+  display: flex; flex-direction: column; align-items: center; z-index: 2;
+}
+.mm-torch-left  { left: 6%; }
+.mm-torch-right { right: 6%; }
+
+.mm-torch-glow {
+  position: absolute; top: -8px; width: 34px; height: 48px;
+  background: radial-gradient(circle, rgba(255,145,30,0.45) 0%, transparent 70%);
+  border-radius: 50%; animation: torchGlow 0.18s ease-in-out infinite alternate;
+}
+.mm-torch-flame {
+  width: 14px; height: 24px;
+  background: radial-gradient(ellipse at 50% 85%, #ff5500 0%, #ff9900 35%, #ffdd44 70%, transparent 100%);
+  border-radius: 50% 50% 35% 35%; animation: torchFlame 0.13s ease-in-out infinite;
+  position: relative; z-index: 1;
+}
+.mm-torch-stick {
+  width: 7px; height: 36px;
+  background: linear-gradient(to right, #3a2410, #6b4322, #3a2410); border-radius: 2px;
+}
+
+/* ── Panel Info (bottom section) ── */
+.mm-panel-info {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(90,53,16,0.5);
+}
+
+.mm-panel-label {
+  font-size: 16px; color: var(--hs-gold);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 12px rgba(240,192,64,0.4);
+}
+.mm-panel-desc {
+  font-size: 9px; color: var(--hs-cream); line-height: 1.8; opacity: 0.85;
+}
+.mm-panel-sub {
+  font-size: 8px; color: #c8a060; opacity: 0.7;
+}
+
+/* ── Buttons ── */
+.mm-btn {
+  font-family: 'Press Start 2P', monospace; font-size: 11px;
+  padding: 11px 16px; border-radius: 4px; border: none; cursor: pointer;
+  margin-top: 4px; align-self: flex-start;
+  transition: filter 0.15s, transform 0.1s; position: relative; overflow: hidden;
+}
+.mm-btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%);
+  background-size: 300% 100%; animation: mmShimmer 2.5s linear infinite; opacity: 0; transition: opacity 0.3s;
+}
+.mm-btn:hover::after { opacity: 1; }
+.mm-btn:hover { filter: brightness(1.2); transform: translateY(-2px); }
+
+.mm-btn-dungeon    { background: linear-gradient(135deg, #380870, #6020a8); color: var(--hs-gold); box-shadow: 0 2px 14px rgba(90,20,160,0.4); }
+.mm-btn-questboard { background: linear-gradient(135deg, #081840, #1840a0); color: var(--hs-gold); box-shadow: 0 2px 14px rgba(20,50,160,0.4); }
+.mm-btn-mercante   { background: linear-gradient(135deg, #2a1408, #6a3810); color: var(--hs-gold); box-shadow: 0 2px 14px rgba(120,70,10,0.4); }
+.mm-btn-fabbro     { background: linear-gradient(135deg, #2a0c04, #7a2808); color: var(--hs-gold); box-shadow: 0 2px 14px rgba(140,40,10,0.4); }
+
+/* ── Footer ── */
+.mm-footer {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: 20px; padding: 8px 20px;
+  background: rgba(8, 4, 1, 0.97);
+  border-top: 2px solid var(--hs-wood-rim);
+  position: relative; z-index: 1; flex-shrink: 0;
+}
+.mm-footer-stat { display: flex; align-items: center; gap: 6px; }
+.mm-stat-label { font-size: 9px; color: #c8a060; }
+.mm-stat-value { font-size: 10px; color: var(--hs-gold); }
+.mm-footer-sep { color: rgba(240,192,64,0.25); font-size: 12px; }
+
+/* ── Animations ── */
+@keyframes torchFlame {
+  0%   { transform: scaleX(1)    rotate(-2deg) scaleY(1); }
+  25%  { transform: scaleX(1.2)  rotate(5deg)  scaleY(0.86); }
+  50%  { transform: scaleX(0.84) rotate(-5deg) scaleY(1.14); }
+  75%  { transform: scaleX(1.14) rotate(3deg)  scaleY(0.92); }
+  100% { transform: scaleX(0.96) rotate(-1deg) scaleY(1.03); }
+}
+@keyframes torchGlow {
+  from { opacity: 0.65; transform: scale(0.88); }
+  to   { opacity: 1;    transform: scale(1.18); }
+}
+@keyframes mmShimmer {
+  0%   { background-position: -300% center; }
+  100% { background-position:  300% center; }
+}
+
+/* ── Mobile / small screens ── */
+@media (max-width: 700px) {
+  .mm-panels { grid-template-columns: 1fr; grid-template-rows: repeat(4, auto); }
+  .mm-panel-dungeon, .mm-panel-questboard, .mm-panel-mercante { border-right: none; border-bottom: 1px solid var(--hs-wood-rim); }
+  .mm-panel-scene { min-height: 100px; max-height: 140px; }
+  .mm-title { font-size: 14px; }
+  .mm-panel-big-icon { font-size: 56px; }
+  .mm-panel-label { font-size: 13px; }
+}
