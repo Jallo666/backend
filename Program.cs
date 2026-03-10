@@ -72,34 +72,67 @@ using (var scope = app.Services.CreateScope())
     catch { }
 
     // Migrazione: tabella PezziUtente
+    var isPostgres = db.Database.ProviderName?.Contains("Npgsql") == true;
     try
     {
-        db.Database.ExecuteSqlRaw(@"
-            CREATE TABLE IF NOT EXISTS ""PezziUtente"" (
-                ""Id""         INTEGER PRIMARY KEY AUTOINCREMENT,
-                ""UtenteId""   INTEGER NOT NULL,
-                ""Nome""       TEXT    NOT NULL DEFAULT '',
-                ""Icona""      TEXT    NOT NULL DEFAULT '⚔',
-                ""Hp""         INTEGER NOT NULL DEFAULT 0,
-                ""HpMax""      INTEGER NOT NULL DEFAULT 0,
-                ""Atk""        INTEGER NOT NULL DEFAULT 0,
-                ""Def""        INTEGER NOT NULL DEFAULT 0,
-                ""Mov""        INTEGER NOT NULL DEFAULT 0,
-                ""IsClassico"" INTEGER NOT NULL DEFAULT 1,
-                ""Materiali""  TEXT
-            )");
+        if (isPostgres)
+        {
+            db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ""PezziUtente"" (
+                    ""Id""         SERIAL PRIMARY KEY,
+                    ""UtenteId""   INTEGER NOT NULL,
+                    ""Nome""       TEXT    NOT NULL DEFAULT '',
+                    ""Icona""      TEXT    NOT NULL DEFAULT '⚔',
+                    ""Hp""         INTEGER NOT NULL DEFAULT 0,
+                    ""HpMax""      INTEGER NOT NULL DEFAULT 0,
+                    ""Atk""        INTEGER NOT NULL DEFAULT 0,
+                    ""Def""        INTEGER NOT NULL DEFAULT 0,
+                    ""Mov""        INTEGER NOT NULL DEFAULT 0,
+                    ""IsClassico"" BOOLEAN NOT NULL DEFAULT TRUE,
+                    ""Materiali""  TEXT
+                )");
+        }
+        else
+        {
+            db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ""PezziUtente"" (
+                    ""Id""         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ""UtenteId""   INTEGER NOT NULL,
+                    ""Nome""       TEXT    NOT NULL DEFAULT '',
+                    ""Icona""      TEXT    NOT NULL DEFAULT '⚔',
+                    ""Hp""         INTEGER NOT NULL DEFAULT 0,
+                    ""HpMax""      INTEGER NOT NULL DEFAULT 0,
+                    ""Atk""        INTEGER NOT NULL DEFAULT 0,
+                    ""Def""        INTEGER NOT NULL DEFAULT 0,
+                    ""Mov""        INTEGER NOT NULL DEFAULT 0,
+                    ""IsClassico"" INTEGER NOT NULL DEFAULT 1,
+                    ""Materiali""  TEXT
+                )");
+        }
     }
     catch { }
 
     // Migrazione: tabella Formazioni
     try
     {
-        db.Database.ExecuteSqlRaw(@"
-            CREATE TABLE IF NOT EXISTS ""Formazioni"" (
-                ""Id""       INTEGER PRIMARY KEY AUTOINCREMENT,
-                ""UtenteId"" INTEGER NOT NULL UNIQUE,
-                ""Data""     TEXT    NOT NULL DEFAULT '[]'
-            )");
+        if (isPostgres)
+        {
+            db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ""Formazioni"" (
+                    ""Id""       SERIAL PRIMARY KEY,
+                    ""UtenteId"" INTEGER NOT NULL UNIQUE,
+                    ""Data""     TEXT    NOT NULL DEFAULT '[]'
+                )");
+        }
+        else
+        {
+            db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ""Formazioni"" (
+                    ""Id""       INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ""UtenteId"" INTEGER NOT NULL UNIQUE,
+                    ""Data""     TEXT    NOT NULL DEFAULT '[]'
+                )");
+        }
     }
     catch { }
 
