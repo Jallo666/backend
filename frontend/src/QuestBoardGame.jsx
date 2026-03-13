@@ -5,10 +5,11 @@ import {
   peekAiMove, applyAiChoice,
 } from "./game/questboard/qb_state.js";
 import { isBlocked, canMoveInRotation, BOARD_SIZE, resolveCombat } from "./game/questboard/qb_rules.js";
-import { PieceSVG } from "./game/questboard/PieceSVG.jsx";
+import { NATURA_COLORE } from "./game/questboard/qb_pieces.js";
+import SilhouettePiece from "./SilhouettePiece.jsx";
 import "./QuestBoardGame.css";
 
-const AI_DELAY_MS = 700;
+const AI_DELAY_MS = 1200;
 
 function calcCellSize() {
   const maxByW = (window.innerWidth  - 80) / BOARD_SIZE;
@@ -79,8 +80,9 @@ function CombatPreview({ attacker, defender, onConfirm, onCancel, mode = "player
         <div className="qbg-cp-matchup">
           {/* Attaccante */}
           <div className="qbg-cp-piece qbg-cp-piece-atk">
-            <span className="qbg-cp-piece-icon">{attacker.icona}</span>
+            <SilhouettePiece natura={attacker.natura} size={56} />
             <span className="qbg-cp-piece-name">{attacker.nome}</span>
+            {attacker.natura && <span className="qbg-cp-natura" style={{ color: NATURA_COLORE[attacker.natura] ?? "#888" }}>{attacker.natura}</span>}
             <span className="qbg-cp-piece-stats">❤{attacker.hp} ⚔{attacker.atk} 🛡{attacker.def}</span>
             <div className="qbg-cp-hp-bar">
               <div className="qbg-cp-hp-fill" style={{ width: `${(attacker.hp / attacker.hpMax) * 100}%` }} />
@@ -91,8 +93,9 @@ function CombatPreview({ attacker, defender, onConfirm, onCancel, mode = "player
 
           {/* Difensore */}
           <div className="qbg-cp-piece qbg-cp-piece-def">
-            <span className="qbg-cp-piece-icon">{defender.icona}</span>
+            <SilhouettePiece natura={defender.natura} size={56} />
             <span className="qbg-cp-piece-name">{defender.nome}</span>
+            {defender.natura && <span className="qbg-cp-natura" style={{ color: NATURA_COLORE[defender.natura] ?? "#888" }}>{defender.natura}</span>}
             <span className="qbg-cp-piece-stats">❤{defender.hp} ⚔{defender.atk} 🛡{defender.def}</span>
             <div className="qbg-cp-hp-bar">
               <div className="qbg-cp-hp-fill" style={{ width: `${(defender.hp / defender.hpMax) * 100}%` }} />
@@ -135,11 +138,16 @@ function PieceCard({ piece, onClose }) {
     <div className="qbg-piece-card">
       <div className="qbg-card-header">
         <span className={`qbg-card-icon qbg-card-icon-${piece.side}`}>
-          <PieceSVG id={piece.id} size={80} />
+          <SilhouettePiece natura={piece.natura} size={80} />
         </span>
         <span className="qbg-card-title">
           {piece.nome}
           {piece.isRe && <> &nbsp;<span style={{ color: "#f0c040" }}>♛ RE</span></>}
+          {piece.natura && (
+            <span className="qbg-card-natura" style={{ color: NATURA_COLORE[piece.natura] ?? "#888", borderColor: NATURA_COLORE[piece.natura] ?? "#888" }}>
+              {piece.natura}
+            </span>
+          )}
         </span>
         <span className={`qbg-card-team ${isPlayer ? "qbg-card-team-player" : "qbg-card-team-ai"}`}>
           {isPlayer ? "TUO" : "NEMICO"}
@@ -180,12 +188,15 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const [pieceCard,     setPieceCard]     = useState(null);
   const [cellSize,      setCellSize]      = useState(calcCellSize);
   const [showLog,       setShowLog]       = useState(true);
+  const [displayLog,    setDisplayLog]    = useState(() => game.log);
 
   const aiTimerRef      = useRef(null);
   const moveAnimTimer   = useRef(null);
   const combatTimer     = useRef(null);
   const cardTimer       = useRef(null);
+  const logTimer        = useRef(null);
   const prevAiPiecesRef = useRef(game.aiPieces);
+  const aiMovingRef     = useRef(false);
 
   useEffect(() => {
     const onResize = () => setCellSize(calcCellSize());
@@ -202,7 +213,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const triggerMoveAnim = useCallback((fromRow, fromCol, toRow, toCol) => {
     clearTimeout(moveAnimTimer.current);
     setMoveAnim({ fromRow, fromCol, toRow, toCol });
-    moveAnimTimer.current = setTimeout(() => setMoveAnim(null), 540);
+    moveAnimTimer.current = setTimeout(() => setMoveAnim(null), 1000);
   }, []);
 
   // ── Turno AI ──────────────────────────────────────────────────────────────
@@ -232,6 +243,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       for (const currP of curr) {
         const oldP = prev.find(p => p.uid === currP.uid);
         if (oldP && (oldP.row !== currP.row || oldP.col !== currP.col)) {
+          aiMovingRef.current = true;
           triggerMoveAnim(oldP.row, oldP.col, currP.row, currP.col);
           break;
         }
@@ -239,6 +251,20 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       prevAiPiecesRef.current = curr;
     }
   }, [game.aiPieces, triggerMoveAnim]);
+
+  // ── Log ritardato: il messaggio AI appare dopo l'animazione ───────────────
+  useEffect(() => {
+    clearTimeout(logTimer.current);
+    if (aiMovingRef.current) {
+      logTimer.current = setTimeout(() => {
+        setDisplayLog(game.log);
+        aiMovingRef.current = false;
+      }, 900);
+    } else {
+      setDisplayLog(game.log);
+    }
+    return () => clearTimeout(logTimer.current);
+  }, [game.log]);
 
   // ── Animazione combattimento ───────────────────────────────────────────────
   useEffect(() => {
@@ -527,7 +553,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
                         >
                           <div className="qbg-piece-base" />
                           <div className="qbg-piece-body">
-                            <span className="qbg-piece-icon"><PieceSVG id={p.id} size={cellSize * 0.54} /></span>
+                            <span className="qbg-piece-icon"><SilhouettePiece natura={p.natura} size={cellSize * 0.54} /></span>
                             {p.isRe && <span className="qbg-piece-crown">♛</span>}
                             {hasMoved && <span className="qbg-piece-zzz">Zzz</span>}
                           </div>
@@ -554,7 +580,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         </button>
         <div className="qbg-log-header">📜 DIARIO DI BATTAGLIA</div>
         <div className="qbg-log-content">
-          {[...game.log].reverse().map((l, i) => (
+          {[...displayLog].reverse().map((l, i) => (
             <div key={i} className="qbg-log-line" style={{ opacity: Math.max(0.3, 1 - i * 0.05) }}>{l}</div>
           ))}
         </div>
@@ -587,7 +613,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
               className={`qbg-rot-row ${ready ? "qbg-rot-ready" : "qbg-rot-done"}`}
               onClick={() => setPieceCard(p)}
             >
-              <span className="qbg-rot-icon"><PieceSVG id={p.id} size={28} /></span>
+              <span className="qbg-rot-icon"><SilhouettePiece natura={p.natura} size={28} /></span>
               <div className="qbg-rot-info">
                 <span className="qbg-rot-nome">
                   {p.isRe && <span className="qbg-rot-crown">♛</span>}
@@ -613,7 +639,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
               className={`qbg-rot-row qbg-rot-row-ai ${ready ? "qbg-rot-ready" : "qbg-rot-done"}`}
               onClick={() => setPieceCard(p)}
             >
-              <span className="qbg-rot-icon"><PieceSVG id={p.id} size={28} /></span>
+              <span className="qbg-rot-icon"><SilhouettePiece natura={p.natura} size={28} /></span>
               <div className="qbg-rot-info">
                 <span className="qbg-rot-nome">
                   {p.isRe && <span className="qbg-rot-crown">♛</span>}

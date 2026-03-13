@@ -245,7 +245,7 @@
   transform-style: preserve-3d; transition: transform 0.15s; user-select: none;
 }
 .qbg-piece:hover { transform: translateZ(5px); }
-.qbg-piece-moving { animation: pieceSlide 0.36s cubic-bezier(0.22, 0.61, 0.36, 1) forwards !important; }
+.qbg-piece-moving { animation: pieceSlide 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards !important; }
 @keyframes pieceSlide {
   from { transform: translate(var(--move-dx, 0px), var(--move-dy, 0px)) translateZ(6px); }
   to   { transform: translate(0px, 0px) translateZ(0px); }
@@ -441,7 +441,12 @@
 }
 .qbg-card-icon-player { color: #f0d060; }
 .qbg-card-icon-ai     { color: #dd5050; }
-.qbg-card-title { font-size: 13px; color: var(--hs-gold); flex: 1; }
+.qbg-card-title { font-size: 13px; color: var(--hs-gold); flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.qbg-card-natura {
+  font-size: 8px; font-weight: bold; align-self: flex-start;
+  border: 1px solid; padding: 1px 6px; border-radius: 3px;
+  background: rgba(0,0,0,0.3);
+}
 .qbg-card-team  { font-size: 9px; padding: 3px 8px; border-radius: 3px; }
 .qbg-card-team-player { background: rgba(50,130,230,0.2); color: #66bbff; border: 1px solid #335599; }
 .qbg-card-team-ai     { background: rgba(200,40,40,0.2);  color: #ff7777; border: 1px solid #992222; }
@@ -484,6 +489,7 @@
 .qbg-cp-piece-def { background: rgba(200,40,40,0.15);  border: 1px solid rgba(200,40,40,0.4); }
 .qbg-cp-piece-icon { font-size: 2rem; }
 .qbg-cp-piece-name { font-size: 9px; color: var(--hs-cream); }
+.qbg-cp-natura { font-size: 7px; font-weight: bold; }
 .qbg-cp-piece-stats { font-size: 8px; color: #c8a060; }
 .qbg-cp-hp-bar { width: 100%; height: 5px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-top: 2px; }
 .qbg-cp-hp-fill { height: 100%; background: linear-gradient(90deg, #cc2222, #eeaa22, #22cc44); }

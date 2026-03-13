@@ -182,6 +182,28 @@ app.MapGet("/api/inventario", async (ClaimsPrincipal user, AppDbContext db) =>
     return Results.Ok(pezzi);
 }).RequireAuthorization();
 
+// ── Endpoint: reset inventario ai pezzi classici ─────────────────────────────
+app.MapPost("/api/inventario/reset", async (ClaimsPrincipal user, AppDbContext db) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+    // Rimuovi tutti i pezzi dell'utente
+    var pezziEsistenti = db.PezziUtente.Where(p => p.UtenteId == utenteId);
+    db.PezziUtente.RemoveRange(pezziEsistenti);
+    await db.SaveChangesAsync();
+
+    // Seed pezzi classici
+    SeedPezziClassici(db, utenteId);
+    await db.SaveChangesAsync();
+
+    // Restituisci il nuovo inventario
+    var nuoviPezzi = await db.PezziUtente
+        .Where(p => p.UtenteId == utenteId)
+        .Select(p => new { p.Id, p.Nome, p.Icona, p.Hp, p.HpMax, p.Atk, p.Def, p.Mov, p.IsClassico, p.Materiali })
+        .ToListAsync();
+    return Results.Ok(nuoviPezzi);
+}).RequireAuthorization();
+
 // ── Endpoint: formazione salvata ──────────────────────────────────────────────
 app.MapGet("/api/formazione", async (ClaimsPrincipal user, AppDbContext db) =>
 {
@@ -204,6 +226,28 @@ app.MapPut("/api/formazione", async (ClaimsPrincipal user, FormazioneRequest req
     }
     await db.SaveChangesAsync();
     return Results.Ok();
+}).RequireAuthorization();
+
+// ── Endpoint: crafta pezzo ────────────────────────────────────────────────────
+app.MapPost("/api/inventario/crafta", async (ClaimsPrincipal user, CraftaRequest req, AppDbContext db) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    var pezzo = new PezzoUtente
+    {
+        UtenteId   = utenteId,
+        Nome       = req.Nome,
+        Icona      = req.Icona,
+        Hp         = req.Hp,
+        HpMax      = req.HpMax,
+        Atk        = req.Atk,
+        Def        = req.Def,
+        Mov        = req.Mov,
+        IsClassico = false,
+        Materiali  = req.Materiali,
+    };
+    db.PezziUtente.Add(pezzo);
+    await db.SaveChangesAsync();
+    return Results.Ok(new { pezzo.Id, pezzo.Nome, pezzo.Icona, pezzo.Hp, pezzo.HpMax, pezzo.Atk, pezzo.Def, pezzo.Mov, pezzo.IsClassico, pezzo.Materiali });
 }).RequireAuthorization();
 
 // ── Endpoint: utenti ──────────────────────────────────────────────────────────
@@ -335,3 +379,4 @@ class Formazione
 record LoginRequest(string Email, string Password);
 record RegistrazioneRequest(string Nome, string Cognome, string Email, string Password);
 record FormazioneRequest(string Data);
+record CraftaRequest(string Nome, string Icona, int Hp, int HpMax, int Atk, int Def, int Mov, string? Materiali = null);

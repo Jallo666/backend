@@ -106,7 +106,7 @@ export function chooseBestMove(aiPieces, playerPieces, rotationTracker) {
 // ── Formazione AI di default ──────────────────────────────────────────────────
 // L'AI usa gli stessi 6 pezzi classici con statistiche identiche.
 // Posizionati nelle prime 2 righe (righe 0-1 dall'alto = lato AI).
-import { CLASSIC_PIECES, PIECE_COLORS } from "./qb_pieces.js";
+import { CLASSIC_PIECES, PIECE_COLORS, NATURA_DA_NOME } from "./qb_pieces.js";
 
 export function createAiFormation() {
   const positions = [
@@ -136,6 +136,7 @@ export function createAiFormation() {
       col:    positions[i][1],
       isRe:   positions[i][2],
       side:   "ai",
+      natura: NATURA_DA_NOME[tmpl.nome] ?? null,
       ...colors,
     };
   });

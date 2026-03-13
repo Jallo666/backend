@@ -162,6 +162,7 @@ function App() {
     return (
       <CittaPage
         subPage={cittaSub}
+        token={token}
         onNavigate={sub => setCittaSub(sub)}
         onBackToMenu={() => setPagina("mainmenu")}
         onEntraLocanda={enterLocanda}

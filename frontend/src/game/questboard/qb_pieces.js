@@ -31,10 +31,30 @@ export const PIECE_COLORS = {
   campione:    { bg: "#2a1a0a", border: "#906020", glow: "#e0a030" },
 };
 
+// Natura per pezzi classici senza campo materiali (backward compat)
+export const NATURA_DA_NOME = {
+  "Guerriero":   "Guerriero",
+  "Arciere":     "Arciere",
+  "Scudiero":    "Baluardo",
+  "Esploratore": "Ombra",
+  "Mago":        "Arcano",
+  "Campione":    "Sentinella",
+};
+
+export const NATURA_COLORE = {
+  Guerriero: "#d04030",
+  Arciere:   "#a0c040",
+  Baluardo:  "#4080c0",
+  Ombra:     "#9040c0",
+  Arcano:    "#40b0d0",
+  Sentinella:"#c0a030",
+};
+
 // Converte un pezzo dal formato backend al formato di gioco interno
 export function fromApi(apiPiece) {
   const id = apiPiece.nome.toLowerCase().replace(/\s+/g, "_");
   const colors = PIECE_COLORS[id] ?? PIECE_COLORS["guerriero"];
+  const natura = apiPiece.materiali ?? NATURA_DA_NOME[apiPiece.nome] ?? null;
   return {
     uid:   apiPiece.id,          // id univoco del pezzo dell'utente
     id,
@@ -46,6 +66,7 @@ export function fromApi(apiPiece) {
     def:   apiPiece.def,
     mov:   apiPiece.mov,
     isClassico: apiPiece.isClassico,
+    natura,
     ...colors,
   };
 }

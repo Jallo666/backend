@@ -121,7 +121,11 @@
     url('./assets/background_taverna.png') center / cover no-repeat;
 }
 .mm-panel-mercante   { background: linear-gradient(175deg, #241408 0%, #100a04 100%); }
-.mm-panel-fabbro     { background: linear-gradient(175deg, #2a0c08 0%, #130604 100%); }
+.mm-panel-fabbro     {
+  background:
+    linear-gradient(rgba(20, 6, 2, 0.50), rgba(20, 6, 2, 0.50)),
+    url('./assets/Esterno fucina fabbr.png') center / cover no-repeat;
+}
 
 /* Top-left and top-right border separation */
 .mm-panel-dungeon    { border-right: 1px solid var(--hs-wood-rim); border-bottom: 1px solid var(--hs-wood-rim); }

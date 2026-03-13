@@ -1,3 +1,4 @@
+import Fabbro from "./Fabbro";
 import "./CittaPage.css";
 
 const SUBPAGES = {
@@ -28,9 +29,14 @@ const SUBPAGES = {
 };
 
 // ── Sub-pagina ────────────────────────────────────────────────────────────────
-function SubPage({ pageKey, onBack, onBackToMenu, onApriFormazione }) {
+function SubPage({ pageKey, token, onBack, onBackToMenu, onApriFormazione }) {
   const p = SUBPAGES[pageKey];
   if (!p) return null;
+
+  // Fabbro ha il proprio componente completo
+  if (pageKey === "fabbro") {
+    return <Fabbro token={token} onBack={onBack} onBackToMenu={onBackToMenu} />;
+  }
 
   const isLocanda = pageKey === "locanda";
 
@@ -46,7 +52,6 @@ function SubPage({ pageKey, onBack, onBackToMenu, onApriFormazione }) {
         <h1 className="citta-sub-title">{p.title}</h1>
         <p className="citta-sub-desc">{p.desc}</p>
 
-        {/* Locanda: bottone principale Quest Board */}
         {isLocanda && (
           <button className="citta-qb-btn" onClick={onApriFormazione}>
             ⚔ Sfida alla Quest Board
@@ -98,11 +103,12 @@ function CittaHub({ onNavigate, onBackToMenu }) {
 }
 
 // ── Componente principale ─────────────────────────────────────────────────────
-export default function CittaPage({ subPage, onNavigate, onBackToMenu, onApriFormazione }) {
+export default function CittaPage({ subPage, token, onNavigate, onBackToMenu, onApriFormazione }) {
   if (subPage) {
     return (
       <SubPage
         pageKey={subPage}
+        token={token}
         onBack={() => onNavigate(null)}
         onBackToMenu={onBackToMenu}
         onApriFormazione={onApriFormazione}
