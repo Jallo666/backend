@@ -11,7 +11,9 @@
   --hs-enemy-bg:  rgba(200, 40, 40, 0.30);
 
   min-height: 100dvh;
-  background: radial-gradient(ellipse at 30% 25%, #3d200a 0%, #1e0e04 55%, #120804 100%);
+  background:
+    linear-gradient(rgba(10, 4, 0, 0.40), rgba(10, 4, 0, 0.40)),
+    url('./assets/background_taverna_questboard.png') center / cover no-repeat fixed;
   display: flex; flex-direction: column;
   overflow: hidden;
   font-family: 'Press Start 2P', monospace;
@@ -178,16 +180,33 @@
   display: flex; align-items: center; justify-content: center;
   transition: background 0.12s; overflow: visible;
 }
-.qbg-cell-light { background: var(--hs-wood-mid); }
-.qbg-cell-dark  { background: var(--hs-wood-dark); }
+.qbg-cell-light {
+  background-color: #5a3418;
+  background-image: url('./assets/casella_board.png');
+  background-size: cover; background-blend-mode: overlay;
+}
+.qbg-cell-dark {
+  background-color: #2e1808;
+  background-image: url('./assets/casella_board.png');
+  background-size: cover; background-blend-mode: overlay;
+}
 .qbg-cell-player-piece { background: var(--hs-player-bg) !important; }
 .qbg-cell-ai-piece     { background: var(--hs-enemy-bg)  !important; }
+
+/* Overlay colorati via ::before — preservano la texture sottostante */
+.qbg-cell-valid::before,
+.qbg-cell-attack::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+}
+.qbg-cell-valid  { border-color: rgba(60,200,90,0.6); }
+.qbg-cell-valid::before  { background: rgba(60,200,90,0.30); }
+.qbg-cell-attack { border-color: rgba(220,80,80,0.7); }
+.qbg-cell-attack::before { background: rgba(220,60,60,0.35); }
+
 .qbg-cell:hover::after {
   content: ''; position: absolute; inset: 0;
   background: rgba(240,192,64,0.06); pointer-events: none;
 }
-.qbg-cell-valid  { background: rgba(60,200,90,0.22)  !important; border-color: rgba(60,200,90,0.6); }
-.qbg-cell-attack { background: rgba(220,60,60,0.28)  !important; border-color: rgba(220,80,80,0.7); }
 .qbg-cell-anim   { animation: cellFlash 0.3s ease-out; }
 @keyframes cellFlash { 0% { background: rgba(240,192,64,0.5) !important; } 100% {} }
 
@@ -341,31 +360,33 @@
 /* ── Log — pannello laterale sinistro ── */
 .qbg-log-panel {
   position: fixed;
-  left: 50%; bottom: 0;
-  transform: translateX(-50%) translateY(0);
-  width: 520px; max-width: calc(100vw - 40px);
-  height: 260px; z-index: 50;
+  left: 0; top: 64px; bottom: 0;
+  width: 240px; z-index: 50;
   background: rgba(8, 4, 0, 0.97);
-  border: 2px solid var(--hs-wood-rim); border-bottom: none;
-  border-radius: 8px 8px 0 0;
+  border: 2px solid var(--hs-wood-rim);
+  border-left: none; border-bottom: none;
+  border-radius: 0 8px 8px 0;
   display: flex; flex-direction: column;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 -4px 24px rgba(0,0,0,0.7);
+  box-shadow: 4px 0 24px rgba(0,0,0,0.7);
 }
 .qbg-log-panel.qbg-log-hidden {
-  transform: translateX(-50%) translateY(calc(100% - 32px));
+  transform: translateX(calc(-100% + 28px));
 }
 .qbg-log-tab {
-  flex-shrink: 0;
-  width: 100%; height: 32px;
+  position: absolute;
+  left: 100%; top: 24px;
+  width: 28px; height: 90px;
   background: rgba(12, 6, 1, 0.98);
-  border: none; border-bottom: 1px solid var(--hs-wood-rim);
-  border-radius: 8px 8px 0 0;
-  font-family: 'Press Start 2P', monospace; font-size: 9px;
+  border: 2px solid var(--hs-wood-rim); border-left: none;
+  border-radius: 0 6px 6px 0;
+  font-family: 'Press Start 2P', monospace; font-size: 8px;
   color: var(--hs-gold); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  gap: 8px; letter-spacing: 0.06em;
-  transition: background 0.15s;
+  writing-mode: vertical-rl; text-orientation: mixed;
+  letter-spacing: 0.1em;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
 }
 .qbg-log-tab:hover { background: rgba(30, 15, 2, 0.98); color: #ffdd80; }
 .qbg-log-header {
@@ -553,9 +574,9 @@
   .qbg-rot-icon { font-size: 20px; }
   .qbg-rot-nome { font-size: 9px; }
   .qbg-rot-stats { font-size: 8px; }
-  .qbg-log-panel { top: 36px; }
-  .qbg-log-panel { width: 220px; }
-  .qbg-log-panel.qbg-log-hidden { transform: translateX(-218px); }
+  .qbg-log-panel { top: 48px; width: 200px; }
+  .qbg-log-panel.qbg-log-hidden { transform: translateX(calc(-100% + 24px)); }
+  .qbg-log-tab { width: 24px; height: 70px; font-size: 7px; }
   .qbg-hud { padding: 0 8px 0 0; min-height: 48px; }
   .qbg-hud-avatar { width: 32px; height: 32px; font-size: 10px; }
   .qbg-hud-avatar-ai { font-size: 16px; }

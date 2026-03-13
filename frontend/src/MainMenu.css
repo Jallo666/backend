@@ -115,7 +115,11 @@
 
 /* Panel-specific backgrounds */
 .mm-panel-dungeon    { background: linear-gradient(175deg, #200a36 0%, #100418 100%); }
-.mm-panel-questboard { background: linear-gradient(175deg, #0a1830 0%, #050d1a 100%); }
+.mm-panel-questboard {
+  background:
+    linear-gradient(rgba(5, 13, 26, 0.52), rgba(5, 13, 26, 0.52)),
+    url('./assets/background_taverna.png') center / cover no-repeat;
+}
 .mm-panel-mercante   { background: linear-gradient(175deg, #241408 0%, #100a04 100%); }
 .mm-panel-fabbro     { background: linear-gradient(175deg, #2a0c08 0%, #130604 100%); }
 

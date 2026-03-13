@@ -1,7 +1,9 @@
 /* Formazione.css — schermata formazione — warm palette, fixed px */
 .form-root {
   min-height: 100dvh;
-  background: radial-gradient(ellipse at 30% 25%, #3d200a 0%, #1e0e04 55%, #120804 100%);
+  background:
+    linear-gradient(rgba(10, 4, 0, 0.40), rgba(10, 4, 0, 0.40)),
+    url('./assets/background_taverna_questboard.png') center / cover no-repeat fixed;
   color: #f5e0b0;
   font-family: 'Press Start 2P', monospace;
   display: flex; flex-direction: column;
@@ -69,8 +71,16 @@
   transition: background 0.15s, border-color 0.15s;
   min-height: 0;
 }
-.form-cell-enemy  { background: #140a04; }
-.form-cell-player { background: #0a1020; }
+.form-cell-enemy {
+  background-color: #140a04;
+  background-image: url('./assets/casella_board.png');
+  background-size: cover; background-blend-mode: overlay;
+}
+.form-cell-player {
+  background-color: #0a1020;
+  background-image: url('./assets/casella_board.png');
+  background-size: cover; background-blend-mode: overlay;
+}
 .form-cell-target {
   background: rgba(240,192,64,0.1);
   border-color: rgba(240,192,64,0.5);

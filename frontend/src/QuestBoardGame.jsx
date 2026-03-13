@@ -550,7 +550,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       {/* ── Log — pannello centrale basso ── */}
       <div className={`qbg-log-panel ${showLog ? "" : "qbg-log-hidden"}`}>
         <button className="qbg-log-tab" onClick={() => setShowLog(v => !v)}>
-          {showLog ? "▼ DIARIO" : "▲ DIARIO"}
+          {showLog ? "◀ DIARIO" : "▶ DIARIO"}
         </button>
         <div className="qbg-log-header">📜 DIARIO DI BATTAGLIA</div>
         <div className="qbg-log-content">
