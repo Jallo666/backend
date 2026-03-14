@@ -64,6 +64,47 @@
 .qbg-card-gesta-nome { font-size: 9px; color: #ffb060; }
 .qbg-card-gesta-desc { font-size: 7.5px; color: #c8a060; }
 
+/* ── Salta Azione ── */
+.qbg-card-skip {
+  margin-top: 8px; display: flex; justify-content: flex-end;
+}
+.qbg-btn-skip {
+  font-family: 'Press Start 2P', monospace; font-size: 7px;
+  padding: 4px 10px; border-radius: 4px; cursor: pointer;
+  background: rgba(80,80,80,0.15); border: 1px solid #555; color: #888;
+  transition: filter 0.15s, background 0.15s;
+  pointer-events: auto;
+}
+.qbg-btn-skip:hover { filter: brightness(1.4); background: rgba(80,80,80,0.28); }
+
+/* ── Sezione Ardore ── */
+.qbg-card-ardore {
+  margin-top: 10px; border-top: 1px solid var(--hs-wood-rim); padding-top: 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.qbg-card-ardore-title {
+  font-size: 9px; color: #6090ff; letter-spacing: 0.08em; font-weight: bold;
+}
+.qbg-card-ardore-row {
+  background: rgba(40,100,255,0.07); border: 1px solid rgba(40,100,255,0.25);
+  border-radius: 4px; padding: 5px 8px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.qbg-card-ardore-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+}
+.qbg-card-ardore-nome  { font-size: 9px; color: #80b0ff; }
+.qbg-card-ardore-badge {
+  font-size: 7px; color: #5070a0; font-style: italic;
+  border: 1px solid rgba(40,100,255,0.3); border-radius: 3px;
+  padding: 1px 5px; white-space: nowrap;
+}
+.qbg-card-ardore-desc { font-size: 7.5px; color: #8090b0; }
+.qbg-card-ardore-btn  {
+  align-self: flex-start; font-size: 8px !important;
+  padding: 3px 10px !important; pointer-events: all;
+}
+
 /* ── Override quando PieceCard è dentro DiarioPanel ── */
 .qbg-log-piece-content .qbg-piece-card {
   position: static;
@@ -138,4 +179,25 @@
   font-family: 'Cinzel', serif !important;
   font-size: 10px !important;
   padding: 4px 12px !important;
+}
+.qbg-log-piece-content .qbg-card-ardore-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+}
+.qbg-log-piece-content .qbg-card-ardore-nome {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+}
+.qbg-log-piece-content .qbg-card-ardore-desc {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+}
+.qbg-log-piece-content .qbg-card-ardore-btn {
+  font-family: 'Cinzel', serif !important;
+  font-size: 10px !important;
+  padding: 4px 12px !important;
+}
+.qbg-log-piece-content .qbg-card-ardore-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
 }

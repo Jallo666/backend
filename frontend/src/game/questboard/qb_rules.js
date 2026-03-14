@@ -124,6 +124,24 @@ export function registerMove(uid, tracker, alivePieces) {
   };
 }
 
+// ── Tracker Ardore (separato dalla rotazione movimento) ───────────────────────
+
+export function createArdoreTracker() {
+  return { used: new Set() };
+}
+
+export function canUseArdore(uid, tracker) {
+  return !tracker.used.has(uid);
+}
+
+// Registra uso ardore; resetta il Set quando tutti i pezzi vivi lo hanno usato
+export function registerArdore(uid, tracker, alivePieces) {
+  const newUsed = new Set(tracker.used);
+  newUsed.add(uid);
+  const aliveUids = alivePieces.map(p => p.uid);
+  return { used: aliveUids.every(id => newUsed.has(id)) ? new Set() : newUsed };
+}
+
 // ── Condizione di vittoria ────────────────────────────────────────────────────
 export function checkWin(playerPieces, aiPieces) {
   const playerKingDead = !playerPieces.some(p => p.isRe);

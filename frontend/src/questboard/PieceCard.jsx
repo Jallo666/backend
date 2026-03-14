@@ -2,7 +2,7 @@ import './PieceCard.css';
 import SilhouettePiece from '../SilhouettePiece.jsx';
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 
-export default function PieceCard({ piece, onClose, onGestaClick }) {
+export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, onSkipAction }) {
   const isPlayer = piece.side === "player";
   const hpPct = Math.round((piece.hp / piece.hpMax) * 100);
   return (
@@ -60,6 +60,38 @@ export default function PieceCard({ piece, onClose, onGestaClick }) {
                   onClick={() => onGestaClick(g.id)}
                 >
                   Usa
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {onSkipAction && (
+        <div className="qbg-card-skip">
+          <button className="qbg-btn-skip" onClick={onSkipAction}>
+            ⏭ Salta Azione
+          </button>
+        </div>
+      )}
+
+      {piece.ardore?.length > 0 && (
+        <div className="qbg-card-ardore">
+          <div className="qbg-card-ardore-title">🎯 Ardore</div>
+          {piece.ardore.map(a => (
+            <div key={a.id} className="qbg-card-ardore-row">
+              <div className="qbg-card-ardore-header">
+                <span className="qbg-card-ardore-nome">{a.icona} {a.nome}</span>
+                <span className="qbg-card-ardore-badge">Azione Bonus</span>
+              </div>
+              <span className="qbg-card-ardore-desc">{a.desc}</span>
+              {onArdoreClick && (
+                <button
+                  className="qbg-btn-ardore qbg-card-ardore-btn"
+                  disabled={ardoreUsed}
+                  onClick={() => onArdoreClick(a.id)}
+                >
+                  {ardoreUsed ? "Usato" : "Usa"}
                 </button>
               )}
             </div>

@@ -88,6 +88,38 @@ function scoreGesta(piece, gesta, target) {
   return score + Math.random() * 5;
 }
 
+// Valuta un ardore contro un target
+function scoreArdore(piece, ardore, target) {
+  const hpDopo   = Math.max(0, target.hp - ardore.danno);
+  const eliminato = hpDopo <= 0;
+  let score = 0;
+  if (eliminato && target.isRe) score += 10000;
+  if (eliminato)                score += 500 + target.hpMax;
+  if (target.isRe)              score += 300;
+  score += (target.hp - hpDopo) * 10;
+  return score + Math.random() * 5;
+}
+
+// Sceglie il bersaglio migliore per Ardore; restituisce { piece, ardoreId, targetUid } | null
+// Usa solo se il punteggio è positivo (vale la pena usarlo)
+export function chooseArdoreAction(aiPieces, playerPieces, aiArdoreTracker) {
+  let best = null;
+  let bestScore = 0;
+  for (const piece of aiPieces) {
+    if (!canUseArdore(piece.uid, aiArdoreTracker)) continue;
+    for (const ardore of (piece.ardore ?? [])) {
+      for (const target of playerPieces) {
+        const score = scoreArdore(piece, ardore, target);
+        if (score > bestScore) {
+          bestScore = score;
+          best = { piece, ardoreId: ardore.id, targetUid: target.uid };
+        }
+      }
+    }
+  }
+  return best;
+}
+
 // ── Funzione principale: sceglie la mossa migliore per l'AI ──────────────────
 // Restituisce { piece, move } | { piece, gestaId, targetUid } | null
 export function chooseBestMove(aiPieces, playerPieces, rotationTracker) {
@@ -131,7 +163,8 @@ export function chooseBestMove(aiPieces, playerPieces, rotationTracker) {
 // ── Formazione AI di default ──────────────────────────────────────────────────
 // L'AI usa gli stessi 6 pezzi classici con statistiche identiche.
 // Posizionati nelle prime 2 righe (righe 0-1 dall'alto = lato AI).
-import { CLASSIC_PIECES, PIECE_COLORS, NATURA_DA_NOME, gesteDiNatura } from "./qb_pieces.js";
+import { CLASSIC_PIECES, PIECE_COLORS, NATURA_DA_NOME, gesteDiNatura, ardoreDiNatura } from "./qb_pieces.js";
+import { canUseArdore } from "./qb_rules.js";
 
 export function createAiFormation() {
   const positions = [
@@ -163,6 +196,7 @@ export function createAiFormation() {
       side:   "ai",
       natura: NATURA_DA_NOME[tmpl.nome] ?? null,
       gesta:  gesteDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
+      ardore: ardoreDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
       ...colors,
     };
   });

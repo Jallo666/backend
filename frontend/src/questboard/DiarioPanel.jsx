@@ -1,7 +1,7 @@
 import './DiarioPanel.css';
 import PieceCard from './PieceCard.jsx';
 
-export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveTab, displayLog, pieceCard, setPieceCard, onGestaClick }) {
+export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveTab, displayLog, pieceCard, setPieceCard, onGestaClick, onArdoreClick, ardoreUsed, onSkipAction }) {
   return (
     <div className={`qbg-log-panel ${showLog ? "" : "qbg-log-hidden"}`}>
 
@@ -42,6 +42,9 @@ export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveT
               piece={pieceCard}
               onClose={() => { setPieceCard(null); setActiveTab('diario'); }}
               onGestaClick={onGestaClick}
+              onArdoreClick={onArdoreClick}
+              ardoreUsed={ardoreUsed}
+              onSkipAction={onSkipAction}
             />
           </div>
         )}

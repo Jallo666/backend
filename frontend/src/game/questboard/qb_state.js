@@ -3,8 +3,9 @@ import {
   getValidMoves, resolveCombat, checkWin,
   createRotationTracker, registerMove, applyEndRoundHeal,
   canMoveInRotation, isBlocked,
+  createArdoreTracker, registerArdore,
 } from "./qb_rules.js";
-import { chooseBestMove, createAiFormation } from "./qb_ai.js";
+import { chooseBestMove, chooseArdoreAction, createAiFormation } from "./qb_ai.js";
 import { fromApi } from "./qb_pieces.js";
 
 // ── Crea stato iniziale ───────────────────────────────────────────────────────
@@ -40,8 +41,10 @@ export function createGame(inventario, formazioneSalvata) {
     round:  1,
     status: "coinflip",        // "coinflip" | "playing" | "over"
     winner: null,              // null | "player" | "ai" | "draw"
-    playerRotation: createRotationTracker(playerPieces),
-    aiRotation:     createRotationTracker(aiPieces),
+    playerRotation:      createRotationTracker(playerPieces),
+    aiRotation:          createRotationTracker(aiPieces),
+    playerArdoreTracker: createArdoreTracker(),
+    aiArdoreTracker:     createArdoreTracker(),
     log:    [],                // messaggi di partita
     combatAnim: null,          // animazione combattimento in corso
     selected: null,            // uid pezzo selezionato dal giocatore
@@ -108,25 +111,44 @@ export function applyPlayerMove(state, toRow, toCol) {
   return _applyMove(state, piece, move, "player");
 }
 
-// ── Turno AI (sincrono — restituisce lo stato aggiornato) ────────────────────
+// ── Turno AI completo (usato solo per mosse non-attacco dirette) ─────────────
 export function applyAiTurn(state) {
   if (state.turn !== "ai" || state.status !== "playing") return state;
+  return applyAiMoveOnly(state);
+}
 
+// ── Solo la fase di movimento AI (senza controllo ardore — già gestito dalla UI)
+export function applyAiMoveOnly(state) {
+  if (state.turn !== "ai" || state.status !== "playing") return state;
   const choice = chooseBestMove(state.aiPieces, state.playerPieces, state.aiRotation);
-
   if (!choice) return _endTurn(state, "ai");
-
   if (choice.gestaId) {
     return applyGesta(state, "ai", choice.piece.uid, choice.gestaId, choice.targetUid);
   }
-
   return _applyMove(state, choice.piece, choice.move, "ai");
 }
 
-// ── Peek mossa AI (solo calcolo, nessuna modifica allo stato) ─────────────────
+// ── Forza l'AI a muovere uno specifico pezzo (dopo ardore) ───────────────────
+export function applyAiMoveForPiece(state, uid) {
+  if (state.turn !== "ai" || state.status !== "playing") return state;
+  const piece = state.aiPieces.find(p => p.uid === uid);
+  if (!piece) return _endTurn(state, "ai");
+  // Considera solo quel pezzo per la scelta
+  const choice = chooseBestMove([piece], state.playerPieces, state.aiRotation);
+  if (!choice) return _endTurn(state, "ai");
+  if (choice.gestaId) {
+    return applyGesta(state, "ai", choice.piece.uid, choice.gestaId, choice.targetUid);
+  }
+  return _applyMove(state, choice.piece, choice.move, "ai");
+}
+
+// ── Peek mossa AI: restituisce { ardore, move } ────────────────────────────────
 export function peekAiMove(state) {
   if (state.turn !== "ai" || state.status !== "playing") return null;
-  return chooseBestMove(state.aiPieces, state.playerPieces, state.aiRotation);
+  return {
+    ardore: chooseArdoreAction(state.aiPieces, state.playerPieces, state.aiArdoreTracker ?? createArdoreTracker()),
+    move:   chooseBestMove(state.aiPieces, state.playerPieces, state.aiRotation),
+  };
 }
 
 // ── Applica una scelta AI pre-calcolata (uid pezzo + riga/colonna destinazione) ─
@@ -311,6 +333,81 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
     if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
   }
 
+  return newState;
+}
+
+// ── Ardore (azione bonus — non consuma la rotazione) ─────────────────────────
+export function applyArdore(state, side, casterUid, ardoreId, targetUid) {
+  const allPieces = [...state.playerPieces, ...state.aiPieces];
+  const caster = allPieces.find(p => p.uid === casterUid);
+  const target = allPieces.find(p => p.uid === targetUid);
+  if (!caster || !target) return state;
+  const ardore = caster.ardore?.find(a => a.id === ardoreId);
+  if (!ardore) return state;
+
+  const nuovoHp    = Math.max(0, target.hp - ardore.danno);
+  const targetMorto = nuovoHp <= 0;
+  const updatePiece = (p) =>
+    p.uid !== targetUid ? p : (targetMorto ? null : { ...p, hp: nuovoHp });
+
+  let newPlayerPieces = state.playerPieces.map(updatePiece).filter(Boolean);
+  let newAiPieces     = state.aiPieces.map(updatePiece).filter(Boolean);
+
+  const logMsg =
+    `${caster.nome} usa ${ardore.nome} su ${target.nome}! (-${ardore.danno} HP)` +
+    (targetMorto ? ` → ${target.nome} eliminato!` : ` → ${nuovoHp} HP rimasti`);
+
+  // Registra ardore (non la rotazione — il pezzo può ancora muoversi)
+  const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
+  const ardoreTracker = side === "player" ? state.playerArdoreTracker : state.aiArdoreTracker;
+  const newArdoreTracker = registerArdore(casterUid, ardoreTracker ?? createArdoreTracker(), aliveSidePieces);
+
+  const newState = {
+    ...state,
+    playerPieces: newPlayerPieces,
+    aiPieces:     newAiPieces,
+    log:          [...state.log, logMsg].slice(-40),
+    combatAnim:   null,
+    ...(side === "player"
+      ? { playerArdoreTracker: newArdoreTracker }
+      : { aiArdoreTracker:     newArdoreTracker }),
+    // Turno NON cambia — il pezzo deve ancora muoversi
+  };
+
+  const winner = checkWin(newPlayerPieces, newAiPieces);
+  if (winner) {
+    const winMsg = winner === "player" ? "⚜ VITTORIA! Hai sconfitto il Re nemico!" :
+                   winner === "ai"     ? "☠ SCONFITTA. Il tuo Re è caduto." : "Pareggio.";
+    return { ...newState, status: "over", winner, log: [...newState.log, winMsg].slice(-40) };
+  }
+
+  return newState;
+}
+
+// ── Salta turno volontario ────────────────────────────────────────────────────
+export function skipPieceTurn(state, uid) {
+  const piece = state.playerPieces.find(p => p.uid === uid);
+  if (!piece) return state;
+  const newTracker = registerMove(uid, state.playerRotation, state.playerPieces);
+  let newState = {
+    ...state,
+    playerRotation: newTracker,
+    selected: null,
+    validMoves: [],
+    log: [...state.log, `${piece.nome} salta il turno.`].slice(-40),
+  };
+  newState = _endTurn(newState, "player");
+  if (newTracker.cycleComplete) {
+    const round = state.round;
+    const heal = _getHealText(round);
+    newState = {
+      ...newState,
+      round: round + 1,
+      playerPieces: applyEndRoundHeal(newState.playerPieces, round),
+      aiPieces:     applyEndRoundHeal(newState.aiPieces, round),
+    };
+    if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
+  }
   return newState;
 }
 

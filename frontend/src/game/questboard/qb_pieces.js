@@ -1,3 +1,24 @@
+// ── Catalogo ARDORE ───────────────────────────────────────────────────────────
+export const ARDORE_CATALOG = {
+  tiro_precisione: {
+    id:      "tiro_precisione",
+    nome:    "Tiro di Precisione",
+    icona:   "🎯",
+    danno:   3,
+    isArdore: true,
+    desc:    "Azione bonus: scegli un bersaglio e infliggi 3 danni diretti.",
+  },
+};
+
+const ARDORE_PER_NATURA = {
+  Arciere: ["tiro_precisione"],
+};
+
+export function ardoreDiNatura(natura) {
+  const ids = ARDORE_PER_NATURA[natura] ?? [];
+  return ids.map(id => ARDORE_CATALOG[id]).filter(Boolean);
+}
+
 // ── Catalogo GESTA ────────────────────────────────────────────────────────────
 export const GESTA_CATALOG = {
   dardo_fuoco: {
@@ -87,7 +108,8 @@ export function fromApi(apiPiece) {
     mov:   apiPiece.mov,
     isClassico: apiPiece.isClassico,
     natura,
-    gesta: gesteDiNatura(natura),
+    gesta:  gesteDiNatura(natura),
+    ardore: ardoreDiNatura(natura),
     ...colors,
   };
 }

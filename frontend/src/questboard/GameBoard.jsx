@@ -5,6 +5,7 @@ import "./QuestBoardGame.css";
 export default function GameBoard({
   game, cellSize, moveAnim, animCell,
   combatFlash, gestaMode, gestaHitAnim,
+  ardoreMode, ardoreHitAnim, ardoreImpegnato,
   onCellClick,
 }) {
   const allPieces    = [...game.playerPieces, ...game.aiPieces];
@@ -46,8 +47,11 @@ export default function GameBoard({
 
                 const isAtkCell     = combatFlash && p?.uid === combatFlash.atkUid;
                 const isDefCell     = combatFlash && p?.uid === combatFlash.defUid;
-                const isGestaTarget = gestaMode && p != null;
-                const isGestaHit    = gestaHitAnim?.row === r && gestaHitAnim?.col === c;
+                const isGestaTarget  = gestaMode && p != null;
+                const isGestaHit     = gestaHitAnim?.row === r && gestaHitAnim?.col === c;
+                const isArdoreTarget = ardoreMode && p != null;
+                const isArdoreHit    = ardoreHitAnim?.row === r && ardoreHitAnim?.col === c;
+                const isArdoreImpeg  = ardoreImpegnato && p?.uid === ardoreImpegnato.pieceUid;
                 const pieceSideClass = p
                   ? (p.side === "player" ? "qbg-cell-player-piece" : "qbg-cell-ai-piece")
                   : "";
@@ -66,8 +70,11 @@ export default function GameBoard({
                       isTo             ? "qbg-cell-to"          : "",
                       isAtkCell        ? "qbg-cell-combat-atk"  : "",
                       isDefCell        ? "qbg-cell-combat-def"  : "",
-                      isGestaTarget    ? "qbg-cell-gesta-target": "",
-                      isGestaHit       ? "qbg-cell-gesta-hit"   : "",
+                      isGestaTarget    ? "qbg-cell-gesta-target"  : "",
+                      isGestaHit       ? "qbg-cell-gesta-hit"     : "",
+                      isArdoreTarget   ? "qbg-cell-ardore-target" : "",
+                      isArdoreHit      ? "qbg-cell-ardore-hit"    : "",
+                      isArdoreImpeg    ? "qbg-cell-ardore-impeg"  : "",
                     ].join(" ")}
                     onClick={() => onCellClick(r, c)}
                   >

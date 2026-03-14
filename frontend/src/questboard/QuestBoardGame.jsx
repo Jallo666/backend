@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import {
   createGame, resolveCoinFlip, selectPiece,
-  applyPlayerMove, applyAiTurn, skipBlockedPiece,
-  peekAiMove, applyAiChoice, applyGesta,
+  applyPlayerMove, applyAiTurn, applyAiMoveOnly, applyAiMoveForPiece, skipBlockedPiece, skipPieceTurn,
+  peekAiMove, applyAiChoice, applyGesta, applyArdore,
 } from "../game/questboard/qb_state.js";
-import { isBlocked, canMoveInRotation, BOARD_SIZE } from "../game/questboard/qb_rules.js";
+import { isBlocked, canMoveInRotation, canUseArdore, BOARD_SIZE } from "../game/questboard/qb_rules.js";
+import { chooseBestMove } from "../game/questboard/qb_ai.js";
 import GameBoard from "./GameBoard.jsx";
 import CombatPreview from "./CombatPreview.jsx";
 import GestPreview from "./GestPreview.jsx";
+import ArdorePreview from "./ArdorePreview.jsx";
 import DiarioPanel from "./DiarioPanel.jsx";
 import RotazioneTracker from "./RotazioneTracker.jsx";
 import GameHud from "./GameHud.jsx";
@@ -36,6 +38,12 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const [gestaPreview,  setGestaPreview]  = useState(null); // null | { caster, target, gesta }
   const [aiGestaPreview, setAiGestaPreview] = useState(null); // null | { caster, target, gesta }
   const [gestaHitAnim,  setGestaHitAnim]  = useState(null); // null | { row, col }
+  const [ardoreMode,      setArdoreMode]      = useState(null); // null | { ardoreId, casterUid }
+  const [ardorePreview,   setArdorePreview]   = useState(null); // null | { caster, target, ardore }
+  const [aiArdorePreview, setAiArdorePreview] = useState(null); // null | { caster, target, ardore }
+  const [ardoreHitAnim,   setArdoreHitAnim]   = useState(null); // null | { row, col }
+  const [ardoreImpegnato, setArdoreImpegnato] = useState(null); // null | { pieceUid }
+  const [pendingAiMove,   setPendingAiMove]   = useState(null); // null | casterUid string
   const [pieceCard,     setPieceCard]     = useState(null);
   const [cellSize,      setCellSize]      = useState(calcCellSize);
   const [showLog,       setShowLog]       = useState(true);
@@ -71,26 +79,62 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     aiTimerRef.current = setTimeout(() => {
       setGame(s => {
         if (s.turn !== "ai" || s.status !== "playing") return s;
-        const choice = peekAiMove(s);
+        const peek = peekAiMove(s);
+
+        // Fase 1: Ardore (azione bonus)
+        if (peek?.ardore) {
+          const { piece, ardoreId, targetUid } = peek.ardore;
+          const caster = s.aiPieces.find(p => p.uid === piece.uid);
+          const target = [...s.aiPieces, ...s.playerPieces].find(p => p.uid === targetUid);
+          const ardore = caster?.ardore?.find(a => a.id === ardoreId);
+          if (caster && target && ardore) {
+            setAiArdorePreview({ caster, target, ardore });
+            return s; // non applicare ancora
+          }
+        }
+
+        // Fase 2: mossa/gesta regolare
+        const choice = peek?.move;
         if (choice?.gestaId) {
           const caster = s.aiPieces.find(p => p.uid === choice.piece.uid);
           const target = [...s.aiPieces, ...s.playerPieces].find(p => p.uid === choice.targetUid);
           const gesta  = caster?.gesta?.find(g => g.id === choice.gestaId);
           if (caster && target && gesta) {
             setAiGestaPreview({ caster, target, gesta });
-            return s; // non applicare ancora
+            return s;
           }
         }
         if (choice?.move?.isAttack && choice.move.target) {
-          // Mostra dialog prima di attaccare
           setAiAttackPreview({ piece: choice.piece, move: choice.move, defender: choice.move.target });
-          return s; // non applicare ancora
+          return s;
         }
-        return applyAiTurn(s); // mossa non-attacco: applica subito
+        return applyAiTurn(s);
       });
     }, AI_DELAY_MS);
     return () => clearTimeout(aiTimerRef.current);
   }, [game.status, game.turn, game.round]);
+
+  // ── Mossa AI dopo ardore (pendingAiMove = uid del pezzo che deve muoversi) ─
+  useEffect(() => {
+    if (!pendingAiMove) return;
+    const casterUid = pendingAiMove;
+    const t = setTimeout(() => {
+      setPendingAiMove(null);
+      setGame(s => {
+        if (s.turn !== "ai" || s.status !== "playing") return s;
+        // Forza l'AI a muovere solo il pezzo che ha usato Ardore
+        const piece = s.aiPieces.find(p => p.uid === casterUid);
+        if (!piece) return applyAiMoveOnly(s); // fallback: pezzo eliminato dal suo stesso ardore
+        const choice = chooseBestMove([piece], s.playerPieces, s.aiRotation);
+        if (choice?.move?.isAttack && choice.move.target) {
+          setAiAttackPreview({ piece: choice.piece, move: choice.move, defender: choice.move.target });
+          return s;
+        }
+        return applyAiMoveForPiece(s, casterUid);
+      });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [pendingAiMove]);
 
   // ── Detect mossa AI ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -150,6 +194,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     if (moving) triggerMoveAnim(moving.row, moving.col, move.row, move.col);
     setCombatPreview(null);
     setPieceCard(null); setActiveTab('diario');
+    setArdoreImpegnato(null);
     setGame(s => applyPlayerMove(s, move.row, move.col));
   }, [combatPreview, game, triggerMoveAnim]);
 
@@ -162,6 +207,17 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     setTimeout(() => setGestaHitAnim(null), 1000);
     setGame(s => applyGesta(s, "ai", caster.uid, gesta.id, target.uid));
   }, [aiGestaPreview]);
+
+  // ── Conferma ardore AI dopo preview ──────────────────────────────────────
+  const confirmAiArdore = useCallback(() => {
+    if (!aiArdorePreview) return;
+    const { caster, target, ardore } = aiArdorePreview;
+    setAiArdorePreview(null);
+    setArdoreHitAnim({ row: target.row, col: target.col });
+    setTimeout(() => setArdoreHitAnim(null), 1000);
+    setGame(s => applyArdore(s, "ai", caster.uid, ardore.id, target.uid));
+    setPendingAiMove(caster.uid); // dopo ardore l'AI deve muovere lo stesso pezzo
+  }, [aiArdorePreview]);
 
   // ── Conferma attacco AI dopo preview ──────────────────────────────────────
   const confirmAiAttack = useCallback(() => {
@@ -179,6 +235,28 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
 
     const allPiecesNow = [...game.playerPieces, ...game.aiPieces];
     const clickedPiece = allPiecesNow.find(p => p.row === row && p.col === col);
+
+    // Modalità ardore: clicca target → mostra conferma
+    if (ardoreMode && clickedPiece) {
+      const caster = game.playerPieces.find(p => p.uid === ardoreMode.casterUid);
+      const ardore = caster?.ardore?.find(a => a.id === ardoreMode.ardoreId);
+      if (caster && ardore) {
+        setArdorePreview({ caster, target: clickedPiece, ardore });
+        setArdoreMode(null);
+      }
+      return;
+    }
+    if (ardoreMode) {
+      setArdoreMode(null);
+      return;
+    }
+
+    // Se impegnato: blocca selezione di altri pezzi del player e deselection
+    if (ardoreImpegnato) {
+      const clickedPlayer = game.playerPieces.find(p => p.row === row && p.col === col);
+      if (clickedPlayer && clickedPlayer.uid !== ardoreImpegnato.pieceUid) return;
+      if (!clickedPiece && !game.validMoves.some(m => m.row === row && m.col === col)) return;
+    }
 
     // Modalità gesta: clicca target → mostra conferma
     if (gestaMode && clickedPiece) {
@@ -217,6 +295,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       setAnimCell({ row, col });
       setTimeout(() => setAnimCell(null), 300);
       setPieceCard(null); setActiveTab('diario');
+      setArdoreImpegnato(null);
       setGame(s => applyPlayerMove(s, row, col));
       return;
     }
@@ -225,6 +304,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     if (playerPiece) {
       const allOthers = allPiecesNow.filter(p => p.uid !== playerPiece.uid);
       if (isBlocked(playerPiece, allOthers) && canMoveInRotation(playerPiece.uid, game.playerRotation)) {
+        setArdoreImpegnato(null);
         setGame(s => skipBlockedPiece(s, playerPiece.uid));
         return;
       }
@@ -237,7 +317,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       setPieceCard(null); setActiveTab('diario');
       setGame(s => ({ ...s, selected: null, validMoves: [] }));
     }
-  }, [game, gestaMode, triggerMoveAnim, openPieceTab]);
+  }, [game, gestaMode, ardoreMode, ardoreImpegnato, triggerMoveAnim, openPieceTab]);
 
 
   return (
@@ -278,6 +358,41 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
           onConfirm={confirmAiAttack}
           onCancel={confirmAiAttack}
           mode="ai"
+        />
+      )}
+
+      {/* ── Ardore AI ── */}
+      {aiArdorePreview && (
+        <ArdorePreview
+          caster={aiArdorePreview.caster}
+          target={aiArdorePreview.target}
+          ardore={aiArdorePreview.ardore}
+          onConfirm={confirmAiArdore}
+          onCancel={confirmAiArdore}
+          mode="ai"
+        />
+      )}
+
+      {/* ── Ardore giocatore ── */}
+      {ardorePreview && (
+        <ArdorePreview
+          caster={ardorePreview.caster}
+          target={ardorePreview.target}
+          ardore={ardorePreview.ardore}
+          onConfirm={() => {
+            const { caster, target, ardore } = ardorePreview;
+            setArdorePreview(null);
+            setArdoreHitAnim({ row: target.row, col: target.col });
+            setTimeout(() => setArdoreHitAnim(null), 1000);
+            setGame(s => {
+              const afterArdore = applyArdore(s, "player", caster.uid, ardore.id, target.uid);
+              if (afterArdore.status === "over") return afterArdore;
+              return selectPiece(afterArdore, caster.uid); // pre-seleziona il pezzo impegnato
+            });
+            setArdoreImpegnato({ pieceUid: caster.uid });
+            // Rimani sulla tab pezzo così il player vede il bottone Ardore grayed
+          }}
+          onCancel={() => setArdorePreview(null)}
         />
       )}
 
@@ -330,6 +445,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         game={game} cellSize={cellSize}
         moveAnim={moveAnim} animCell={animCell}
         combatFlash={combatFlash} gestaMode={gestaMode} gestaHitAnim={gestaHitAnim}
+        ardoreMode={ardoreMode} ardoreHitAnim={ardoreHitAnim} ardoreImpegnato={ardoreImpegnato}
         onCellClick={handleCellClick}
       />
 
@@ -345,6 +461,41 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
                 setActiveTab('diario');
               }
             : null
+        }
+        onSkipAction={
+          game.turn === "player" && pieceCard?.side === "player" &&
+          canMoveInRotation(pieceCard?.uid, game.playerRotation) &&
+          (
+            (!ardoreImpegnato || ardoreImpegnato.pieceUid !== pieceCard?.uid) ||
+            // Permetti skip se il pezzo impegnato non ha mosse valide (è bloccato)
+            (ardoreImpegnato?.pieceUid === pieceCard?.uid && game.validMoves.length === 0)
+          )
+            ? () => {
+                setPieceCard(null); setActiveTab('diario');
+                setArdoreImpegnato(null);
+                setGame(s => skipPieceTurn(s, pieceCard.uid));
+              }
+            : null
+        }
+        onArdoreClick={
+          game.turn === "player" && pieceCard?.side === "player" &&
+          canMoveInRotation(pieceCard?.uid, game.playerRotation) &&
+          canUseArdore(pieceCard?.uid, game.playerArdoreTracker ?? { used: new Set() })
+            ? (ardoreId) => {
+                setArdoreMode({ ardoreId, casterUid: pieceCard.uid });
+                setActiveTab('diario');
+              }
+            : null
+        }
+        ardoreUsed={
+          pieceCard
+            ? !canUseArdore(
+                pieceCard.uid,
+                pieceCard.side === "player"
+                  ? (game.playerArdoreTracker ?? { used: new Set() })
+                  : (game.aiArdoreTracker    ?? { used: new Set() })
+              )
+            : false
         }
       />
 
