@@ -1,0 +1,117 @@
+.gh-header {
+  --hs-gold: #f0c040;
+  --hs-cream: #f5e0b0;
+  --hs-wood-rim: #5a3510;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 10px 20px;
+
+  background: rgba(10, 5, 1, 0.95);
+  border-bottom: 2px solid var(--hs-wood-rim);
+  box-shadow: 0 2px 16px rgba(0,0,0,0.7);
+
+  min-height: 52px;
+  flex-shrink: 0;
+}
+
+.gh-left,
+.gh-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 160px;
+}
+
+.gh-right {
+  justify-content: flex-end;
+}
+
+.gh-title-area {
+  text-align: center;
+  flex: 1;
+}
+
+/* Title */
+
+.gh-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 20px;
+
+  color: var(--hs-gold);
+
+  text-shadow:
+    0 0 30px rgba(240,192,64,0.5),
+    0 2px 4px rgba(0,0,0,0.8);
+
+  margin: 0 0 4px;
+  letter-spacing: 0.1em;
+}
+
+.gh-subtitle {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+
+  color: #c8a060;
+
+  margin: 0;
+  opacity: 0.7;
+}
+
+/* Buttons */
+
+.gh-gilda-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+
+  background: transparent;
+  border: 1px solid var(--hs-gold);
+
+  color: var(--hs-gold);
+
+  padding: 6px 10px;
+
+  cursor: pointer;
+  border-radius: 3px;
+
+  opacity: 0.65;
+  transition: opacity 0.2s;
+}
+
+.gh-gilda-btn:hover {
+  opacity: 1;
+}
+
+.gh-logout-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+
+  background: transparent;
+  border: 1px solid #884444;
+
+  color: #cc6666;
+
+  padding: 6px 10px;
+
+  cursor: pointer;
+  border-radius: 3px;
+
+  transition: all 0.2s;
+}
+
+.gh-logout-btn:hover {
+  background: #441818;
+  color: #ff8888;
+}
+
+/* Username */
+
+.gh-username {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+
+  color: var(--hs-cream);
+  opacity: 0.75;
+}

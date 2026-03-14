@@ -1,0 +1,89 @@
+<svg
+  width="520"
+  height="120"
+  viewBox="0 0 520 120"
+  xmlns="http://www.w3.org/2000/svg"
+>
+
+  <defs>
+
+    <!-- Oro -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffe8a0"/>
+      <stop offset="50%" stop-color="#f0c040"/>
+      <stop offset="100%" stop-color="#b87800"/>
+    </linearGradient>
+
+    <!-- Glow -->
+    <filter id="goldGlow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Ombra -->
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#000"/>
+    </filter>
+
+  </defs>
+
+  <!-- Glow dietro -->
+  <text
+    x="50%"
+    y="60%"
+    text-anchor="middle"
+    font-family="serif"
+    font-size="56"
+    fill="#f0c040"
+    opacity="0.35"
+    filter="url(#goldGlow)"
+  >
+    QUEST BOARD
+  </text>
+
+  <!-- Testo principale -->
+  <text
+    x="50%"
+    y="60%"
+    text-anchor="middle"
+    font-family="serif"
+    font-size="56"
+    fill="url(#goldGrad)"
+    stroke="#3a1d00"
+    stroke-width="2"
+    filter="url(#shadow)"
+    letter-spacing="4"
+  >
+    QUEST BOARD
+  </text>
+
+  <!-- Linea decorativa sopra -->
+  <line
+    x1="80"
+    y1="25"
+    x2="440"
+    y2="25"
+    stroke="#c8900a"
+    stroke-width="3"
+    opacity="0.6"
+  />
+
+  <!-- Linea decorativa sotto -->
+  <line
+    x1="80"
+    y1="95"
+    x2="440"
+    y2="95"
+    stroke="#c8900a"
+    stroke-width="3"
+    opacity="0.6"
+  />
+
+  <!-- Rune laterali -->
+  <text x="60" y="65" font-size="28" fill="#c8900a">᛭</text>
+  <text x="460" y="65" font-size="28" fill="#c8900a">᛭</text>
+
+</svg>

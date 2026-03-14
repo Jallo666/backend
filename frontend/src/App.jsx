@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import Login from "./Login";
 import Registrazione from "./Registrazione";
 import Gioco from "./Gioco";
-import MainMenu from "./MainMenu";
+import MainMenu from "./mainmenu/MainMenu";
 import CittaPage from "./CittaPage";
 import Formazione from "./Formazione";
 import QuestBoardGame from "./QuestBoardGame";

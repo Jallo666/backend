@@ -99,16 +99,20 @@ body::before {
 }
 
 .game-title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: clamp(1rem, 4vw, 1.6rem);
-  color: var(--gold);
   text-align: center;
   margin-bottom: 2rem;
-  text-shadow:
-    0 0 20px rgba(240, 192, 64, 0.5),
-    3px 3px 0 #000;
-  letter-spacing: 0.05em;
-  line-height: 1.5;
+}
+
+.game-logo {
+  width: clamp(220px, 40vw, 380px);
+  height: auto;
+
+  display: block;
+  margin: 0 auto;
+
+  filter:
+    drop-shadow(0 0 14px rgba(240,192,64,0.5))
+    drop-shadow(0 4px 6px rgba(0,0,0,0.8));
 }
 
 .game-subtitle {

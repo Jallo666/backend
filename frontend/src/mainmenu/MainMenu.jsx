@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import "./MainMenu.css";
-
+import GameHeader from "./GameHeader";
 const SAVE_KEY = "qb_game_stats";
 
 // ── SVG Arco del Dungeon ──────────────────────────────────────────────────────
@@ -141,19 +141,13 @@ export default function MainMenu({ utente, onEnterDungeon, onEnterCitta, onGilda
       <div className="mm-stars" ref={starsRef} />
 
       {/* ── Header ── */}
-      <header className="mm-header">
-        <div className="mm-header-left">
-          <button className="mm-gilda-btn" onClick={onGilda}>[ GILDA ]</button>
-        </div>
-        <div className="mm-title-area">
-          <h1 className="mm-title">QUEST BOARD</h1>
-          <p className="mm-subtitle">Scegli il tuo destino, avventuriero</p>
-        </div>
-        <div className="mm-header-right">
-          <span className="mm-username">{utente?.nome}</span>
-          <button className="mm-logout-btn" onClick={onLogout}>ESCI</button>
-        </div>
-      </header>
+<GameHeader
+  title="QUEST BOARD"
+  subtitle="Scegli il tuo destino, avventuriero"
+  username={utente?.nome}
+  onGilda={onGilda}
+  onLogout={onLogout}
+/>
 
       {/* ── 4 Panels Grid ── */}
       <main className="mm-panels">

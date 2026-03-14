@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import logo from "./assets/questboard_logo.svg";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
@@ -42,7 +43,9 @@ function Login({ onLogin, onVaiRegistrazione }) {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <div className="game-title">⚔ QUEST BOARD ⚔</div>
+        <div className="game-title">
+  <img src={logo} alt="Quest Board" className="game-logo" />
+</div>
         <p className="game-subtitle">─── Accedi al tuo account ───</p>
         <div className="card">
 
