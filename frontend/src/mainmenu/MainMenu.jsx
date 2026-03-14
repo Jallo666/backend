@@ -9,6 +9,7 @@ import GameFooter from "./GameFooter";
 export default function MainMenu({ utente, onEnterDungeon, onEnterCitta, onGilda, onLogout }) {
   const starsRef = useRef(null);
   const [saveData, setSaveData] = useState(null);
+  const [activeTab, setActiveTab] = useState(PANELS[0].id);
 
   useEffect(() => {
     try {
@@ -61,51 +62,68 @@ export default function MainMenu({ utente, onEnterDungeon, onEnterCitta, onGilda
         onLogout={onLogout}
       />
 
-      {/* ── 4 Panels Grid ── */}
-      <main className="mm-panels">
-        {PANELS.map(panel => (
-          <section
-            key={panel.id}
-            className={`mm-panel mm-panel-${panel.id}`}
-            onClick={() => handlePanel(panel.id)}
-            style={{ "--panel-accent": panel.accent }}
-          >
-            {/* Scene visiva */}
-            <div className="mm-panel-scene">
-              {panel.id === "dungeon" ? (
-                <>
-                  <div className="mm-torch mm-torch-left">
-                    <div className="mm-torch-glow" />
-                    <div className="mm-torch-flame" />
-                    <div className="mm-torch-stick" />
-                  </div>
-                  <DungeonArch />
-                  <div className="mm-torch mm-torch-right">
-                    <div className="mm-torch-glow" />
-                    <div className="mm-torch-flame" />
-                    <div className="mm-torch-stick" />
-                  </div>
-                </>
-              ) : (
-                <div className="mm-panel-big-icon" style={{ textShadow: `0 0 40px ${panel.accent}` }}>
-                  {panel.icon}
-                </div>
-              )}
-            </div>
 
-            {/* Info */}
-            <div className="mm-panel-info">
-              <div className="mm-panel-label">{panel.label}</div>
-              <div className="mm-panel-desc">{panel.desc}</div>
-              <div className="mm-panel-sub">{panel.sub}</div>
-              <button className={`mm-btn ${panel.btnClass}`} onClick={e => { e.stopPropagation(); handlePanel(panel.id); }}>
-                {panel.btnText} ▶
-              </button>
-            </div>
-          </section>
-        ))}
-      </main>
 
+      {/* ── Main Layout ── */}
+      <div className="mm-main-layout">
+        {/* ── Sidebar Menu ── */}
+        <aside className="mm-sidebar">
+          {PANELS.map(panel => (
+            <button
+              key={panel.id}
+              className={`mm-menu-item ${activeTab === panel.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(panel.id)}
+            >
+              <div className="mm-menu-icon">{panel.icon}</div>
+              <div className="mm-menu-label">{panel.label}</div>
+            </button>
+          ))}
+        </aside>
+
+        {/* ── Content Area ── */}
+        <main className="mm-content">
+          {PANELS.filter(panel => panel.id === activeTab).map(panel => (
+            <section
+              key={panel.id}
+              className={`mm-panel mm-panel-${panel.id}`}
+              style={{ "--panel-accent": panel.accent }}
+            >
+              {/* Scene visiva */}
+              <div className="mm-panel-scene">
+                {panel.id === "dungeon" ? (
+                  <>
+                    <div className="mm-torch mm-torch-left">
+                      <div className="mm-torch-glow" />
+                      <div className="mm-torch-flame" />
+                      <div className="mm-torch-stick" />
+                    </div>
+                    <DungeonArch />
+                    <div className="mm-torch mm-torch-right">
+                      <div className="mm-torch-glow" />
+                      <div className="mm-torch-flame" />
+                      <div className="mm-torch-stick" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="mm-panel-big-icon" style={{ textShadow: `0 0 40px ${panel.accent}` }}>
+                    {panel.icon}
+                  </div>
+                )}
+              </div>
+
+              {/* Info */}
+              <div className="mm-panel-info">
+                <div className="mm-panel-label">{panel.label}</div>
+                <div className="mm-panel-desc">{panel.desc}</div>
+                <div className="mm-panel-sub">{panel.sub}</div>
+                <button className={`mm-btn ${panel.btnClass}`} onClick={() => handlePanel(panel.id)}>
+                  {panel.btnText} ▶
+                </button>
+              </div>
+            </section>
+          ))}
+        </main>
+      </div>
       {/* ── Footer stats ── */}
       <GameFooter
         floor={statFloor}
