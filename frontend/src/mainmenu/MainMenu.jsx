@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import "./MainMenu.css";
 import GameHeader from "./GameHeader";
 import { PANELS, SAVE_KEY } from "./constants";
-import DungeonArch from "./DungeonArch";
 import GameFooter from "./GameFooter";
 
 // ── Componente principale ─────────────────────────────────────────────────────
@@ -74,7 +73,6 @@ export default function MainMenu({ utente, onEnterDungeon, onEnterCitta, onGilda
               className={`mm-menu-item ${activeTab === panel.id ? 'active' : ''}`}
               onClick={() => setActiveTab(panel.id)}
             >
-              <div className="mm-menu-icon">{panel.icon}</div>
               <div className="mm-menu-label">{panel.label}</div>
             </button>
           ))}
@@ -90,25 +88,7 @@ export default function MainMenu({ utente, onEnterDungeon, onEnterCitta, onGilda
             >
               {/* Scene visiva */}
               <div className="mm-panel-scene">
-                {panel.id === "dungeon" ? (
-                  <>
-                    <div className="mm-torch mm-torch-left">
-                      <div className="mm-torch-glow" />
-                      <div className="mm-torch-flame" />
-                      <div className="mm-torch-stick" />
-                    </div>
-                    <DungeonArch />
-                    <div className="mm-torch mm-torch-right">
-                      <div className="mm-torch-glow" />
-                      <div className="mm-torch-flame" />
-                      <div className="mm-torch-stick" />
-                    </div>
-                  </>
-                ) : (
-                  <div className="mm-panel-big-icon" style={{ textShadow: `0 0 40px ${panel.accent}` }}>
-                    {panel.icon}
-                  </div>
-                )}
+                {/* Decorative scene background; content is in the info below. */}
               </div>
 
               {/* Info */}

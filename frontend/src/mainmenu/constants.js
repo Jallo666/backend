@@ -4,7 +4,6 @@ export const SAVE_KEY = "qb_game_stats";
 export const PANELS = [
   {
     id: "dungeon",
-    icon: "⚔",
     label: "DUNGEON",
     desc: "Esplora le profondità oscure e sconfiggi i mostri",
     sub: "Piano 1 — Nuova avventura",
@@ -14,7 +13,6 @@ export const PANELS = [
   },
   {
     id: "questboard",
-    icon: "♟",
     label: "QUEST BOARD",
     desc: "Schiera la tua formazione e affronta l'avversario",
     sub: "Tattica — Strategia — Duello",
@@ -24,7 +22,6 @@ export const PANELS = [
   },
   {
     id: "mercante",
-    icon: "💰",
     label: "MERCANTE",
     desc: "Compra e vendi equipaggiamento con le gemme",
     sub: "Negozio — Oggetti — Gemme",
@@ -34,7 +31,6 @@ export const PANELS = [
   },
   {
     id: "fabbro",
-    icon: "⚒",
     label: "FABBRO",
     desc: "Forgia e potenzia le tue armi con il loot del dungeon",
     sub: "Crafting — Upgrade — Forge",

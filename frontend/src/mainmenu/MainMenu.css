@@ -61,16 +61,24 @@
 .mm-panel:hover { border-color: rgba(240,192,64,0.25); }
 
 /* Panel-specific backgrounds */
-.mm-panel-dungeon    { background: linear-gradient(175deg, #200a36 0%, #100418 100%); }
+.mm-panel-dungeon    {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0.28)),
+    url('../assets/dungeon.png') center / cover no-repeat;
+}
 .mm-panel-questboard {
   background:
-    linear-gradient(rgba(5, 13, 26, 0.52), rgba(5, 13, 26, 0.52)),
+    linear-gradient(rgba(0, 0, 0, 0.20), rgba(0, 0, 0, 0.25)),
     url('../assets/background_taverna.png') center / cover no-repeat;
 }
-.mm-panel-mercante   { background: linear-gradient(175deg, #241408 0%, #100a04 100%); }
+.mm-panel-mercante   {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.25)),
+    url('../assets/mercante.png') center / cover no-repeat;
+}
 .mm-panel-fabbro     {
   background:
-    linear-gradient(rgba(20, 6, 2, 0.50), rgba(20, 6, 2, 0.50)),
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.25)),
     url('../assets/Esterno fucina fabbr.png') center / cover no-repeat;
 }
 
@@ -85,6 +93,7 @@
   display: flex;
   flex-direction: row;
   justify-content: center;
+  align-items: center;
   flex: 1;
   min-height: 0;
   position: relative;
@@ -137,10 +146,6 @@
   text-align: left;
 }
 
-.mm-menu-item .mm-menu-icon {
-  font-size: 26px;
-}
-
 .mm-menu-item:hover {
   background: rgba(240, 192, 64, 0.12);
   transform: translateX(2px);
@@ -160,47 +165,56 @@
   color: rgba(240, 192, 64, 0.95);
   font-size: 14px;
 }
-.mm-menu-icon {
-  font-size: 22px;
-  min-width: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .mm-menu-label {
   flex: 1;
 }
 
 /* ── Content Area ── */
 .mm-content {
-  flex: 1;
+  flex: 0 1 auto;
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  margin: 18px 0;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  margin: 14px 0;
   border-radius: 20px;
   background: rgba(4, 2, 1, 0.25);
   backdrop-filter: blur(14px);
   box-shadow: 0 0 0 1px rgba(240, 192, 64, 0.17), 0 18px 40px rgba(0, 0, 0, 0.55);
   overflow: hidden;
-  max-width: 980px;
+  max-width: 860px;
   width: 100%;
-  height: 100%;
+  max-height: 620px;
+  height: auto;
 }
 
 .mm-panel {
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
-  height: 100%;
+  max-height: 520px;
+  height: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 20px;
-  overflow: auto;
+  gap: 18px;
+  overflow: hidden;
+  padding: 16px 0;
+  animation: mmPanelEnter 280ms ease-out;
+}
+
+@keyframes mmPanelEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .mm-panel-scene {
@@ -228,16 +242,6 @@
 }
 
 
-.mm-panel-big-icon {
-  font-size: 80px; line-height: 1;
-  animation: mmIconFloat 3s ease-in-out infinite;
-  filter: drop-shadow(0 0 20px var(--panel-accent, #5a3510));
-}
-@keyframes mmIconFloat {
-  0%,100% { transform: translateY(0); }
-  50%     { transform: translateY(-8px); }
-}
-
 /* ── Torches ── */
 .mm-torch {
   position: absolute; top: 8px;
@@ -262,13 +266,28 @@
   background: linear-gradient(to right, #3a2410, #6b4322, #3a2410); border-radius: 2px;
 }
 
+.mm-dungeon-portal {
+  width: 160px;
+  height: 100px;
+  background: radial-gradient(circle at 50% 50%, rgba(160,120,240,0.45) 0%, rgba(10,6,16,0.85) 65%, transparent 100%);
+  border: 2px solid rgba(200, 160, 255, 0.35);
+  border-radius: 16px;
+  box-shadow: 0 0 0 1px rgba(200, 160, 255, 0.2), 0 0 24px rgba(120, 80, 220, 0.25);
+  position: relative;
+  z-index: 1;
+}
+
 /* ── Panel Info (bottom section) ── */
 .mm-panel-info {
-  display: flex; flex-direction: column; gap: 12px;
-  padding-top: 18px;
-  border-top: 1px solid rgba(90,53,16,0.5);
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid rgba(90,53,16,0.45);
   align-items: center;
   text-align: center;
+  background: rgba(0, 0, 0, 0.44);
+  border-radius: 14px;
+  width: calc(100% - 32px);
+  max-width: 760px;
 }
 
 .mm-panel-label {
@@ -346,9 +365,6 @@
     font-size: 10px;
     min-width: 0;
   }
-  .mm-menu-icon {
-    display: none;
-  }
   .mm-content {
     margin: 0;
     padding: 12px;
@@ -357,12 +373,10 @@
   }
   .mm-panel {
     max-width: 100%;
+    max-height: 420px;
     overflow: hidden;
   }
-  .mm-panel-scene { min-height: 70px; max-height: 100px; }
-  .mm-panel-big-icon {
-    display: none;
-  }
+  .mm-panel-scene { min-height: 60px; max-height: 90px; }
   .mm-panel-label { font-size: 12px; }
   .mm-panel-desc { font-size: 11px; line-height: 1.6; }
   .mm-panel-sub { font-size: 10px; }
