@@ -1,5 +1,6 @@
 import { CHESS_ICONS } from "./qb_pieces.js";
 // ── AI per Quest Board ────────────────────────────────────────────────────────
+// Valuta ogni mossa/gesta possibile e sceglie quella con il punteggio più alto.
 // Valuta ogni mossa possibile e sceglie quella con il punteggio più alto.
 // Criteri (in ordine di priorità):
 //   1. Uccide il Re nemico → punteggio massimo
@@ -74,8 +75,21 @@ function scoreMossa(piece, move, aiPieces, playerPieces) {
   return score;
 }
 
+// Valuta una gesta contro un target
+function scoreGesta(piece, gesta, target) {
+  if (target.side === piece.side) return -500; // evita propri pezzi
+  const hpDopo   = Math.max(0, target.hp - gesta.danno);
+  const eliminato = hpDopo <= 0;
+  let score = 0;
+  if (eliminato && target.isRe) score += 10000;
+  if (eliminato)                score += 500 + target.hpMax;
+  if (target.isRe)              score += 300;
+  score += (target.hp - hpDopo) * 10;
+  return score + Math.random() * 5;
+}
+
 // ── Funzione principale: sceglie la mossa migliore per l'AI ──────────────────
-// Restituisce { piece, move } oppure null se nessuna mossa disponibile
+// Restituisce { piece, move } | { piece, gestaId, targetUid } | null
 export function chooseBestMove(aiPieces, playerPieces, rotationTracker) {
   let bestScore = -INF;
   let bestChoice = null;
@@ -98,6 +112,17 @@ export function chooseBestMove(aiPieces, playerPieces, rotationTracker) {
         bestChoice = { piece, move };
       }
     }
+
+    // Valuta gesta
+    for (const gesta of (piece.gesta ?? [])) {
+      for (const target of allPieces.filter(p => p.uid !== piece.uid)) {
+        const score = scoreGesta(piece, gesta, target);
+        if (score > bestScore) {
+          bestScore = score;
+          bestChoice = { piece, gestaId: gesta.id, targetUid: target.uid };
+        }
+      }
+    }
   }
 
   return bestChoice;
@@ -106,7 +131,7 @@ export function chooseBestMove(aiPieces, playerPieces, rotationTracker) {
 // ── Formazione AI di default ──────────────────────────────────────────────────
 // L'AI usa gli stessi 6 pezzi classici con statistiche identiche.
 // Posizionati nelle prime 2 righe (righe 0-1 dall'alto = lato AI).
-import { CLASSIC_PIECES, PIECE_COLORS, NATURA_DA_NOME } from "./qb_pieces.js";
+import { CLASSIC_PIECES, PIECE_COLORS, NATURA_DA_NOME, gesteDiNatura } from "./qb_pieces.js";
 
 export function createAiFormation() {
   const positions = [
@@ -137,6 +162,7 @@ export function createAiFormation() {
       isRe:   positions[i][2],
       side:   "ai",
       natura: NATURA_DA_NOME[tmpl.nome] ?? null,
+      gesta:  gesteDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
       ...colors,
     };
   });

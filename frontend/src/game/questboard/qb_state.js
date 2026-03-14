@@ -114,9 +114,10 @@ export function applyAiTurn(state) {
 
   const choice = chooseBestMove(state.aiPieces, state.playerPieces, state.aiRotation);
 
-  if (!choice) {
-    // Nessuna mossa AI possibile — passa al giocatore
-    return _endTurn(state, "ai");
+  if (!choice) return _endTurn(state, "ai");
+
+  if (choice.gestaId) {
+    return applyGesta(state, "ai", choice.piece.uid, choice.gestaId, choice.targetUid);
   }
 
   return _applyMove(state, choice.piece, choice.move, "ai");
@@ -250,6 +251,67 @@ function _getHealText(round) {
   if (round <= 6) return "+3 HP a tutti i sopravvissuti";
   if (round <= 9) return "+1 HP a tutti i sopravvissuti";
   return null;
+}
+
+// ── Gesta ─────────────────────────────────────────────────────────────────────
+export function applyGesta(state, side, casterUid, gestaId, targetUid) {
+  const allPieces = [...state.playerPieces, ...state.aiPieces];
+  const caster = allPieces.find(p => p.uid === casterUid);
+  const target = allPieces.find(p => p.uid === targetUid);
+  if (!caster || !target) return state;
+  const gesta = caster.gesta?.find(g => g.id === gestaId);
+  if (!gesta) return state;
+
+  const nuovoHp    = Math.max(0, target.hp - gesta.danno);
+  const targetMorto = nuovoHp <= 0;
+  const updatePiece = (p) =>
+    p.uid !== targetUid ? p : (targetMorto ? null : { ...p, hp: nuovoHp });
+
+  let newPlayerPieces = state.playerPieces.map(updatePiece).filter(Boolean);
+  let newAiPieces     = state.aiPieces.map(updatePiece).filter(Boolean);
+
+  const logMsg =
+    `${caster.nome} usa ${gesta.nome} su ${target.nome}! (-${gesta.danno} HP)` +
+    (targetMorto ? ` → ${target.nome} eliminato!` : ` → ${nuovoHp} HP rimasti`);
+
+  const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
+  const tracker = side === "player" ? state.playerRotation : state.aiRotation;
+  const newTracker = registerMove(casterUid, tracker, aliveSidePieces);
+
+  let newState = {
+    ...state,
+    playerPieces: newPlayerPieces,
+    aiPieces:     newAiPieces,
+    log:          [...state.log, logMsg].slice(-40),
+    selected:     null,
+    validMoves:   [],
+    combatAnim:   null,
+    ...(side === "player"
+      ? { playerRotation: newTracker }
+      : { aiRotation: newTracker }),
+  };
+
+  const winner = checkWin(newPlayerPieces, newAiPieces);
+  if (winner) {
+    const winMsg = winner === "player" ? "⚜ VITTORIA! Hai sconfitto il Re nemico!" :
+                   winner === "ai"     ? "☠ SCONFITTA. Il tuo Re è caduto." : "Pareggio.";
+    return { ...newState, status: "over", winner, log: [...newState.log, winMsg].slice(-40) };
+  }
+
+  newState = _endTurn(newState, side);
+  if (newTracker.cycleComplete) {
+    const round = newState.round;
+    newState = {
+      ...newState,
+      round:        round + 1,
+      playerPieces: applyEndRoundHeal(newState.playerPieces, round),
+      aiPieces:     applyEndRoundHeal(newState.aiPieces, round),
+    };
+    const heal = _getHealText(round);
+    if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
+  }
+
+  return newState;
 }
 
 // ── Gestione pezzo bloccato ───────────────────────────────────────────────────

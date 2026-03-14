@@ -1,0 +1,87 @@
+/* ── Scheda pezzo (modale tap) ── */
+.qbg-piece-card {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: min(440px, 96vw); background: linear-gradient(160deg, #2a1608, #160c04);
+  border: 2px solid var(--hs-gold); border-bottom: none; border-radius: 10px 10px 0 0;
+  padding: 18px 20px 22px; z-index: 80;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.7), 0 0 30px rgba(240,192,64,0.15);
+  animation: cardUp 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+@keyframes cardUp {
+  from { transform: translateX(-50%) translateY(100%); }
+  to   { transform: translateX(-50%) translateY(0); }
+}
+.qbg-card-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+  border-bottom: 1px solid var(--hs-wood-rim); padding-bottom: 10px;
+}
+.qbg-card-icon {
+  display: flex; align-items: center; justify-content: center;
+  filter: drop-shadow(0 0 12px currentColor);
+}
+.qbg-card-icon-player { color: #f0d060; }
+.qbg-card-icon-ai     { color: #dd5050; }
+.qbg-card-title { font-size: 13px; color: var(--hs-gold); flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.qbg-card-natura {
+  font-size: 8px; font-weight: bold; align-self: flex-start;
+  border: 1px solid; padding: 1px 6px; border-radius: 3px;
+  background: rgba(0,0,0,0.3);
+}
+.qbg-card-team  { font-size: 9px; padding: 3px 8px; border-radius: 3px; }
+.qbg-card-team-player { background: rgba(50,130,230,0.2); color: #66bbff; border: 1px solid #335599; }
+.qbg-card-team-ai     { background: rgba(200,40,40,0.2);  color: #ff7777; border: 1px solid #992222; }
+.qbg-card-close { background: transparent; border: none; cursor: pointer; color: var(--hs-wood-rim); font-size: 1.1rem; transition: color 0.15s; padding: 0; }
+.qbg-card-close:hover { color: #ee4444; }
+.qbg-card-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+.qbg-card-stat { background: rgba(0,0,0,0.3); border: 1px solid var(--hs-wood-rim); border-radius: 4px; padding: 6px 4px; text-align: center; }
+.qbg-card-stat-icon { font-size: 1rem; display: block; }
+.qbg-card-stat-val  { font-size: 11px; color: var(--hs-cream); display: block; margin-top: 3px; }
+.qbg-card-stat-lbl  { font-size: 8px; color: #c8a060; display: block; margin-top: 2px; }
+.qbg-card-hp-bar { height: 6px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+.qbg-card-hp-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #cc2222, #eeaa22, #22cc44); transition: width 0.3s; }
+.qbg-card-hp-text { font-size: 9px; color: var(--hs-cream); text-align: right; margin-top: 4px; }
+
+/* Silhouette stand-alone: nascosta nel floating card */
+.qbg-card-silhouette { display: none; }
+
+/* ── Sezione Gesta ── */
+.qbg-card-gesta {
+  margin-top: 10px; border-top: 1px solid var(--hs-wood-rim); padding-top: 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.qbg-card-gesta-title {
+  font-size: 9px; color: #ff8040; letter-spacing: 0.08em; font-weight: bold;
+}
+.qbg-card-gesta-row {
+  background: rgba(255,80,0,0.07); border: 1px solid rgba(255,80,0,0.25);
+  border-radius: 4px; padding: 5px 8px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.qbg-card-gesta-nome { font-size: 9px; color: #ffb060; }
+.qbg-card-gesta-desc { font-size: 7.5px; color: #c8a060; }
+
+/* ── Override quando PieceCard è dentro DiarioPanel ── */
+.qbg-log-piece-content .qbg-piece-card {
+  position: static;
+  width: 100%;
+  box-sizing: border-box;
+  transform: none;
+  animation: none;
+  border-radius: 4px;
+  box-shadow: none;
+  padding: 10px;
+}
+.qbg-log-piece-content .qbg-card-header {
+  margin-bottom: 0;
+  border-bottom: none;
+  padding-bottom: 6px;
+}
+.qbg-log-piece-content .qbg-card-icon { display: none; }
+.qbg-log-piece-content .qbg-card-silhouette {
+  display: flex; justify-content: center; align-items: center;
+  padding: 10px 0 6px;
+  filter: drop-shadow(0 0 14px currentColor);
+}
+.qbg-log-piece-content .qbg-card-stats {
+  grid-template-columns: repeat(2, 1fr);
+}

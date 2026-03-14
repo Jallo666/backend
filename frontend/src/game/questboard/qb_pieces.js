@@ -1,3 +1,23 @@
+// ── Catalogo GESTA ────────────────────────────────────────────────────────────
+export const GESTA_CATALOG = {
+  dardo_fuoco: {
+    id:    "dardo_fuoco",
+    nome:  "Dardo di Fuoco",
+    icona: "🔥",
+    danno: 5,
+    desc:  "Infligge 5 danni a un personaggio scelto nell'arena (amico o nemico).",
+  },
+};
+
+export const GESTA_PER_NATURA = {
+  Arcano: ["dardo_fuoco"],
+};
+
+export function gesteDiNatura(natura) {
+  const ids = GESTA_PER_NATURA[natura] ?? [];
+  return ids.map(id => GESTA_CATALOG[id]).filter(Boolean);
+}
+
 // ── Pezzi classici (template di riferimento) ─────────────────────────────────
 // Ogni utente ne riceve una copia al momento della registrazione (via backend).
 // id corrisponde al campo Nome nel backend (lowercase).
@@ -67,6 +87,7 @@ export function fromApi(apiPiece) {
     mov:   apiPiece.mov,
     isClassico: apiPiece.isClassico,
     natura,
+    gesta: gesteDiNatura(natura),
     ...colors,
   };
 }

@@ -262,7 +262,7 @@ export default function Formazione({ token, onAvvia, onBack }) {
                     {p && (
                       <div className={`form-piece ${slot?.isRe ? "form-piece-re" : ""}`}
                            style={{ "--piece-border": p.border, "--piece-glow": p.glow }}>
-                        <SilhouettePiece natura={p.natura} size={44} />
+                        <SilhouettePiece natura={p.natura} size={54} />
                         {slot?.isRe && <span className="form-piece-crown">♛</span>}
                       </div>
                     )}
@@ -336,7 +336,7 @@ export default function Formazione({ token, onAvvia, onBack }) {
                     style={{ "--piece-border": p.border, "--piece-glow": p.glow }}
                     onClick={() => !placed && handleInvClick(p.uid)}
                   >
-                    <SilhouettePiece natura={p.natura} size={36} />
+                    <SilhouettePiece natura={p.natura} size={44} />
                     <div className="form-inv-info">
                       <span className="form-inv-nome">{p.nome}</span>
                       <span className="form-inv-stats">❤{p.hp} ⚔{p.atk} 🛡{p.def} 👟{p.mov}</span>

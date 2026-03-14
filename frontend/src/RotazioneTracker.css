@@ -1,0 +1,61 @@
+/* ── Tracker rotazione — fisso ── */
+.qbg-rotation {
+  position: absolute; right: 12px; bottom: 16px;
+  display: flex; flex-direction: column; gap: 4px;
+  background: rgba(8, 4, 0, 0.97); border: 2px solid var(--hs-wood-rim);
+  border-radius: 8px; padding: 8px 8px 10px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.7);
+  width: 220px; max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+.qbg-rotation::-webkit-scrollbar { width: 3px; }
+.qbg-rotation::-webkit-scrollbar-thumb { background: var(--hs-wood-rim); border-radius: 2px; }
+
+.qbg-rot-section-label {
+  font-size: 9px; letter-spacing: 0.08em;
+  padding: 3px 6px; border-radius: 3px; margin-bottom: 2px;
+}
+.qbg-rot-section-player { color: #60dd80; background: rgba(60,200,90,0.1); border: 1px solid rgba(60,200,90,0.25); }
+.qbg-rot-section-ai     { color: #ee7070; background: rgba(200,60,60,0.1); border: 1px solid rgba(200,60,60,0.25); }
+
+.qbg-rot-divider {
+  height: 1px; background: var(--hs-wood-rim);
+  margin: 4px 0;
+}
+
+.qbg-rot-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 7px; border-radius: 5px;
+  cursor: pointer; transition: background 0.15s, opacity 0.15s;
+  border: 1px solid transparent;
+}
+.qbg-rot-row:hover { filter: brightness(1.2); }
+.qbg-rot-row.qbg-rot-ready { background: rgba(40,20,5,0.8); border-color: rgba(60,200,90,0.3); }
+.qbg-rot-row.qbg-rot-done  { background: rgba(20,10,2,0.6); border-color: rgba(90,53,16,0.3); opacity: 0.55; }
+.qbg-rot-row-ai.qbg-rot-ready { border-color: rgba(200,60,60,0.3); }
+
+.qbg-rot-icon {
+  flex-shrink: 0; display: flex; align-items: center;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+.qbg-rot-row:not(.qbg-rot-row-ai) .qbg-rot-icon { color: #f0d060; }
+.qbg-rot-row-ai .qbg-rot-icon { color: #dd5050; }
+
+.qbg-rot-info {
+  display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;
+}
+.qbg-rot-nome {
+  font-size: 10px; color: #f0c040; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 4px;
+}
+.qbg-rot-crown { font-size: 11px; color: #f0c040; flex-shrink: 0; }
+.qbg-rot-zzz-inline { font-size: 13px; flex-shrink: 0; }
+.qbg-rot-stats { font-size: 9px; color: #a08050; white-space: nowrap; }
+
+@media (max-width: 700px) and (orientation: landscape) {
+  .qbg-rotation { bottom: 12px; width: 180px; }
+  .qbg-rot-icon { font-size: 20px; }
+  .qbg-rot-nome { font-size: 9px; }
+  .qbg-rot-stats { font-size: 8px; }
+}

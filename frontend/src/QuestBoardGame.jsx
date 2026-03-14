@@ -2,11 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   createGame, resolveCoinFlip, selectPiece,
   applyPlayerMove, applyAiTurn, skipBlockedPiece,
-  peekAiMove, applyAiChoice,
+  peekAiMove, applyAiChoice, applyGesta,
 } from "./game/questboard/qb_state.js";
-import { isBlocked, canMoveInRotation, BOARD_SIZE, resolveCombat } from "./game/questboard/qb_rules.js";
-import { NATURA_COLORE } from "./game/questboard/qb_pieces.js";
-import SilhouettePiece from "./SilhouettePiece.jsx";
+import { isBlocked, canMoveInRotation, BOARD_SIZE } from "./game/questboard/qb_rules.js";
+import BoardPiece from "./BoardPiece.jsx";
+import CombatPreview from "./CombatPreview.jsx";
+import GestPreview from "./GestPreview.jsx";
+import DiarioPanel from "./DiarioPanel.jsx";
+import RotazioneTracker from "./RotazioneTracker.jsx";
 import "./QuestBoardGame.css";
 
 const AI_DELAY_MS = 1200;
@@ -15,165 +18,6 @@ function calcCellSize() {
   const maxByW = (window.innerWidth  - 80) / BOARD_SIZE;
   const maxByH = (window.innerHeight - 190) / BOARD_SIZE;
   return Math.max(46, Math.min(maxByW, maxByH, 115));
-}
-
-// ── Frasi medievali per il dialog di combattimento ────────────────────────────
-const BATTLE_QUOTES = [
-  "«Per l'onore della gilda, avanza!»",
-  "«Che il destino sorridà al più ardito!»",
-  "«Spada contro scudo — che il migliore trionfi!»",
-  "«Il coraggio decide più della forza!»",
-  "«Non vi è gloria senza rischio, valoroso!»",
-  "«In nome del Re, colpisci!»",
-];
-
-// ── Anteprima combattimento ───────────────────────────────────────────────────
-// mode: "player" (player attacks, can cancel) | "ai" (ai attacks, read-only)
-function CombatPreview({ attacker, defender, onConfirm, onCancel, mode = "player" }) {
-  const result  = resolveCombat(attacker, defender);
-  const atkDies = result.attackerHp <= 0;
-  const defDies = result.defenderHp <= 0;
-  const quote   = BATTLE_QUOTES[Math.floor(Math.random() * BATTLE_QUOTES.length)];
-
-  let esito, resultClass;
-  if (mode === "ai") {
-    // Prospettiva dal punto di vista del giocatore (difensore)
-    if (!atkDies && defDies) {
-      esito = `${defender.nome} verrà eliminato! Nessuna speranza di resistere.`;
-      resultClass = "qbg-cp-result-lose";
-    } else if (atkDies && !defDies) {
-      esito = `${defender.nome} resiste! L'attaccante verrà eliminato.`;
-      resultClass = "qbg-cp-result-win";
-    } else if (atkDies && defDies) {
-      esito = "Entrambi cadranno! Un sacrificio reciproco.";
-      resultClass = "qbg-cp-result-draw";
-    } else {
-      esito = `${defender.nome} subisce danni (${result.defenderHp} HP rimasti).`;
-      resultClass = "qbg-cp-result-draw";
-    }
-  } else {
-    if (!atkDies && defDies) {
-      esito = `Vittoria! ${attacker.nome} sopravvive con ${result.attackerHp} HP.`;
-      resultClass = "qbg-cp-result-win";
-    } else if (atkDies && !defDies) {
-      esito = `Sconfitta... ${attacker.nome} verrà eliminato.`;
-      resultClass = "qbg-cp-result-lose";
-    } else if (atkDies && defDies) {
-      esito = "Entrambi cadranno in battaglia!";
-      resultClass = "qbg-cp-result-draw";
-    } else {
-      esito = `${attacker.nome} ferisce ${defender.nome} (${result.defenderHp} HP rimasti).`;
-      resultClass = "qbg-cp-result-win";
-    }
-  }
-
-  const atkDmgPerRound = Math.max(1, attacker.atk - defender.def);
-  const defDmgPerRound = Math.max(1, defender.atk - attacker.def);
-
-  const title = mode === "ai" ? "☠ L'AVVERSARIO ATTACCA! ☠" : "⚔ SFIDA AL DUELLO ⚔";
-
-  return (
-    <div className="qbg-combat-preview">
-      <div className={`qbg-cp-box ${mode === "ai" ? "qbg-cp-box-ai" : ""}`}>
-        <div className={`qbg-cp-title ${mode === "ai" ? "qbg-cp-title-ai" : ""}`}>{title}</div>
-
-        <div className="qbg-cp-matchup">
-          {/* Attaccante */}
-          <div className="qbg-cp-piece qbg-cp-piece-atk">
-            <SilhouettePiece natura={attacker.natura} size={56} />
-            <span className="qbg-cp-piece-name">{attacker.nome}</span>
-            {attacker.natura && <span className="qbg-cp-natura" style={{ color: NATURA_COLORE[attacker.natura] ?? "#888" }}>{attacker.natura}</span>}
-            <span className="qbg-cp-piece-stats">❤{attacker.hp} ⚔{attacker.atk} 🛡{attacker.def}</span>
-            <div className="qbg-cp-hp-bar">
-              <div className="qbg-cp-hp-fill" style={{ width: `${(attacker.hp / attacker.hpMax) * 100}%` }} />
-            </div>
-          </div>
-
-          <span className="qbg-cp-vs">VS</span>
-
-          {/* Difensore */}
-          <div className="qbg-cp-piece qbg-cp-piece-def">
-            <SilhouettePiece natura={defender.natura} size={56} />
-            <span className="qbg-cp-piece-name">{defender.nome}</span>
-            {defender.natura && <span className="qbg-cp-natura" style={{ color: NATURA_COLORE[defender.natura] ?? "#888" }}>{defender.natura}</span>}
-            <span className="qbg-cp-piece-stats">❤{defender.hp} ⚔{defender.atk} 🛡{defender.def}</span>
-            <div className="qbg-cp-hp-bar">
-              <div className="qbg-cp-hp-fill" style={{ width: `${(defender.hp / defender.hpMax) * 100}%` }} />
-            </div>
-          </div>
-        </div>
-
-        <hr className="qbg-cp-separator" />
-
-        <div className="qbg-cp-forecast">
-          Danni inflitti: <strong style={{ color: "#f0c040" }}>{atkDmgPerRound}/round</strong>
-          &nbsp;&nbsp;|&nbsp;&nbsp;
-          Danni subiti: <strong style={{ color: "#ee6060" }}>{defDmgPerRound}/round</strong>
-        </div>
-
-        <div className={`qbg-cp-result ${resultClass}`}>{esito}</div>
-
-        <div className="qbg-cp-quote">{quote}</div>
-
-        <div className="qbg-cp-btns">
-          {mode === "ai" ? (
-            <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>Continua!</button>
-          ) : (
-            <>
-              <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>⚔ Attacca!</button>
-              <button className="qbg-btn qbg-btn-dark" onClick={onCancel}>🏃 Ritirati</button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Scheda info pezzo ─────────────────────────────────────────────────────────
-function PieceCard({ piece, onClose }) {
-  const isPlayer = piece.side === "player";
-  const hpPct = Math.round((piece.hp / piece.hpMax) * 100);
-  return (
-    <div className="qbg-piece-card">
-      <div className="qbg-card-header">
-        <span className={`qbg-card-icon qbg-card-icon-${piece.side}`}>
-          <SilhouettePiece natura={piece.natura} size={80} />
-        </span>
-        <span className="qbg-card-title">
-          {piece.nome}
-          {piece.isRe && <> &nbsp;<span style={{ color: "#f0c040" }}>♛ RE</span></>}
-          {piece.natura && (
-            <span className="qbg-card-natura" style={{ color: NATURA_COLORE[piece.natura] ?? "#888", borderColor: NATURA_COLORE[piece.natura] ?? "#888" }}>
-              {piece.natura}
-            </span>
-          )}
-        </span>
-        <span className={`qbg-card-team ${isPlayer ? "qbg-card-team-player" : "qbg-card-team-ai"}`}>
-          {isPlayer ? "TUO" : "NEMICO"}
-        </span>
-        <button className="qbg-card-close" onClick={onClose}>✕</button>
-      </div>
-      <div className="qbg-card-stats">
-        {[
-          { icon: "❤", val: `${piece.hp}/${piece.hpMax}`, lbl: "HP" },
-          { icon: "⚔", val: piece.atk, lbl: "ATK" },
-          { icon: "🛡", val: piece.def, lbl: "DEF" },
-          { icon: "👟", val: piece.mov, lbl: "MOV" },
-        ].map(s => (
-          <div key={s.lbl} className="qbg-card-stat">
-            <span className="qbg-card-stat-icon">{s.icon}</span>
-            <span className="qbg-card-stat-val">{s.val}</span>
-            <span className="qbg-card-stat-lbl">{s.lbl}</span>
-          </div>
-        ))}
-      </div>
-      <div className="qbg-card-hp-bar">
-        <div className="qbg-card-hp-fill" style={{ width: `${hpPct}%` }} />
-      </div>
-      <div className="qbg-card-hp-text">{piece.hp} / {piece.hpMax} HP</div>
-    </div>
-  );
 }
 
 // ── Componente principale ─────────────────────────────────────────────────────
@@ -185,15 +29,17 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const [combatFlash,   setCombatFlash]   = useState(null);
   const [combatPreview,    setCombatPreview]    = useState(null); // { attacker, defender, move }
   const [aiAttackPreview,  setAiAttackPreview]  = useState(null); // { piece, move, defender }
+  const [gestaMode,     setGestaMode]     = useState(null); // null | { gestaId, casterUid }
+  const [gestaPreview,  setGestaPreview]  = useState(null); // null | { caster, target, gesta }
   const [pieceCard,     setPieceCard]     = useState(null);
   const [cellSize,      setCellSize]      = useState(calcCellSize);
   const [showLog,       setShowLog]       = useState(true);
+  const [activeTab,     setActiveTab]     = useState('diario'); // 'diario' | 'pezzo'
   const [displayLog,    setDisplayLog]    = useState(() => game.log);
 
   const aiTimerRef      = useRef(null);
   const moveAnimTimer   = useRef(null);
   const combatTimer     = useRef(null);
-  const cardTimer       = useRef(null);
   const logTimer        = useRef(null);
   const prevAiPiecesRef = useRef(game.aiPieces);
   const aiMovingRef     = useRef(false);
@@ -266,6 +112,13 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     return () => clearTimeout(logTimer.current);
   }, [game.log]);
 
+  // ── Apri tab scheda pezzo ─────────────────────────────────────────────────
+  const openPieceTab = useCallback((p) => {
+    setPieceCard(p);
+    setActiveTab('pezzo');
+    setShowLog(true);
+  }, []);
+
   // ── Animazione combattimento ───────────────────────────────────────────────
   useEffect(() => {
     if (!game.combatAnim) return;
@@ -278,14 +131,6 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     return () => clearTimeout(combatTimer.current);
   }, [game.combatAnim]);
 
-  // ── Auto-chiudi scheda pezzo ───────────────────────────────────────────────
-  useEffect(() => {
-    if (!pieceCard) return;
-    clearTimeout(cardTimer.current);
-    cardTimer.current = setTimeout(() => setPieceCard(null), 5000);
-    return () => clearTimeout(cardTimer.current);
-  }, [pieceCard]);
-
   // ── Conferma attacco dopo preview (giocatore) ─────────────────────────────
   const confirmAttack = useCallback(() => {
     if (!combatPreview) return;
@@ -293,7 +138,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     const moving = game.playerPieces.find(p => p.uid === game.selected);
     if (moving) triggerMoveAnim(moving.row, moving.col, move.row, move.col);
     setCombatPreview(null);
-    setPieceCard(null);
+    setPieceCard(null); setActiveTab('diario');
     setGame(s => applyPlayerMove(s, move.row, move.col));
   }, [combatPreview, game, triggerMoveAnim]);
 
@@ -303,7 +148,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     const { piece, move } = aiAttackPreview;
     triggerMoveAnim(piece.row, piece.col, move.row, move.col);
     setAiAttackPreview(null);
-    setPieceCard(null);
+    setPieceCard(null); setActiveTab('diario');
     setGame(s => applyAiChoice(s, piece.uid, move.row, move.col));
   }, [aiAttackPreview, triggerMoveAnim]);
 
@@ -314,8 +159,24 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     const allPiecesNow = [...game.playerPieces, ...game.aiPieces];
     const clickedPiece = allPiecesNow.find(p => p.row === row && p.col === col);
 
+    // Modalità gesta: clicca target → mostra conferma
+    if (gestaMode && clickedPiece) {
+      const caster = game.playerPieces.find(p => p.uid === gestaMode.casterUid);
+      const gesta  = caster?.gesta?.find(g => g.id === gestaMode.gestaId);
+      if (caster && gesta) {
+        setGestaPreview({ caster, target: clickedPiece, gesta });
+        setGestaMode(null);
+      }
+      return;
+    }
+    if (gestaMode) {
+      // click su cella vuota → annulla gesta mode
+      setGestaMode(null);
+      return;
+    }
+
     // Mostra scheda su qualsiasi pezzo (anche nemico)
-    if (clickedPiece) setPieceCard(clickedPiece);
+    if (clickedPiece) openPieceTab(clickedPiece);
 
     if (game.turn !== "player") return;
 
@@ -334,7 +195,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       if (moving) triggerMoveAnim(moving.row, moving.col, row, col);
       setAnimCell({ row, col });
       setTimeout(() => setAnimCell(null), 300);
-      setPieceCard(null);
+      setPieceCard(null); setActiveTab('diario');
       setGame(s => applyPlayerMove(s, row, col));
       return;
     }
@@ -352,10 +213,10 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
 
     // Cella vuota: deseleziona (e chiudi scheda solo se nessun pezzo cliccato)
     if (!clickedPiece) {
-      setPieceCard(null);
+      setPieceCard(null); setActiveTab('diario');
       setGame(s => ({ ...s, selected: null, validMoves: [] }));
     }
-  }, [game, triggerMoveAnim]);
+  }, [game, gestaMode, triggerMoveAnim, openPieceTab]);
 
   // ── Rendering ─────────────────────────────────────────────────────────────
   const allPieces    = [...game.playerPieces, ...game.aiPieces];
@@ -434,6 +295,22 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         />
       )}
 
+      {/* ── Anteprima gesta giocatore ── */}
+      {gestaPreview && (
+        <GestPreview
+          caster={gestaPreview.caster}
+          target={gestaPreview.target}
+          gesta={gestaPreview.gesta}
+          onConfirm={() => {
+            const { caster, target, gesta } = gestaPreview;
+            setGestaPreview(null);
+            setPieceCard(null); setActiveTab('diario');
+            setGame(s => applyGesta(s, "player", caster.uid, gesta.id, target.uid));
+          }}
+          onCancel={() => setGestaPreview(null)}
+        />
+      )}
+
       {/* ── HUD ── */}
       <div className="qbg-hud">
         {/* Lato giocatore */}
@@ -508,7 +385,8 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
                   const isMoving = isTo && p && (moveDx !== 0 || moveDy !== 0);
 
                   const isAtkCell = combatFlash && p?.uid === combatFlash.atkUid;
-                  const isDefCell = combatFlash && p?.uid === combatFlash.defUid;
+                  const isDefCell    = combatFlash && p?.uid === combatFlash.defUid;
+                  const isGestaTarget = gestaMode && p != null;
                   const pieceSideClass = p
                     ? (p.side === "player" ? "qbg-cell-player-piece" : "qbg-cell-ai-piece")
                     : "";
@@ -527,42 +405,21 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
                         isTo             ? "qbg-cell-to"         : "",
                         isAtkCell        ? "qbg-cell-combat-atk" : "",
                         isDefCell        ? "qbg-cell-combat-def" : "",
+                        isGestaTarget    ? "qbg-cell-gesta-target": "",
                       ].join(" ")}
                       onClick={() => handleCellClick(r, c)}
                     >
                       {valid && !attack && !p && <div className="qbg-dot" />}
 
                       {p && (
-                        <div
-                          className={[
-                            "qbg-piece",
-                            `qbg-piece-${p.side}`,
-                            isSelected ? "qbg-piece-selected"   : "",
-                            p.isRe     ? "qbg-piece-re"         : "",
-                            inRot && game.turn === "player" ? "qbg-piece-ready" : "",
-                            isMoving   ? "qbg-piece-moving"     : "",
-                            isAtkCell  ? "qbg-piece-combat-atk" : "",
-                            isDefCell  ? "qbg-piece-combat-hit" : "",
-                          ].join(" ")}
-                          style={{
-                            "--piece-border": p.border,
-                            "--piece-glow":   p.glow,
-                            "--move-dx":      `${moveDx}px`,
-                            "--move-dy":      `${moveDy}px`,
-                          }}
-                        >
-                          <div className="qbg-piece-base" />
-                          <div className="qbg-piece-body">
-                            <span className="qbg-piece-icon"><SilhouettePiece natura={p.natura} size={cellSize * 0.54} /></span>
-                            {p.isRe && <span className="qbg-piece-crown">♛</span>}
-                            {hasMoved && <span className="qbg-piece-zzz">Zzz</span>}
-                          </div>
-                          <div className={`qbg-piece-namebadge qbg-piece-namebadge-${p.side}`}>{p.nome}</div>
-                          <div className="qbg-hp-bar">
-                            <div className="qbg-hp-fill" style={{ width: `${(p.hp / p.hpMax) * 100}%` }} />
-                          </div>
-                          <div className="qbg-piece-hp">{p.hp}</div>
-                        </div>
+                        <BoardPiece
+                          p={p} cellSize={cellSize}
+                          isSelected={isSelected}
+                          inRot={inRot && game.turn === "player"}
+                          hasMoved={hasMoved} isMoving={isMoving}
+                          isAtkCell={isAtkCell} isDefCell={isDefCell}
+                          moveDx={moveDx} moveDy={moveDy}
+                        />
                       )}
                     </div>
                   );
@@ -573,18 +430,12 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         </div>
       </div>
 
-      {/* ── Log — pannello centrale basso ── */}
-      <div className={`qbg-log-panel ${showLog ? "" : "qbg-log-hidden"}`}>
-        <button className="qbg-log-tab" onClick={() => setShowLog(v => !v)}>
-          {showLog ? "◀ DIARIO" : "▶ DIARIO"}
-        </button>
-        <div className="qbg-log-header">📜 DIARIO DI BATTAGLIA</div>
-        <div className="qbg-log-content">
-          {[...displayLog].reverse().map((l, i) => (
-            <div key={i} className="qbg-log-line" style={{ opacity: Math.max(0.3, 1 - i * 0.05) }}>{l}</div>
-          ))}
-        </div>
-      </div>
+      <DiarioPanel
+        showLog={showLog} setShowLog={setShowLog}
+        activeTab={activeTab} setActiveTab={setActiveTab}
+        displayLog={displayLog}
+        pieceCard={pieceCard} setPieceCard={setPieceCard}
+      />
 
       {/* ── Info pezzo selezionato ── */}
       {game.selected && (() => {
@@ -596,67 +447,21 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
             <span className="qbg-sel-nome">{p.nome}</span>
             <span className="qbg-sel-stats">❤{p.hp} ⚔{p.atk} 🛡{p.def} 👟{p.mov}</span>
             {p.isRe && <span className="qbg-sel-re">♛</span>}
+            {game.turn === "player" && p.gesta?.map(g => (
+              <button
+                key={g.id}
+                className={`qbg-btn-gesta ${gestaMode?.gestaId === g.id ? "qbg-btn-gesta-active" : ""}`}
+                onClick={() => setGestaMode(gestaMode?.gestaId === g.id ? null : { gestaId: g.id, casterUid: p.uid })}
+              >
+                {g.icona} {g.nome}
+              </button>
+            ))}
           </div>
         );
       })()}
 
-      {/* ── Tracker rotazione ── */}
-      <div className="qbg-rotation">
-        {/* Pedine giocatore */}
-        <div className="qbg-rot-section-label qbg-rot-section-player">⚔ TUE</div>
-        {game.playerPieces.map(p => {
-          const ready = canMoveInRotation(p.uid, game.playerRotation);
-          const sleeping = !ready;
-          return (
-            <div
-              key={p.uid}
-              className={`qbg-rot-row ${ready ? "qbg-rot-ready" : "qbg-rot-done"}`}
-              onClick={() => setPieceCard(p)}
-            >
-              <span className="qbg-rot-icon"><SilhouettePiece natura={p.natura} size={28} /></span>
-              <div className="qbg-rot-info">
-                <span className="qbg-rot-nome">
-                  {p.isRe && <span className="qbg-rot-crown">♛</span>}
-                  {p.nome}
-                  {sleeping && <span className="qbg-rot-zzz-inline">💤</span>}
-                </span>
-                <span className="qbg-rot-stats">❤ {p.hp} &nbsp;⚔ {p.atk} &nbsp;🛡 {p.def}</span>
-              </div>
-            </div>
-          );
-        })}
+      <RotazioneTracker game={game} openPieceTab={openPieceTab} />
 
-        <div className="qbg-rot-divider" />
-
-        {/* Pedine AI */}
-        <div className="qbg-rot-section-label qbg-rot-section-ai">🤖 AI</div>
-        {game.aiPieces.map(p => {
-          const ready = canMoveInRotation(p.uid, game.aiRotation);
-          const sleeping = !ready;
-          return (
-            <div
-              key={p.uid}
-              className={`qbg-rot-row qbg-rot-row-ai ${ready ? "qbg-rot-ready" : "qbg-rot-done"}`}
-              onClick={() => setPieceCard(p)}
-            >
-              <span className="qbg-rot-icon"><SilhouettePiece natura={p.natura} size={28} /></span>
-              <div className="qbg-rot-info">
-                <span className="qbg-rot-nome">
-                  {p.isRe && <span className="qbg-rot-crown">♛</span>}
-                  {p.nome}
-                  {sleeping && <span className="qbg-rot-zzz-inline">💤</span>}
-                </span>
-                <span className="qbg-rot-stats">❤ {p.hp} &nbsp;⚔ {p.atk} &nbsp;🛡 {p.def}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── Scheda pezzo ── */}
-      {pieceCard && !combatPreview && !aiAttackPreview && (
-        <PieceCard piece={pieceCard} onClose={() => setPieceCard(null)} />
-      )}
     </div>
   );
 }

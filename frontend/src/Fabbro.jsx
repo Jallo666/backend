@@ -159,7 +159,7 @@ export default function Fabbro({ token, onBack, onBackToMenu }) {
                 className={`fab-ricetta${isSelected ? " fab-ricetta-sel" : ""}`}
                 onClick={() => { setScelta(r); setMsg(null); }}
               >
-                <SilhouettePiece natura={r.natura} size={36} />
+                <SilhouettePiece natura={r.natura} size={48} />
                 <div className="fab-ricetta-info">
                   <span className="fab-ricetta-nome">{r.nome}</span>
                   <span className="fab-ricetta-natura" style={{ color: natColore }}>{r.natura}</span>
@@ -233,7 +233,7 @@ export default function Fabbro({ token, onBack, onBackToMenu }) {
               const natColor = NATURA_COLORE[natura] ?? "#888";
               return (
                 <div key={p.id} className="fab-inv-item">
-                  <SilhouettePiece natura={getNatura(p)} size={32} />
+                  <SilhouettePiece natura={getNatura(p)} size={40} />
                   <div className="fab-inv-info">
                     <span className="fab-inv-nome">{p.nome}</span>
                     <span className="fab-inv-stats">HP{p.hp} ATK{p.atk} DEF{p.def} MOV{p.mov}</span>
