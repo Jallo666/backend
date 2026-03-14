@@ -73,19 +73,69 @@
   animation: none;
   border-radius: 4px;
   box-shadow: none;
-  padding: 10px;
+  padding: 12px;
+  background: rgba(10,5,1,0.5);
+  border: 1px solid rgba(90,53,16,0.4);
 }
 .qbg-log-piece-content .qbg-card-header {
-  margin-bottom: 0;
-  border-bottom: none;
-  padding-bottom: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--hs-wood-rim);
+  padding-bottom: 8px;
+  gap: 10px;
 }
 .qbg-log-piece-content .qbg-card-icon { display: none; }
+.qbg-log-piece-content .qbg-card-title {
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+}
+.qbg-log-piece-content .qbg-card-natura {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+}
+.qbg-log-piece-content .qbg-card-team { font-family: 'Cinzel', serif; font-size: 10px; }
 .qbg-log-piece-content .qbg-card-silhouette {
   display: flex; justify-content: center; align-items: center;
-  padding: 10px 0 6px;
-  filter: drop-shadow(0 0 14px currentColor);
+  padding: 12px 0 8px;
+  filter: drop-shadow(0 0 18px currentColor);
+  transform: scale(1.4);
+  transform-origin: center center;
+  margin: 10px 0 24px;
 }
 .qbg-log-piece-content .qbg-card-stats {
   grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.qbg-log-piece-content .qbg-card-stat {
+  padding: 8px 4px;
+}
+.qbg-log-piece-content .qbg-card-stat-icon { font-size: 1.2rem; }
+.qbg-log-piece-content .qbg-card-stat-val {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+}
+.qbg-log-piece-content .qbg-card-stat-lbl {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+}
+.qbg-log-piece-content .qbg-card-hp-text {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+}
+.qbg-log-piece-content .qbg-card-hp-bar { height: 8px; margin-top: 8px; }
+.qbg-log-piece-content .qbg-card-gesta-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+}
+.qbg-log-piece-content .qbg-card-gesta-nome {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+}
+.qbg-log-piece-content .qbg-card-gesta-desc {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+}
+.qbg-log-piece-content .qbg-card-gesta-btn {
+  font-family: 'Cinzel', serif !important;
+  font-size: 10px !important;
+  padding: 4px 12px !important;
 }

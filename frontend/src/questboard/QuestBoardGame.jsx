@@ -19,9 +19,9 @@ import "./QuestBoardGame.css";
 const AI_DELAY_MS = 1200;
 
 function calcCellSize() {
-  const maxByW = (window.innerWidth  - 80) / BOARD_SIZE;
-  const maxByH = (window.innerHeight - 190) / BOARD_SIZE;
-  return Math.max(46, Math.min(maxByW, maxByH, 115));
+  const maxByW = (window.innerWidth  - 60) / BOARD_SIZE;
+  const maxByH = (window.innerHeight - 200) / BOARD_SIZE;
+  return Math.max(46, Math.min(maxByW, maxByH, 144));
 }
 
 // ── Componente principale ─────────────────────────────────────────────────────

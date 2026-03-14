@@ -1,27 +1,48 @@
-/* ── Tracker rotazione — fisso ── */
+/* ── Tracker rotazione ── */
 .qbg-rotation {
-  position: absolute; right: 12px; bottom: 16px;
-  display: flex; flex-direction: column; gap: 4px;
-  background: rgba(8, 4, 0, 0.97); border: 2px solid var(--hs-wood-rim);
-  border-radius: 8px; padding: 8px 8px 10px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.7);
-  width: 220px; max-height: calc(100vh - 100px);
-  overflow-y: auto;
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  display: flex; flex-direction: row;
+  background: rgba(10, 5, 1, 0.82) url('../assets/background-journal.png') center/cover no-repeat;
+  background-blend-mode: multiply;
+  border-top:    2px solid var(--hs-wood-rim);
+  border-left:   2px solid var(--hs-wood-rim);
+  border-bottom: 2px solid var(--hs-wood-rim);
+  border-radius: 14px 0 0 14px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(240,192,64,0.08);
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
+  transition: width 0.25s ease;
+  width: 300px; z-index: 50;
 }
-.qbg-rotation::-webkit-scrollbar { width: 3px; }
-.qbg-rotation::-webkit-scrollbar-thumb { background: var(--hs-wood-rim); border-radius: 2px; }
+.qbg-rotation-collapsed { width: 22px; }
+
+/* Toggle — bordo sinistro */
+.qbg-rot-toggle {
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; width: 22px; align-self: stretch;
+  background: none; border: none; border-right: 1px solid var(--hs-wood-rim);
+  cursor: pointer; color: var(--hs-gold); font-size: 16px; padding: 0;
+}
+.qbg-rot-toggle:hover { background: rgba(240,192,64,0.08); }
+
+/* Contenuto */
+.qbg-rot-content {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 8px 12px; overflow-y: auto; overflow-x: hidden; flex: 1; min-width: 0;
+}
+.qbg-rot-content::-webkit-scrollbar { width: 4px; }
+.qbg-rot-content::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+.qbg-rot-content::-webkit-scrollbar-thumb { background: var(--hs-wood-rim); border-radius: 2px; }
 
 .qbg-rot-section-label {
-  font-size: 9px; letter-spacing: 0.08em;
+  font-family: 'Cinzel', serif;
+  font-size: 14px; letter-spacing: 0.08em;
   padding: 3px 6px; border-radius: 3px; margin-bottom: 2px;
 }
 .qbg-rot-section-player { color: #60dd80; background: rgba(60,200,90,0.1); border: 1px solid rgba(60,200,90,0.25); }
 .qbg-rot-section-ai     { color: #ee7070; background: rgba(200,60,60,0.1); border: 1px solid rgba(200,60,60,0.25); }
 
-.qbg-rot-divider {
-  height: 1px; background: var(--hs-wood-rim);
-  margin: 4px 0;
-}
+.qbg-rot-divider { height: 1px; background: var(--hs-wood-rim); margin: 4px 0; }
 
 .qbg-rot-row {
   display: flex; align-items: center; gap: 8px;
@@ -41,21 +62,20 @@
 .qbg-rot-row:not(.qbg-rot-row-ai) .qbg-rot-icon { color: #f0d060; }
 .qbg-rot-row-ai .qbg-rot-icon { color: #dd5050; }
 
-.qbg-rot-info {
-  display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0;
-}
+.qbg-rot-info { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
 .qbg-rot-nome {
-  font-size: 10px; color: #f0c040; white-space: nowrap;
+  font-family: 'Cinzel', serif;
+  font-size: 16px; color: #f0c040; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
   display: flex; align-items: center; gap: 4px;
 }
-.qbg-rot-crown { font-size: 11px; color: #f0c040; flex-shrink: 0; }
-.qbg-rot-zzz-inline { font-size: 13px; flex-shrink: 0; }
-.qbg-rot-stats { font-size: 9px; color: #a08050; white-space: nowrap; }
+.qbg-rot-crown { font-size: 13px; color: #f0c040; flex-shrink: 0; }
+.qbg-rot-zzz-inline { font-size: 15px; flex-shrink: 0; }
+.qbg-rot-stats { font-size: 13px; color: #a08050; white-space: nowrap; }
 
 @media (max-width: 700px) and (orientation: landscape) {
-  .qbg-rotation { bottom: 12px; width: 180px; }
-  .qbg-rot-icon { font-size: 20px; }
-  .qbg-rot-nome { font-size: 9px; }
-  .qbg-rot-stats { font-size: 8px; }
+  .qbg-rotation { width: 220px; }
+  .qbg-rotation-collapsed { width: 22px; }
+  .qbg-rot-nome { font-size: 11px; }
+  .qbg-rot-stats { font-size: 9px; }
 }
