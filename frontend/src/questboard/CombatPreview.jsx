@@ -1,7 +1,7 @@
 import './CombatPreview.css';
-import SilhouettePiece from './SilhouettePiece.jsx';
-import { NATURA_COLORE } from './game/questboard/qb_pieces.js';
-import { resolveCombat } from './game/questboard/qb_rules.js';
+import SilhouettePiece from '../SilhouettePiece.jsx';
+import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
+import { resolveCombat } from '../game/questboard/qb_rules.js';
 
 const BATTLE_QUOTES = [
   "«Per l'onore della gilda, avanza!»",

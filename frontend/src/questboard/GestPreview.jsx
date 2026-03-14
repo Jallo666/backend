@@ -1,16 +1,19 @@
 import './GestPreview.css';
-import SilhouettePiece from './SilhouettePiece.jsx';
-import { NATURA_COLORE } from './game/questboard/qb_pieces.js';
+import SilhouettePiece from '../SilhouettePiece.jsx';
+import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 
-export default function GestPreview({ caster, target, gesta, onConfirm, onCancel }) {
+export default function GestPreview({ caster, target, gesta, onConfirm, onCancel, mode }) {
   const hpDopo    = Math.max(0, target.hp - gesta.danno);
   const eliminato = hpDopo <= 0;
   const hpPct     = Math.round((target.hp / target.hpMax) * 100);
+  const isAi      = mode === "ai";
 
   return (
     <div className="gp-overlay">
-      <div className="gp-box">
-        <h2 className="gp-title">{gesta.icona} {gesta.nome}</h2>
+      <div className={`gp-box${isAi ? " gp-box-ai" : ""}`}>
+        <h2 className={`gp-title${isAi ? " gp-title-ai" : ""}`}>
+          {isAi ? "🤖 L'AI usa una gesta!" : `${gesta.icona} ${gesta.nome}`}
+        </h2>
 
         <div className="gp-matchup">
           {/* Caster */}
@@ -45,6 +48,10 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
 
         <hr className="gp-separator" />
 
+        {isAi && (
+          <p className="gp-ai-label">{caster.nome} usa <strong>{gesta.icona} {gesta.nome}</strong> su {target.nome}</p>
+        )}
+
         <p className={`gp-effect ${eliminato ? "gp-effect-kill" : ""}`}>
           {eliminato
             ? `${target.nome} verrà eliminato!`
@@ -52,8 +59,14 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
         </p>
 
         <div className="gp-btns">
-          <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>🔥 Lancia!</button>
-          <button className="qbg-btn qbg-btn-dark"  onClick={onCancel}>✕ Annulla</button>
+          {isAi ? (
+            <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>⚡ OK</button>
+          ) : (
+            <>
+              <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>🔥 Lancia!</button>
+              <button className="qbg-btn qbg-btn-dark"  onClick={onCancel}>✕ Annulla</button>
+            </>
+          )}
         </div>
       </div>
     </div>

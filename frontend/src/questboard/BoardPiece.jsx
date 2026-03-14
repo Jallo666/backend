@@ -1,4 +1,4 @@
-import SilhouettePiece from "./SilhouettePiece.jsx";
+import SilhouettePiece from "../SilhouettePiece.jsx";
 import "./BoardPiece.css";
 
 export default function BoardPiece({

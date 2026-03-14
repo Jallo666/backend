@@ -1,6 +1,6 @@
 import './RotazioneTracker.css';
-import SilhouettePiece from './SilhouettePiece.jsx';
-import { canMoveInRotation } from './game/questboard/qb_rules.js';
+import SilhouettePiece from '../SilhouettePiece.jsx';
+import { canMoveInRotation } from '../game/questboard/qb_rules.js';
 
 export default function RotazioneTracker({ game, openPieceTab }) {
   return (

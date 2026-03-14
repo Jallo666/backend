@@ -3,13 +3,17 @@ import {
   createGame, resolveCoinFlip, selectPiece,
   applyPlayerMove, applyAiTurn, skipBlockedPiece,
   peekAiMove, applyAiChoice, applyGesta,
-} from "./game/questboard/qb_state.js";
-import { isBlocked, canMoveInRotation, BOARD_SIZE } from "./game/questboard/qb_rules.js";
-import BoardPiece from "./BoardPiece.jsx";
+} from "../game/questboard/qb_state.js";
+import { isBlocked, canMoveInRotation, BOARD_SIZE } from "../game/questboard/qb_rules.js";
+import GameBoard from "./GameBoard.jsx";
 import CombatPreview from "./CombatPreview.jsx";
 import GestPreview from "./GestPreview.jsx";
 import DiarioPanel from "./DiarioPanel.jsx";
 import RotazioneTracker from "./RotazioneTracker.jsx";
+import GameHud from "./GameHud.jsx";
+import GameOverModal from "./GameOverModal.jsx";
+import GameOptionsModal from "./GameOptionsModal.jsx";
+import CoinFlip from "./CoinFlip.jsx";
 import "./QuestBoardGame.css";
 
 const AI_DELAY_MS = 1200;
@@ -23,7 +27,6 @@ function calcCellSize() {
 // ── Componente principale ─────────────────────────────────────────────────────
 export default function QuestBoardGame({ inventario, formazione, utente, onBack }) {
   const [game,          setGame]          = useState(() => createGame(inventario, formazione));
-  const [coinResult,    setCoinResult]    = useState(null);
   const [animCell,      setAnimCell]      = useState(null);
   const [moveAnim,      setMoveAnim]      = useState(null);
   const [combatFlash,   setCombatFlash]   = useState(null);
@@ -31,9 +34,12 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const [aiAttackPreview,  setAiAttackPreview]  = useState(null); // { piece, move, defender }
   const [gestaMode,     setGestaMode]     = useState(null); // null | { gestaId, casterUid }
   const [gestaPreview,  setGestaPreview]  = useState(null); // null | { caster, target, gesta }
+  const [aiGestaPreview, setAiGestaPreview] = useState(null); // null | { caster, target, gesta }
+  const [gestaHitAnim,  setGestaHitAnim]  = useState(null); // null | { row, col }
   const [pieceCard,     setPieceCard]     = useState(null);
   const [cellSize,      setCellSize]      = useState(calcCellSize);
   const [showLog,       setShowLog]       = useState(true);
+  const [showOptions,   setShowOptions]   = useState(false);
   const [activeTab,     setActiveTab]     = useState('diario'); // 'diario' | 'pezzo'
   const [displayLog,    setDisplayLog]    = useState(() => game.log);
 
@@ -50,11 +56,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const handleCoinFlip = () => setCoinResult(Math.random() < 0.5 ? "heads" : "tails");
-  const handlePlayerChoice = (goFirst) => {
-    setGame(s => resolveCoinFlip(s, goFirst));
-    setCoinResult(null);
-  };
+  const handlePlayerChoice = (goFirst) => setGame(s => resolveCoinFlip(s, goFirst));
 
   const triggerMoveAnim = useCallback((fromRow, fromCol, toRow, toCol) => {
     clearTimeout(moveAnimTimer.current);
@@ -70,6 +72,15 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       setGame(s => {
         if (s.turn !== "ai" || s.status !== "playing") return s;
         const choice = peekAiMove(s);
+        if (choice?.gestaId) {
+          const caster = s.aiPieces.find(p => p.uid === choice.piece.uid);
+          const target = [...s.aiPieces, ...s.playerPieces].find(p => p.uid === choice.targetUid);
+          const gesta  = caster?.gesta?.find(g => g.id === choice.gestaId);
+          if (caster && target && gesta) {
+            setAiGestaPreview({ caster, target, gesta });
+            return s; // non applicare ancora
+          }
+        }
         if (choice?.move?.isAttack && choice.move.target) {
           // Mostra dialog prima di attaccare
           setAiAttackPreview({ piece: choice.piece, move: choice.move, defender: choice.move.target });
@@ -141,6 +152,16 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     setPieceCard(null); setActiveTab('diario');
     setGame(s => applyPlayerMove(s, move.row, move.col));
   }, [combatPreview, game, triggerMoveAnim]);
+
+  // ── Conferma gesta AI dopo preview ───────────────────────────────────────
+  const confirmAiGesta = useCallback(() => {
+    if (!aiGestaPreview) return;
+    const { caster, target, gesta } = aiGestaPreview;
+    setAiGestaPreview(null);
+    setGestaHitAnim({ row: target.row, col: target.col });
+    setTimeout(() => setGestaHitAnim(null), 1000);
+    setGame(s => applyGesta(s, "ai", caster.uid, gesta.id, target.uid));
+  }, [aiGestaPreview]);
 
   // ── Conferma attacco AI dopo preview ──────────────────────────────────────
   const confirmAiAttack = useCallback(() => {
@@ -218,11 +239,6 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     }
   }, [game, gestaMode, triggerMoveAnim, openPieceTab]);
 
-  // ── Rendering ─────────────────────────────────────────────────────────────
-  const allPieces    = [...game.playerPieces, ...game.aiPieces];
-  const pieceAt      = (r, c) => allPieces.find(p => p.row === r && p.col === c);
-  const isValidMove  = (r, c) => game.validMoves.some(m => m.row === r && m.col === c);
-  const isAttackMove = (r, c) => game.validMoves.find(m => m.row === r && m.col === c)?.isAttack;
 
   return (
     <div className="qbg-root" style={{ "--cell-size": `${cellSize}px` }}>
@@ -235,42 +251,12 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
 
       {/* ── Coin Flip ── */}
       {game.status === "coinflip" && (
-        <div className="qbg-overlay">
-          <div className="qbg-dialog">
-            <h2 className="qbg-dialog-title">⚜ Tiro di Moneta</h2>
-            {!coinResult ? (
-              <>
-                <p className="qbg-dialog-sub">Chi va per primo?</p>
-                <button className="qbg-btn qbg-btn-gold" onClick={handleCoinFlip}>🪙 Lancia la moneta</button>
-              </>
-            ) : (
-              <>
-                <div className="qbg-coin-result">
-                  <span className={`qbg-coin ${coinResult}`}>{coinResult === "heads" ? "👑" : "🗡"}</span>
-                  <p>{coinResult === "heads" ? "Testa — hai vinto!" : "Croce"}</p>
-                </div>
-                <p className="qbg-dialog-sub">Vuoi andare per primo?</p>
-                <div className="qbg-dialog-row">
-                  <button className="qbg-btn qbg-btn-gold" onClick={() => handlePlayerChoice(true)}>Sì, primo</button>
-                  <button className="qbg-btn qbg-btn-dark" onClick={() => handlePlayerChoice(false)}>No, secondo</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+        <CoinFlip onChoice={handlePlayerChoice} />
       )}
 
       {/* ── Game Over ── */}
       {game.status === "over" && (
-        <div className="qbg-overlay">
-          <div className="qbg-dialog">
-            <h2 className={`qbg-dialog-title ${game.winner === "player" ? "qbg-win" : "qbg-lose"}`}>
-              {game.winner === "player" ? "⚜ VITTORIA!" : game.winner === "ai" ? "☠ SCONFITTA" : "⚖ PAREGGIO"}
-            </h2>
-            {game.winner === "player" && <p className="qbg-dialog-sub">+50 💎 gemme</p>}
-            <button className="qbg-btn qbg-btn-gold" onClick={onBack}>← Torna alla Locanda</button>
-          </div>
-        </div>
+        <GameOverModal winner={game.winner} onBack={onBack} />
       )}
 
       {/* ── Anteprima combattimento giocatore ── */}
@@ -295,6 +281,18 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         />
       )}
 
+      {/* ── Notifica gesta AI ── */}
+      {aiGestaPreview && (
+        <GestPreview
+          caster={aiGestaPreview.caster}
+          target={aiGestaPreview.target}
+          gesta={aiGestaPreview.gesta}
+          onConfirm={confirmAiGesta}
+          onCancel={confirmAiGesta}
+          mode="ai"
+        />
+      )}
+
       {/* ── Anteprima gesta giocatore ── */}
       {gestaPreview && (
         <GestPreview
@@ -305,6 +303,8 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
             const { caster, target, gesta } = gestaPreview;
             setGestaPreview(null);
             setPieceCard(null); setActiveTab('diario');
+            setGestaHitAnim({ row: target.row, col: target.col });
+            setTimeout(() => setGestaHitAnim(null), 1000);
             setGame(s => applyGesta(s, "player", caster.uid, gesta.id, target.uid));
           }}
           onCancel={() => setGestaPreview(null)}
@@ -312,153 +312,43 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       )}
 
       {/* ── HUD ── */}
-      <div className="qbg-hud">
-        {/* Lato giocatore */}
-        <div className={`qbg-hud-fighter qbg-hud-player-side ${game.turn === "player" ? "qbg-hud-active" : ""}`}>
-          <div className="qbg-hud-avatar qbg-hud-avatar-player">
-            {utente?.avatar
-              ? <img src={utente.avatar} alt="avatar" className="qbg-hud-avatar-img" />
-              : <span className="qbg-hud-avatar-initials">
-                  {(utente?.nome?.[0] ?? "?")}
-                  {(utente?.cognome?.[0] ?? "")}
-                </span>
-            }
-          </div>
-          <div className="qbg-hud-fighter-info">
-            <span className="qbg-hud-fighter-name">{utente?.nome ?? "Giocatore"}</span>
-            <span className="qbg-hud-fighter-pieces">♟ {game.playerPieces.length} pedine</span>
-          </div>
-          {game.turn === "player" && <span className="qbg-hud-turn-badge qbg-turn-player">⚔ tuo turno</span>}
-        </div>
+      <GameHud game={game} utente={utente} onOptions={() => setShowOptions(true)} />
 
-        {/* Centro VS */}
-        <div className="qbg-hud-center">
-          <span className="qbg-hud-vs">VS</span>
-          <span className="qbg-hud-round">Round {game.round}</span>
-        </div>
-
-        {/* Lato AI */}
-        <div className={`qbg-hud-fighter qbg-hud-ai-side ${game.turn === "ai" ? "qbg-hud-active" : ""}`}>
-          {game.turn === "ai" && <span className="qbg-hud-turn-badge qbg-turn-ai">⏳ in corso</span>}
-          <div className="qbg-hud-fighter-info qbg-hud-fighter-info-right">
-            <span className="qbg-hud-fighter-name">AI</span>
-            <span className="qbg-hud-fighter-pieces">♟ {game.aiPieces.length} pedine</span>
-          </div>
-          <div className="qbg-hud-avatar qbg-hud-avatar-ai">
-            <span className="qbg-hud-avatar-initials">🤖</span>
-          </div>
-        </div>
-
-        <button className="qbg-back-btn" onClick={onBack}>✕</button>
-      </div>
+      {showOptions && (
+        <GameOptionsModal
+          onClose={() => setShowOptions(false)}
+          onRestart={() => {
+            setShowOptions(false);
+            setGame(() => createGame(inventario, formazione));
+          }}
+          onRetire={() => { setShowOptions(false); onBack(); }}
+        />
+      )}
 
       {/* ── Board 3D ── */}
-      <div className="qbg-scene">
-        <div className="qbg-board-wrap">
-          <div className="qbg-board">
-            <div className="qbg-col-labels">
-              {["A","B","C","D","E","F"].map(l => <div key={l} className="qbg-col-label">{l}</div>)}
-            </div>
-
-            {Array.from({ length: BOARD_SIZE }, (_, r) => (
-              <div key={r} className="qbg-row">
-                <div className="qbg-row-label">{BOARD_SIZE - r}</div>
-                {Array.from({ length: BOARD_SIZE }, (_, c) => {
-                  const p          = pieceAt(r, c);
-                  const valid      = isValidMove(r, c);
-                  const attack     = isAttackMove(r, c);
-                  const isSelected = p && game.selected === p.uid;
-                  const isAnim     = animCell?.row === r && animCell?.col === c;
-                  const checker    = (r + c) % 2 === 0;
-
-                  const hasMoved = p && (
-                    p.side === "player"
-                      ? !canMoveInRotation(p.uid, game.playerRotation)
-                      : !canMoveInRotation(p.uid, game.aiRotation)
-                  );
-                  const inRot = p?.side === "player" && canMoveInRotation(p.uid, game.playerRotation);
-
-                  const isFrom = moveAnim && moveAnim.fromRow === r && moveAnim.fromCol === c;
-                  const isTo   = moveAnim && moveAnim.toRow   === r && moveAnim.toCol   === c;
-                  const moveDx = (isTo && p) ? (moveAnim.fromCol - c) * cellSize : 0;
-                  const moveDy = (isTo && p) ? (moveAnim.fromRow - r) * cellSize : 0;
-                  const isMoving = isTo && p && (moveDx !== 0 || moveDy !== 0);
-
-                  const isAtkCell = combatFlash && p?.uid === combatFlash.atkUid;
-                  const isDefCell    = combatFlash && p?.uid === combatFlash.defUid;
-                  const isGestaTarget = gestaMode && p != null;
-                  const pieceSideClass = p
-                    ? (p.side === "player" ? "qbg-cell-player-piece" : "qbg-cell-ai-piece")
-                    : "";
-
-                  return (
-                    <div
-                      key={c}
-                      className={[
-                        "qbg-cell",
-                        checker ? "qbg-cell-light" : "qbg-cell-dark",
-                        pieceSideClass,
-                        valid && !attack ? "qbg-cell-valid"      : "",
-                        valid && attack  ? "qbg-cell-attack"     : "",
-                        isAnim           ? "qbg-cell-anim"       : "",
-                        isFrom           ? "qbg-cell-from"       : "",
-                        isTo             ? "qbg-cell-to"         : "",
-                        isAtkCell        ? "qbg-cell-combat-atk" : "",
-                        isDefCell        ? "qbg-cell-combat-def" : "",
-                        isGestaTarget    ? "qbg-cell-gesta-target": "",
-                      ].join(" ")}
-                      onClick={() => handleCellClick(r, c)}
-                    >
-                      {valid && !attack && !p && <div className="qbg-dot" />}
-
-                      {p && (
-                        <BoardPiece
-                          p={p} cellSize={cellSize}
-                          isSelected={isSelected}
-                          inRot={inRot && game.turn === "player"}
-                          hasMoved={hasMoved} isMoving={isMoving}
-                          isAtkCell={isAtkCell} isDefCell={isDefCell}
-                          moveDx={moveDx} moveDy={moveDy}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <GameBoard
+        game={game} cellSize={cellSize}
+        moveAnim={moveAnim} animCell={animCell}
+        combatFlash={combatFlash} gestaMode={gestaMode} gestaHitAnim={gestaHitAnim}
+        onCellClick={handleCellClick}
+      />
 
       <DiarioPanel
         showLog={showLog} setShowLog={setShowLog}
         activeTab={activeTab} setActiveTab={setActiveTab}
         displayLog={displayLog}
         pieceCard={pieceCard} setPieceCard={setPieceCard}
+        onGestaClick={
+          game.turn === "player" && pieceCard?.side === "player"
+            ? (gestaId) => {
+                setGestaMode({ gestaId, casterUid: pieceCard.uid });
+                setActiveTab('diario');
+              }
+            : null
+        }
       />
 
       {/* ── Info pezzo selezionato ── */}
-      {game.selected && (() => {
-        const p = game.playerPieces.find(x => x.uid === game.selected);
-        if (!p) return null;
-        return (
-          <div className="qbg-selected-info">
-            <span className="qbg-sel-icon">{p.icona}</span>
-            <span className="qbg-sel-nome">{p.nome}</span>
-            <span className="qbg-sel-stats">❤{p.hp} ⚔{p.atk} 🛡{p.def} 👟{p.mov}</span>
-            {p.isRe && <span className="qbg-sel-re">♛</span>}
-            {game.turn === "player" && p.gesta?.map(g => (
-              <button
-                key={g.id}
-                className={`qbg-btn-gesta ${gestaMode?.gestaId === g.id ? "qbg-btn-gesta-active" : ""}`}
-                onClick={() => setGestaMode(gestaMode?.gestaId === g.id ? null : { gestaId: g.id, casterUid: p.uid })}
-              >
-                {g.icona} {g.nome}
-              </button>
-            ))}
-          </div>
-        );
-      })()}
 
       <RotazioneTracker game={game} openPieceTab={openPieceTab} />
 

@@ -34,3 +34,11 @@
 .gp-effect { font-size: 11px; color: #d4b880; }
 .gp-effect-kill { color: #ee4444; text-shadow: 0 0 10px rgba(220,40,40,0.5); font-weight: bold; }
 .gp-btns { display: flex; gap: 12px; justify-content: center; }
+
+/* ── Variante AI ── */
+.gp-box-ai {
+  border-color: #cc2020;
+  box-shadow: 0 0 60px rgba(200,20,20,0.30), inset 0 0 40px rgba(200,20,20,0.04);
+}
+.gp-title-ai { color: #ee6060; text-shadow: 0 0 16px rgba(220,40,40,0.6); }
+.gp-ai-label { font-size: 11px; color: #e8c8a0; }

@@ -5,7 +5,7 @@ import Gioco from "./Gioco";
 import MainMenu from "./mainmenu/MainMenu";
 import CittaPage from "./CittaPage";
 import Formazione from "./Formazione";
-import QuestBoardGame from "./QuestBoardGame";
+import QuestBoardGame from "./questboard/QuestBoardGame";
 
 const API_URL     = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 const SESSION_KEY = "qb_session";

@@ -13,7 +13,7 @@
   min-height: 100dvh;
   background:
     linear-gradient(rgba(10, 4, 0, 0.40), rgba(10, 4, 0, 0.40)),
-    url('./assets/background_taverna_questboard.png') center / cover no-repeat fixed;
+    url('../assets/background_taverna_questboard.png') center / cover no-repeat fixed;
   display: flex; flex-direction: column;
   overflow: hidden;
   font-family: 'Press Start 2P', monospace;
@@ -78,31 +78,53 @@
 
 /* ── HUD — dimensioni fisse ── */
 .qbg-hud {
-  display: flex; align-items: center;
-  padding: 0 12px 0 0;
-  background: rgba(10, 5, 1, 0.98);
-  border-bottom: 2px solid var(--hs-wood-rim);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+  background: transparent;
+  border-bottom: none;
   flex-shrink: 0;
   box-shadow: 0 3px 16px rgba(0,0,0,0.7);
-  min-height: 64px; gap: 0;
+  min-height: 64px;
+}
+
+/* Wrapper centrato giocatore + VS + AI */
+.qbg-hud-matchup {
+  display: flex; align-items: center;
+  gap: 0;
 }
 
 /* Lato combattente (giocatore o AI) */
 .qbg-hud-fighter {
   display: flex; align-items: center; gap: 10px;
-  flex: 1; padding: 8px 16px;
-  transition: background 0.3s;
+  width: 200px; padding: 8px 16px;
   position: relative; overflow: hidden;
+  opacity: 0.38;
+  transition: opacity 0.3s;
+}
+.qbg-hud-fighter::after {
+  content: ""; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px; opacity: 0; transition: opacity 0.3s;
 }
 .qbg-hud-player-side { justify-content: flex-start; }
+.qbg-hud-player-side::after { background: rgba(60,200,90,0.9); }
 .qbg-hud-ai-side     { justify-content: flex-end; }
+.qbg-hud-ai-side::after     { background: rgba(200,60,60,0.9); }
 
-/* Glow sul lato attivo */
-.qbg-hud-active.qbg-hud-player-side {
-  background: linear-gradient(90deg, rgba(60,200,90,0.12) 0%, transparent 100%);
+/* Lato attivo */
+.qbg-hud-active { opacity: 1; }
+.qbg-hud-active::after { opacity: 1; }
+
+@keyframes avatarPulse {
+  0%, 100% { box-shadow: 0 0 6px 1px currentColor; }
+  50%       { box-shadow: 0 0 14px 4px currentColor; }
 }
-.qbg-hud-active.qbg-hud-ai-side {
-  background: linear-gradient(270deg, rgba(200,60,60,0.12) 0%, transparent 100%);
+.qbg-hud-active .qbg-hud-avatar-player {
+  animation: avatarPulse 1.6s ease-in-out infinite;
+  color: rgba(60,200,90,0.7);
+}
+.qbg-hud-active .qbg-hud-avatar-ai {
+  animation: avatarPulse 1.6s ease-in-out infinite;
+  color: rgba(200,60,60,0.7);
 }
 
 /* Avatar */
@@ -131,11 +153,6 @@
 }
 .qbg-hud-fighter-pieces { font-size: 10px; color: #c8a060; }
 
-/* Badge turno */
-.qbg-hud-turn-badge {
-  font-size: 9px; padding: 4px 10px;
-  border-radius: 3px; white-space: nowrap;
-}
 
 /* Centro VS */
 .qbg-hud-center {
@@ -149,14 +166,12 @@
   letter-spacing: 0.1em;
 }
 .qbg-hud-round { font-size: 9px; color: #8a6030; }
-.qbg-turn-player { background: rgba(240,192,64,0.15); color: var(--hs-gold); border: 1px solid rgba(240,192,64,0.5); }
-.qbg-turn-ai     { background: rgba(200,60,60,0.18);  color: #ee7070; border: 1px solid rgba(200,60,60,0.5); }
 .qbg-back-btn {
-  font-family: inherit; font-size: 10px;
-  background: transparent; border: 1px solid var(--hs-wood-rim);
-  color: #c8a060; padding: 4px 10px; cursor: pointer; border-radius: 3px; transition: all 0.15s;
+  position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+  background: none; border: none; padding: 4px; cursor: pointer; z-index: 1;
 }
-.qbg-back-btn:hover { color: #ee4444; border-color: #ee4444; }
+.qbg-settings-icon { width: 60px; height: 60px; display: block; opacity: 0.7; transition: opacity 0.15s; }
+.qbg-back-btn:hover .qbg-settings-icon { opacity: 1; }
 
 /* ── Scene 3D ── */
 .qbg-scene {
@@ -182,12 +197,12 @@
 }
 .qbg-cell-light {
   background-color: #5a3418;
-  background-image: url('./assets/casella_board.png');
+  background-image: url('../assets/casella_board.png');
   background-size: cover; background-blend-mode: overlay;
 }
 .qbg-cell-dark {
   background-color: #2e1808;
-  background-image: url('./assets/casella_board.png');
+  background-image: url('../assets/casella_board.png');
   background-size: cover; background-blend-mode: overlay;
 }
 /* Overlay team — pseudo-elemento preserva la texture */
@@ -250,17 +265,6 @@
 /* Scheda pezzo: stili in PieceCard.css */
 /* Anteprima combattimento: stili in CombatPreview.css */
 
-/* ── Info pezzo selezionato — fisso ── */
-.qbg-selected-info {
-  position: absolute; left: 14px; bottom: 16px;
-  background: rgba(20, 10, 2, 0.96); border: 2px solid rgba(240,192,64,0.5);
-  border-radius: 6px; padding: 8px 12px; display: flex; align-items: center; gap: 10px;
-  pointer-events: none; box-shadow: 0 0 20px rgba(240,192,64,0.15);
-}
-.qbg-sel-icon  { font-size: 1.5rem; }
-.qbg-sel-nome  { font-size: 10px; color: var(--hs-gold); }
-.qbg-sel-stats { font-size: 9px; color: #c8a060; }
-.qbg-sel-re    { font-size: 10px; color: var(--hs-gold); }
 
 /* Bottone gesta nell'info pezzo selezionato */
 .qbg-btn-gesta {
@@ -273,6 +277,18 @@
 .qbg-btn-gesta:hover  { filter: brightness(1.3); background: rgba(255,80,0,0.22); }
 .qbg-btn-gesta-active { background: rgba(255,80,0,0.35); border-color: #ffaa40; color: #ffcc80; }
 
+/* Animazione impatto gesta */
+@keyframes gestaHit {
+  0%   { box-shadow: inset 0 0 0 2px #ff6020; transform: scale(1); }
+  25%  { box-shadow: inset 0 0 0 4px #ff8040, 0 0 30px rgba(255,80,0,0.9); transform: scale(1.12); }
+  60%  { box-shadow: inset 0 0 0 2px #ffaa40, 0 0 20px rgba(255,160,40,0.6); transform: scale(1.05); }
+  100% { box-shadow: none; transform: scale(1); }
+}
+.qbg-cell-gesta-hit {
+  animation: gestaHit 1s ease-out forwards;
+  z-index: 5;
+}
+
 /* Cella target gesta */
 .qbg-cell-gesta-target {
   box-shadow: inset 0 0 0 3px #ff6020;
@@ -284,7 +300,6 @@
 @media (max-width: 700px) and (orientation: landscape) {
   .qbg-scene { perspective: 520px; perspective-origin: 50% 10%; padding: 0.2rem; }
   .qbg-board-wrap { transform: rotateX(18deg); }
-  .qbg-selected-info { bottom: 12px; }
   .qbg-hud { padding: 0 8px 0 0; min-height: 48px; }
   .qbg-hud-avatar { width: 32px; height: 32px; font-size: 10px; }
   .qbg-hud-avatar-ai { font-size: 16px; }

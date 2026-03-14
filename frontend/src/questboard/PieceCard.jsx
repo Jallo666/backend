@@ -1,8 +1,8 @@
 import './PieceCard.css';
-import SilhouettePiece from './SilhouettePiece.jsx';
-import { NATURA_COLORE } from './game/questboard/qb_pieces.js';
+import SilhouettePiece from '../SilhouettePiece.jsx';
+import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 
-export default function PieceCard({ piece, onClose }) {
+export default function PieceCard({ piece, onClose, onGestaClick }) {
   const isPlayer = piece.side === "player";
   const hpPct = Math.round((piece.hp / piece.hpMax) * 100);
   return (
@@ -54,6 +54,14 @@ export default function PieceCard({ piece, onClose }) {
             <div key={g.id} className="qbg-card-gesta-row">
               <span className="qbg-card-gesta-nome">{g.icona} {g.nome}</span>
               <span className="qbg-card-gesta-desc">{g.desc}</span>
+              {onGestaClick && (
+                <button
+                  className="qbg-btn-gesta qbg-card-gesta-btn"
+                  onClick={() => onGestaClick(g.id)}
+                >
+                  Usa
+                </button>
+              )}
             </div>
           ))}
         </div>
