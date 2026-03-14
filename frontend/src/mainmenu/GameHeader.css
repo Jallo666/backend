@@ -115,3 +115,52 @@
   color: var(--hs-cream);
   opacity: 0.75;
 }
+
+@media (max-width: 700px) {
+
+  .gh-header {
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+
+  .gh-left,
+  .gh-right {
+    min-width: auto;
+    flex: 1;
+  }
+
+  .gh-title-area {
+    order: -1;
+    width: 100%;
+    margin-bottom: 4px;
+  }
+
+  .gh-logo {
+    height: 26px;
+    width: auto;
+  }
+
+  .gh-subtitle {
+    font-size: 7px;
+  }
+
+  .gh-username {
+    font-size: 8px;
+  }
+
+  .gh-gilda-btn,
+  .gh-logout-btn {
+    font-size: 8px;
+    padding: 5px 8px;
+  }
+
+}
+
+.gh-logo {
+  height: 70px;
+  width: auto;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 10px rgba(240,192,64,0.4));
+}

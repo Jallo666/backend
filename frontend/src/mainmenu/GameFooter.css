@@ -1,0 +1,40 @@
+.gf-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+
+  gap: 20px;
+  padding: 8px 20px;
+
+  background: rgba(8, 4, 1, 0.97);
+  border-top: 2px solid #5a3510;
+
+  position: relative;
+  z-index: 1;
+
+  flex-shrink: 0;
+
+  font-family: 'Press Start 2P', monospace;
+}
+
+.gf-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gf-label {
+  font-size: 9px;
+  color: #c8a060;
+}
+
+.gf-value {
+  font-size: 10px;
+  color: #f0c040;
+}
+
+.gf-sep {
+  color: rgba(240,192,64,0.25);
+  font-size: 12px;
+}

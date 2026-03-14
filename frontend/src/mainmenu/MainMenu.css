@@ -88,11 +88,6 @@
   min-height: 140px; max-height: 220px; overflow: hidden;
 }
 
-.mm-arch-svg {
-  width: 100%; max-width: 240px; height: auto;
-  position: relative; z-index: 1;
-  filter: drop-shadow(0 0 14px rgba(120, 40, 200, 0.35));
-}
 
 .mm-panel-big-icon {
   font-size: 80px; line-height: 1;
@@ -167,18 +162,6 @@
 .mm-btn-mercante   { background: linear-gradient(135deg, #2a1408, #6a3810); color: var(--hs-gold); box-shadow: 0 2px 14px rgba(120,70,10,0.4); }
 .mm-btn-fabbro     { background: linear-gradient(135deg, #2a0c04, #7a2808); color: var(--hs-gold); box-shadow: 0 2px 14px rgba(140,40,10,0.4); }
 
-/* ── Footer ── */
-.mm-footer {
-  display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
-  gap: 20px; padding: 8px 20px;
-  background: rgba(8, 4, 1, 0.97);
-  border-top: 2px solid var(--hs-wood-rim);
-  position: relative; z-index: 1; flex-shrink: 0;
-}
-.mm-footer-stat { display: flex; align-items: center; gap: 6px; }
-.mm-stat-label { font-size: 9px; color: #c8a060; }
-.mm-stat-value { font-size: 10px; color: var(--hs-gold); }
-.mm-footer-sep { color: rgba(240,192,64,0.25); font-size: 12px; }
 
 /* ── Animations ── */
 @keyframes torchFlame {
