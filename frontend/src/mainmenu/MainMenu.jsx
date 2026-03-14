@@ -3,6 +3,7 @@ import "./MainMenu.css";
 import GameHeader from "./GameHeader";
 import { PANELS, SAVE_KEY } from "./constants";
 import GameFooter from "./GameFooter";
+import logo from "../assets/questboard_logo.svg";
 
 // ── Componente principale ─────────────────────────────────────────────────────
 export default function MainMenu({ utente, onEnterDungeon, onEnterCitta, onGilda, onLogout }) {
@@ -54,14 +55,16 @@ export default function MainMenu({ utente, onEnterDungeon, onEnterCitta, onGilda
 
       {/* ── Header ── */}
       <GameHeader
-        title="QUEST BOARD"
-        subtitle="Scegli il tuo destino, avventuriero"
         username={utente?.nome}
         onGilda={onGilda}
         onLogout={onLogout}
       />
 
-
+      {/* ── Main logo (desktop only) ── */}
+      <div className="mm-main-logo">
+        <img src={logo} alt="Quest Board" />
+      </div>
+      <div className="mm-logo-subtitle">Scegli il tuo destino, avventuriero</div>
 
       {/* ── Main Layout ── */}
       <div className="mm-main-layout">

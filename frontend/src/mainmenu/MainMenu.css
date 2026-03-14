@@ -11,12 +11,80 @@
   position: relative;
   width: 100%;
   min-height: 100dvh;
-  background: radial-gradient(ellipse at 30% 25%, #3d200a 0%, #1e0e04 55%, #120804 100%);
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.35)),
+    url('../assets/sfondo main menu.png') center / cover no-repeat,
+    radial-gradient(ellipse at 30% 25%, #3d200a 0%, #1e0e04 55%, #120804 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   color: var(--hs-cream);
   font-family: 'Press Start 2P', monospace;
+}
+
+.mm-main-logo {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0 10px;
+}
+
+.mm-main-logo img {
+  width: clamp(380px, 60vw, 820px);
+  max-width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 30px rgba(240, 192, 64, 0.55));
+  animation: mmLogoFloat 5s ease-in-out infinite, mmLogoGlow 2.6s ease-in-out infinite;
+}
+
+.mm-logo-subtitle {
+  margin: 8px auto 0;
+  text-align: center;
+  font-family: 'UnifrakturCook', 'Cinzel', 'Cormorant Garamond', serif;
+  font-size: 16px;
+  letter-spacing: 0.14em;
+  color: rgba(240, 192, 64, 0.95);
+  text-shadow: 0 0 10px rgba(240, 192, 64, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  width: min(820px, 90%);
+  border-right: 2px solid rgba(240, 192, 64, 0.8);
+  box-sizing: border-box;
+  animation: mmTyping 4s steps(32, end) 1, mmCursor 0.7s steps(1, end) infinite;
+}
+
+@keyframes mmTyping {
+  from { width: 0; }
+  to { width: min(680px, 90%); }
+}
+
+@keyframes mmCursor {
+  0%, 100% { border-color: rgba(240, 192, 64, 0.8); }
+  50% { border-color: transparent; }
+}
+
+@media (max-width: 700px), (max-height: 500px) {
+  .mm-main-logo img {
+    width: clamp(220px, 50vw, 340px);
+  }
+  .mm-logo-subtitle {
+    display: none;
+  }
+}
+
+@keyframes mmLogoFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes mmLogoGlow {
+  0%, 100% { filter: drop-shadow(0 0 18px rgba(240, 192, 64, 0.35)); }
+  50% { filter: drop-shadow(0 0 32px rgba(240, 192, 64, 0.65)); }
+}
+
+@media (max-width: 700px), (max-height: 500px) {
+  .mm-main-logo {
+    display: none;
+  }
 }
 
 /* ── Stars ── */
@@ -176,33 +244,33 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 14px;
-  margin: 14px 0;
-  border-radius: 20px;
+  padding: 18px;
+  margin: 16px 0;
+  border-radius: 24px;
   background: rgba(4, 2, 1, 0.25);
   backdrop-filter: blur(14px);
-  box-shadow: 0 0 0 1px rgba(240, 192, 64, 0.17), 0 18px 40px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 0 1px rgba(240, 192, 64, 0.17), 0 20px 48px rgba(0, 0, 0, 0.55);
   overflow: hidden;
-  max-width: 860px;
+  max-width: 960px;
   width: 100%;
-  max-height: 620px;
+  max-height: 720px;
   height: auto;
 }
 
 .mm-panel {
-  max-width: 900px;
+  max-width: 960px;
   width: 100%;
   margin: 0 auto;
-  max-height: 520px;
+  max-height: 660px;
   height: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 18px;
+  gap: 20px;
   overflow: hidden;
-  padding: 16px 0;
+  padding: 18px 0;
   animation: mmPanelEnter 280ms ease-out;
 }
 
@@ -238,7 +306,7 @@
 .mm-panel-scene {
   flex: 1; position: relative;
   display: flex; align-items: center; justify-content: center;
-  min-height: 140px; max-height: 220px; overflow: hidden;
+  min-height: 160px; max-height: 260px; overflow: hidden;
 }
 
 

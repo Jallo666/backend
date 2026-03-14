@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import "./GameHeader.css";
-import logo from "../assets/questboard_logo.svg";
 export default function GameHeader({
-  title = "QUEST BOARD",
   subtitle = "",
   username,
   onGilda,
@@ -62,11 +60,6 @@ export default function GameHeader({
       </div>
 
       <div className="gh-title-area">
-        <img
-  src={logo}
-  alt={title}
-  className="gh-logo"
-/>
         {subtitle && (
           <p className="gh-subtitle">{subtitle}</p>
         )}
