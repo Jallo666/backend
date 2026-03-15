@@ -1,4 +1,4 @@
-import { canMoveInRotation, BOARD_SIZE } from "../game/questboard/qb_rules.js";
+import { canMoveInRotation, canUseArdore, BOARD_SIZE } from "../game/questboard/qb_rules.js";
 import BoardPiece from "./BoardPiece.jsx";
 import attackIcon from "../assets/icon/attacca.svg";
 import ardoreIcon from "../assets/icon/ardore.svg";
@@ -42,6 +42,12 @@ export default function GameBoard({
                     : !canMoveInRotation(p.uid, game.aiRotation)
                 );
                 const inRot = p?.side === "player" && canMoveInRotation(p.uid, game.playerRotation);
+
+                const ardoreTracker = p?.side === "player" ? game.playerArdoreTracker : game.aiArdoreTracker;
+                const hasArdore  = (p?.ardore?.length ?? 0) > 0;
+                const hasGesta   = (p?.gesta?.length ?? 0) > 0;
+                const ardoreAvail = hasArdore && canUseArdore(p.uid, ardoreTracker ?? { used: new Set() }) && p.canAct !== false;
+                const gestaAvail  = hasGesta  && p.canAct !== false;
 
                 const isFrom = moveAnim && moveAnim.fromRow === r && moveAnim.fromCol === c;
                 const isTo   = moveAnim && moveAnim.toRow   === r && moveAnim.toCol   === c;
@@ -105,6 +111,8 @@ export default function GameBoard({
                         hasMoved={hasMoved} isMoving={isMoving}
                         isAtkCell={isAtkCell} isDefCell={isDefCell}
                         moveDx={moveDx} moveDy={moveDy}
+                        hasArdore={hasArdore} hasGesta={hasGesta}
+                        ardoreAvail={ardoreAvail} gestaAvail={gestaAvail}
                       />
                     )}
                     {isPendingTarget && (

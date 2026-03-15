@@ -92,6 +92,10 @@
 .qbg-rot-crown { font-size: 13px; color: #f0c040; flex-shrink: 0; }
 .qbg-rot-zzz-inline { font-size: 15px; flex-shrink: 0; }
 .qbg-rot-stats { font-size: 13px; color: #a08050; white-space: nowrap; }
+.qbg-rot-abilities { display: flex; gap: 4px; margin-top: 2px; }
+.qbg-ab-on  { opacity: 1; line-height: 0; }
+.qbg-ab-off { opacity: 0.28; filter: grayscale(1); line-height: 0; }
+.qbg-ab-on img, .qbg-ab-off img { width: 15px; height: 15px; display: block; }
 
 @media (max-width: 700px) and (orientation: landscape) {
   .qbg-rotation { width: 220px; }

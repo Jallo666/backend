@@ -164,6 +164,7 @@ export function fromApi(apiPiece) {
     gesta:  gesteDiNatura(natura),
     ardore: ardoreDiNatura(natura),
     aura:   auraDiNatura(natura),
+    canAct: true,
     ...colors,
   };
 }

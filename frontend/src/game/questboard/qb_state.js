@@ -118,6 +118,8 @@ export function createGame(inventario, formazioneSalvata) {
     combatAnim: null,          // animazione combattimento in corso
     selected: null,            // uid pezzo selezionato dal giocatore
     validMoves: [],            // mosse valide per il pezzo selezionato
+    pendingCycleEnd: false,    // ciclo completo in attesa di Fine Turno esplicito
+    cycleEndEvent: null,       // { round, healAmount } — trigger notifica fine ciclo
   };
 }
 
@@ -182,8 +184,15 @@ export function applyPlayerMove(state, toRow, toCol) {
 
 // ── Fine turno esplicito giocatore ────────────────────────────────────────────
 // Chiamata dopo che il pezzo si è mosso — passa il turno all'AI.
-export function endPlayerPieceTurn(state) {
-  return _endTurn(state, "player");
+export function endPlayerPieceTurn(state, uid) {
+  const newPieces = uid
+    ? state.playerPieces.map(p => p.uid === uid ? { ...p, canAct: false } : p)
+    : state.playerPieces;
+  let newState = { ...state, playerPieces: newPieces };
+  if (newState.pendingCycleEnd) {
+    newState = _applyCycleEnd(newState);
+  }
+  return _endTurn(newState, "player");
 }
 
 // ── Turno AI completo (usato solo per mosse non-attacco dirette) ─────────────
@@ -351,27 +360,40 @@ function _applyMove(state, piece, move, side, skipAutoEndTurn = false) {
 
   // Passa al turno successivo (saltato se il giocatore usa Fine Turno esplicito)
   if (!skipAutoEndTurn) {
+    // Per l'AI: setta canAct: false sul pezzo che ha agito
+    if (side === "ai") {
+      newState = {
+        ...newState,
+        aiPieces: newState.aiPieces.map(p => p.uid === piece.uid ? { ...p, canAct: false } : p),
+      };
+    }
     newState = _endTurn(newState, side);
-  }
-
-  // Fine ciclo: cura e incremento round
-  if (newTracker.cycleComplete) {
-    const round = newState.round;
-    const healAmount = getHealAmount(round);
-    newState = {
-      ...newState,
-      round:               round + 1,
-      playerPieces:        applyEndRoundHeal(newState.playerPieces, round),
-      aiPieces:            applyEndRoundHeal(newState.aiPieces, round),
-      playerArdoreTracker: createArdoreTracker(),
-      aiArdoreTracker:     createArdoreTracker(),
-      cycleEndEvent:       { round, healAmount },
-    };
-    const heal = _getHealText(round);
-    if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
+    // Fine ciclo immediato (AI o altri casi automatici)
+    if (newTracker.cycleComplete) { newState = _applyCycleEnd(newState); }
+  } else {
+    // Player con Fine Turno esplicito: posponi ciclo
+    if (newTracker.cycleComplete) { newState = { ...newState, pendingCycleEnd: true }; }
   }
 
   return newState;
+}
+
+function _applyCycleEnd(state) {
+  const round = state.round;
+  const healAmount = getHealAmount(round);
+  let s = {
+    ...state,
+    round:               round + 1,
+    playerPieces:        applyEndRoundHeal(state.playerPieces, round).map(p => ({ ...p, canAct: true })),
+    aiPieces:            applyEndRoundHeal(state.aiPieces, round).map(p => ({ ...p, canAct: true })),
+    playerArdoreTracker: createArdoreTracker(),
+    aiArdoreTracker:     createArdoreTracker(),
+    cycleEndEvent:       { round, healAmount },
+    pendingCycleEnd:     false,
+  };
+  const heal = _getHealText(round);
+  if (heal) s.log = [...s.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
+  return s;
 }
 
 function _endTurn(state, currentSide) {
@@ -421,6 +443,13 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
     `${caster.nome} usa ${gesta.nome} su ${target.nome}! (-${dannoEffettivo} HP${auraTag})` +
     (targetMorto ? ` → ${target.nome} eliminato!${fdpTag}` : ` → ${nuovoHp} HP rimasti`);
 
+  // Setta canAct: false sul caster (la gesta conclude il turno)
+  if (side === "player") {
+    newPlayerPieces = newPlayerPieces.map(p => p.uid === casterUid ? { ...p, canAct: false } : p);
+  } else {
+    newAiPieces = newAiPieces.map(p => p.uid === casterUid ? { ...p, canAct: false } : p);
+  }
+
   const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
   const tracker = side === "player" ? state.playerRotation : state.aiRotation;
   const newTracker = registerMove(casterUid, tracker, aliveSidePieces);
@@ -446,21 +475,12 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
     return { ...newState, status: "over", winner, log: [...newState.log, winMsg].slice(-40) };
   }
 
-  newState = _endTurn(newState, side);
-  if (newTracker.cycleComplete) {
-    const round = newState.round;
-    const healAmount = getHealAmount(round);
-    newState = {
-      ...newState,
-      round:               round + 1,
-      playerPieces:        applyEndRoundHeal(newState.playerPieces, round),
-      aiPieces:            applyEndRoundHeal(newState.aiPieces, round),
-      playerArdoreTracker: createArdoreTracker(),
-      aiArdoreTracker:     createArdoreTracker(),
-      cycleEndEvent:       { round, healAmount },
-    };
-    const heal = _getHealText(round);
-    if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
+  // Per il player il turno NON cambia automaticamente — aspetta il click Fine Turno
+  if (side === "ai") {
+    newState = _endTurn(newState, side);
+    if (newTracker.cycleComplete) { newState = _applyCycleEnd(newState); }
+  } else {
+    if (newTracker.cycleComplete) { newState = { ...newState, pendingCycleEnd: true }; }
   }
 
   return newState;
@@ -512,6 +532,13 @@ export function applyScagliare(state, side, casterUid, targetUid, destRow, destC
     logMsg = `${caster.nome} scaglia ${target.nome}! (-${dannoEffettivo} HP${auraTag}) → ${nuovoHp} HP rimasti`;
   }
 
+  // Setta canAct: false sul caster (Scagliare è una gesta e conclude il turno)
+  if (side === "player") {
+    newPlayerPieces = newPlayerPieces.map(p => p.uid === casterUid ? { ...p, canAct: false } : p);
+  } else {
+    newAiPieces = newAiPieces.map(p => p.uid === casterUid ? { ...p, canAct: false } : p);
+  }
+
   const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
   const tracker = side === "player" ? state.playerRotation : state.aiRotation;
   const newTracker = registerMove(casterUid, tracker, aliveSidePieces);
@@ -537,21 +564,12 @@ export function applyScagliare(state, side, casterUid, targetUid, destRow, destC
     return { ...newState, status: "over", winner, log: [...newState.log, winMsg].slice(-40) };
   }
 
-  newState = _endTurn(newState, side);
-  if (newTracker.cycleComplete) {
-    const round = newState.round;
-    const healAmount = getHealAmount(round);
-    newState = {
-      ...newState,
-      round:               round + 1,
-      playerPieces:        applyEndRoundHeal(newState.playerPieces, round),
-      aiPieces:            applyEndRoundHeal(newState.aiPieces, round),
-      playerArdoreTracker: createArdoreTracker(),
-      aiArdoreTracker:     createArdoreTracker(),
-      cycleEndEvent:       { round, healAmount },
-    };
-    const heal = _getHealText(round);
-    if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
+  // Per il player il turno NON cambia automaticamente — aspetta il click Fine Turno
+  if (side === "ai") {
+    newState = _endTurn(newState, side);
+    if (newTracker.cycleComplete) { newState = _applyCycleEnd(newState); }
+  } else {
+    if (newTracker.cycleComplete) { newState = { ...newState, pendingCycleEnd: true }; }
   }
 
   return newState;
@@ -626,8 +644,10 @@ export function skipPieceTurn(state, uid) {
   const piece = state.playerPieces.find(p => p.uid === uid);
   if (!piece) return state;
   const newTracker = registerMove(uid, state.playerRotation, state.playerPieces);
+  const newPlayerPieces = state.playerPieces.map(p => p.uid === uid ? { ...p, canAct: false } : p);
   let newState = {
     ...state,
+    playerPieces:   newPlayerPieces,
     playerRotation: newTracker,
     selected: null,
     validMoves: [],
@@ -641,8 +661,8 @@ export function skipPieceTurn(state, uid) {
     newState = {
       ...newState,
       round:               round + 1,
-      playerPieces:        applyEndRoundHeal(newState.playerPieces, round),
-      aiPieces:            applyEndRoundHeal(newState.aiPieces, round),
+      playerPieces:        applyEndRoundHeal(newState.playerPieces, round).map(p => ({ ...p, canAct: true })),
+      aiPieces:            applyEndRoundHeal(newState.aiPieces, round).map(p => ({ ...p, canAct: true })),
       playerArdoreTracker: createArdoreTracker(),
       aiArdoreTracker:     createArdoreTracker(),
       cycleEndEvent:       { round, healAmount },
@@ -747,8 +767,10 @@ export function skipBlockedPiece(state, uid) {
   const piece = state.playerPieces.find(p => p.uid === uid);
   if (!piece) return state;
   const newTracker = registerMove(uid, state.playerRotation, state.playerPieces);
+  const newPlayerPieces = state.playerPieces.map(p => p.uid === uid ? { ...p, canAct: false } : p);
   return _endTurn({
     ...state,
+    playerPieces:   newPlayerPieces,
     playerRotation: newTracker,
     selected: null,
     validMoves: [],

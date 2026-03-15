@@ -93,8 +93,12 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const [reAuraNotif,       setReAuraNotif]       = useState(null);
   const [roundEndNotif,     setRoundEndNotif]     = useState(null);
   const [pendingFineTurnoUid, setPendingFineTurnoUid] = useState(null);
+  const [showEndTurnPopup,   setShowEndTurnPopup]   = useState(false);
+  const [turnPopup,          setTurnPopup]          = useState(null); // null | { msg, requiresAck }
+  const [ardoreUsedUid,     setArdoreUsedUid]     = useState(null); // uid del pezzo che ha usato ardore in questo turno
 
   const aiTimerRef      = useRef(null);
+  const turnPopupTimer  = useRef(null);
   const moveAnimTimer   = useRef(null);
   const combatTimer     = useRef(null);
   const logTimer        = useRef(null);
@@ -118,6 +122,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   // ── Turno AI ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (game.status !== "playing" || game.turn !== "ai") return;
+    if (turnPopup || roundEndNotif) return; // aspetta OK o chiusura notifica
     clearTimeout(aiTimerRef.current);
     aiTimerRef.current = setTimeout(() => {
       setGame(s => {
@@ -166,7 +171,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       });
     }, AI_DELAY_MS);
     return () => clearTimeout(aiTimerRef.current);
-  }, [game.status, game.turn, game.round]);
+  }, [game.status, game.turn, game.round, turnPopup, roundEndNotif]);
 
   // ── Mossa AI dopo ardore (pendingAiMove = uid del pezzo che deve muoversi) ─
   useEffect(() => {
@@ -240,8 +245,40 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
 
   // ── Reset Fine Turno quando il turno torna al giocatore (dopo AI) ────────────
   useEffect(() => {
-    if (game.turn === "player") setPendingFineTurnoUid(null);
+    if (game.turn === "player") {
+      setPendingFineTurnoUid(null);
+      setArdoreImpegnato(null);
+      setArdoreUsedUid(null);
+      setShowEndTurnPopup(false);
+    }
   }, [game.turn]);
+
+  // ── Popup Fine Turno — appare quando il pezzo attivo ha esaurito le azioni ──
+  useEffect(() => {
+    if (game.turn !== "player" || game.status !== "playing") return;
+    const activeUid = pendingFineTurnoUid ?? ardoreImpegnato?.pieceUid ?? null;
+    if (!activeUid) return;
+    const piece = game.playerPieces.find(p => p.uid === activeUid);
+    const gestaUsed      = piece?.canAct === false;
+    const selectedNoMoves = game.selected === activeUid && game.validMoves.length === 0;
+    const ardoreAndMoved  = ardoreUsedUid === activeUid && pendingFineTurnoUid === activeUid;
+    if (gestaUsed || selectedNoMoves || ardoreAndMoved) setShowEndTurnPopup(true);
+  }, [pendingFineTurnoUid, ardoreImpegnato, ardoreUsedUid, game]);
+
+  // ── Popup annuncio turno ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (game.status !== "playing") return;
+    clearTimeout(turnPopupTimer.current);
+    if (game.turn === "player") {
+      const nome = utente?.nome ?? "Eroe";
+      setTurnPopup({ msg: `È il tuo turno, ${nome}!\nMuovi le pedine, usa gesta o ardore.`, requiresAck: false });
+      turnPopupTimer.current = setTimeout(() => setTurnPopup(null), 2500);
+    } else {
+      setTurnPopup({ msg: "Turno dell'avversario", requiresAck: true });
+      // nessun auto-dismiss: l'AI aspetta che il giocatore prema OK
+    }
+    return () => clearTimeout(turnPopupTimer.current);
+  }, [game.turn, game.status]);
 
   // ── Animazione combattimento ───────────────────────────────────────────────
   useEffect(() => {
@@ -281,6 +318,8 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       return selectPiece(afterAttack, caster.uid);
     });
     setArdoreImpegnato({ pieceUid: caster.uid });
+    setArdoreUsedUid(caster.uid);
+    setPendingFineTurnoUid(caster.uid);
   }, [caricaAttackPreview]);
 
   // ── Conferma scagliare AI dopo preview ───────────────────────────────────
@@ -350,6 +389,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
             return selectPiece(afterCarica, caster.uid);
           });
           setArdoreImpegnato({ pieceUid: caster.uid });
+          setArdoreUsedUid(caster.uid);
           return;
         }
 
@@ -377,10 +417,11 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     // Mostra scheda su qualsiasi pezzo (anche nemico) — sempre, indipendentemente dallo stato
     if (clickedPiece) openPieceTab(clickedPiece);
 
-    // Se impegnato: blocca selezione di altri pezzi del player e deselection
-    if (ardoreImpegnato) {
+    // Se impegnato con un pezzo: blocca selezione di altri pezzi del player e deselection
+    const activePieceUid = pendingFineTurnoUid ?? ardoreImpegnato?.pieceUid ?? null;
+    if (activePieceUid && !gestaMode && !ardoreMode) {
       const clickedPlayer = game.playerPieces.find(p => p.row === row && p.col === col);
-      if (clickedPlayer && clickedPlayer.uid !== ardoreImpegnato.pieceUid) return;
+      if (clickedPlayer && clickedPlayer.uid !== activePieceUid) return;
       if (!clickedPiece && !game.validMoves.some(m => m.row === row && m.col === col)) return;
     }
 
@@ -393,8 +434,10 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         const allPiecesNow2 = [...game.playerPieces, ...game.aiPieces];
         const dests = getScagliareDest(caster, gestaMode.targetUid, allPiecesNow2);
         if (dests.some(d => d.row === row && d.col === col)) {
+          const scagliareCasterUid = caster.uid;
           setGestaMode(null);
-          setGame(s => applyScagliare(s, "player", caster.uid, gestaMode.targetUid, row, col));
+          setPendingFineTurnoUid(scagliareCasterUid); // mantieni activePieceUid per il popup
+          setGame(s => applyScagliare(s, "player", scagliareCasterUid, gestaMode.targetUid, row, col));
         } else {
           setGestaMode(null);
         }
@@ -488,7 +531,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       setPieceCard(null); setActiveTab('diario');
       setGame(s => ({ ...s, selected: null, validMoves: [] }));
     }
-  }, [game, gestaMode, ardoreMode, ardoreImpegnato, pendingAttack, triggerMoveAnim, openPieceTab]);
+  }, [game, gestaMode, ardoreMode, ardoreImpegnato, pendingFineTurnoUid, pendingAttack, triggerMoveAnim, openPieceTab]);
 
 
   // ── Dati per UI Scagliare ──────────────────────────────────────────────────
@@ -507,15 +550,17 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     }
   }
 
-  const hudFineTurnoUid = pendingFineTurnoUid ?? ardoreImpegnato?.pieceUid;
+  const activePieceUid = pendingFineTurnoUid ?? ardoreImpegnato?.pieceUid ?? null;
+  const hudFineTurnoUid = activePieceUid;
   const hudPieceJustMoved = pendingFineTurnoUid !== null;
   const onFineTurnoHud = game.turn === "player" && hudFineTurnoUid
     ? () => {
         const moved = pendingFineTurnoUid !== null;
+        const uidToEnd = hudFineTurnoUid;
         setPendingFineTurnoUid(null);
         setArdoreImpegnato(null);
-        if (moved) { setGame(s => endPlayerPieceTurn(s)); }
-        else { setGame(s => skipPieceTurn(s, hudFineTurnoUid)); }
+        if (moved) { setGame(s => endPlayerPieceTurn(s, uidToEnd)); }
+        else { setGame(s => skipPieceTurn(s, uidToEnd)); }
       }
     : null;
 
@@ -611,6 +656,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
               return selectPiece(afterArdore, caster.uid); // pre-seleziona il pezzo impegnato
             });
             setArdoreImpegnato({ pieceUid: caster.uid });
+            setArdoreUsedUid(caster.uid);
             // Rimani sulla tab pezzo così il player vede il bottone Ardore grayed
           }}
           onCancel={() => setArdorePreview(null)}
@@ -664,6 +710,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
             setPieceCard(null); setActiveTab('diario');
             setGestaHitAnim({ row: target.row, col: target.col });
             setTimeout(() => setGestaHitAnim(null), 1000);
+            setPendingFineTurnoUid(caster.uid); // mantieni activePieceUid per il popup
             setGame(s => applyGesta(s, "player", caster.uid, gesta.id, target.uid));
           }}
           onCancel={() => setGestaPreview(null)}
@@ -684,6 +731,10 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
             clearTimeout(logTimer.current);
             setArdoreImpegnato(null);
             setPendingFineTurnoUid(null);
+            setShowEndTurnPopup(false);
+            setTurnPopup(null);
+            setArdoreUsedUid(null);
+            clearTimeout(turnPopupTimer.current);
             setArdoreMode(null);
             setGestaMode(null);
             setPendingAttack(null);
@@ -736,7 +787,12 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         setPieceCard={setPieceCard}
         selectedUid={pieceCard?.side === 'player' ? pieceCard?.uid : null}
         onGestaClick={
-          game.turn === "player" && pieceCard?.side === "player"
+          game.turn === "player" && pieceCard?.side === "player" &&
+          pieceCard?.canAct &&
+          !pendingFineTurnoUid &&
+          (!activePieceUid || activePieceUid === pieceCard?.uid) &&
+          (!gestaMode || gestaMode.casterUid === pieceCard?.uid) &&
+          (!ardoreMode || ardoreMode.casterUid === pieceCard?.uid)
             ? (gestaId) => {
                 const phase = gestaId === "scagliare" ? "selectTarget" : undefined;
                 setGestaMode({ gestaId, casterUid: pieceCard.uid, phase });
@@ -744,36 +800,13 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
               }
             : null
         }
-        onFineTurno={
-          game.turn === "player" && pieceCard?.side === "player" &&
-          (
-            pendingFineTurnoUid === pieceCard?.uid ||
-            (
-              canMoveInRotation(pieceCard?.uid, game.playerRotation) &&
-              (
-                !ardoreImpegnato ||
-                ardoreImpegnato.pieceUid !== pieceCard?.uid ||
-                game.validMoves.length === 0
-              )
-            )
-          )
-            ? () => {
-                const moved = pendingFineTurnoUid === pieceCard?.uid;
-                setPendingFineTurnoUid(null);
-                setPieceCard(null); setActiveTab('diario');
-                setArdoreImpegnato(null);
-                if (moved) {
-                  setGame(s => endPlayerPieceTurn(s));
-                } else {
-                  setGame(s => skipPieceTurn(s, pieceCard.uid));
-                }
-              }
-            : null
-        }
         pieceJustMoved={pendingFineTurnoUid === pieceCard?.uid}
         onArdoreClick={
           game.turn === "player" && pieceCard?.side === "player" &&
-          (canMoveInRotation(pieceCard?.uid, game.playerRotation) || pendingFineTurnoUid === pieceCard?.uid) &&
+          pieceCard?.canAct &&
+          (!activePieceUid || activePieceUid === pieceCard?.uid) &&
+          (!gestaMode || gestaMode.casterUid === pieceCard?.uid) &&
+          (!ardoreMode || ardoreMode.casterUid === pieceCard?.uid) &&
           canUseArdore(pieceCard?.uid, game.playerArdoreTracker ?? { used: new Set() })
             ? (ardoreId) => {
                 const ardoreObj = pieceCard.ardore?.find(a => a.id === ardoreId);
@@ -799,6 +832,39 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       <StatusHint hint={calcStatusHint(game, gestaMode, ardoreMode, pieceCard, pendingAttack)} />
 
       <RotazioneTracker game={game} openPieceTab={openPieceTab} selectedUid={pieceCard?.uid ?? null} />
+
+      {/* ── Toast annuncio turno ── */}
+      {turnPopup && (
+        <div
+          className="qbg-turn-toast"
+          onClick={() => { if (!turnPopup.requiresAck) { clearTimeout(turnPopupTimer.current); setTurnPopup(null); } }}
+        >
+          {turnPopup.msg.split('\n').map((line, i) => <span key={i}>{line}</span>)}
+          {turnPopup.requiresAck && (
+            <button className="qbg-btn qbg-btn-gold" onClick={(e) => { e.stopPropagation(); clearTimeout(turnPopupTimer.current); setTurnPopup(null); }}>
+              OK
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── Popup Fine Turno ── */}
+      {showEndTurnPopup && (
+        <div className="qbg-popup-overlay">
+          <div className="qbg-popup">
+            <p className="qbg-popup-msg">Azioni esaurite per questo pezzo.</p>
+            <div className="qbg-popup-btns">
+              <button className="qbg-btn qbg-btn-gold" onClick={() => {
+                setShowEndTurnPopup(false);
+                onFineTurnoHud?.();
+              }}>Fine Turno</button>
+              <button className="qbg-btn qbg-btn-dark" onClick={() => setShowEndTurnPopup(false)}>
+                Aspetta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

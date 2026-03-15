@@ -1,5 +1,7 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
-import coronaIcon from "../assets/icon/corona.svg";
+import coronaIcon  from "../assets/icon/corona.svg";
+import ardoreIcon  from "../assets/icon/ardore.svg";
+import gestaIcon   from "../assets/icon/gesta.svg";
 import "./BoardPiece.css";
 
 export default function BoardPiece({
@@ -7,6 +9,7 @@ export default function BoardPiece({
   isSelected, inRot, hasMoved,
   isMoving, isAtkCell, isDefCell,
   moveDx, moveDy,
+  hasArdore, hasGesta, ardoreAvail, gestaAvail,
 }) {
   return (
     <div
@@ -34,6 +37,14 @@ export default function BoardPiece({
 
       {/* RE badge — top-right */}
       {p.isRe && <div className="bp-re-badge"><img src={coronaIcon} alt="RE" style={{ width: "100%", height: "100%", filter: "drop-shadow(0 0 3px #f0c040)" }} /></div>}
+
+      {/* Abilità disponibili — bottom-right */}
+      {(hasArdore || hasGesta) && (
+        <div className="bp-abilities">
+          {hasArdore && <span className={`bp-ab ${ardoreAvail ? 'bp-ab-on' : 'bp-ab-off'}`}><img src={ardoreIcon} alt="ardore" /></span>}
+          {hasGesta  && <span className={`bp-ab ${gestaAvail  ? 'bp-ab-on' : 'bp-ab-off'}`}><img src={gestaIcon}  alt="gesta"  /></span>}
+        </div>
+      )}
 
       {/* Dormiente — overlay scuro + emoji */}
       {hasMoved && <div className="bp-sleep-overlay" />}

@@ -249,6 +249,7 @@ export function createAiFormation() {
       gesta:  gesteDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
       ardore: ardoreDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
       aura:   auraDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
+      canAct: true,
       ...colors,
     };
   });

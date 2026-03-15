@@ -502,3 +502,61 @@
   }
   .qbg-settings-icon { width: 32px; height: 32px; }
 }
+
+/* ── Toast annuncio turno ── */
+.qbg-turn-toast {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 150;
+  background: rgba(15, 8, 2, 0.92);
+  border: 2px solid var(--hs-gold, #f0c040);
+  border-radius: 8px;
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  animation: qbg-toast-in 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+  pointer-events: auto;
+}
+.qbg-turn-toast span {
+  font-family: 'Cinzel', serif;
+  color: #e8d080;
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.5;
+}
+@keyframes qbg-toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.qbg-turn-toast .qbg-btn {
+  margin-top: 4px;
+  font-size: 11px;
+  padding: 6px 20px;
+}
+
+/* ── Popup Fine Turno ── */
+.qbg-popup-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.55);
+}
+.qbg-popup {
+  background: rgba(20,12,4,0.97);
+  border: 2px solid var(--hs-gold, #f0c040);
+  border-radius: 10px;
+  padding: 24px 32px;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+  min-width: 260px;
+}
+.qbg-popup-msg {
+  font-family: 'Cinzel', serif;
+  color: #e8d080; font-size: 15px; text-align: center; margin: 0;
+}
+.qbg-popup-btns { display: flex; gap: 12px; }

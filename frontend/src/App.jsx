@@ -6,6 +6,8 @@ import MainMenu from "./mainmenu/MainMenu";
 import CittaPage from "./CittaPage";
 import Formazione from "./Formazione";
 import QuestBoardGame from "./questboard/QuestBoardGame";
+import useMusic from "./music/useMusic";
+import { unlockAudio } from "./music/unlockAudio";
 
 const API_URL     = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 const SESSION_KEY = "qb_session";
@@ -26,6 +28,7 @@ function App() {
   const [token,    setToken]    = useState(null);
   const [utenti,   setUtenti]   = useState([]);
   const [pagina,   setPagina]   = useState("login");
+  useMusic(pagina);
   const [checking, setChecking] = useState(true);
 
   // Dungeon
@@ -38,6 +41,10 @@ function App() {
   // Quest Board — dati passati da Formazione a QuestBoardGame
   const [qbInventario,  setQbInventario]  = useState([]);
   const [qbFormazione,  setQbFormazione]  = useState([]);
+
+  useEffect(() => {
+  unlockAudio();
+}, []);
 
   // ── Ripristina sessione ──
   useEffect(() => {

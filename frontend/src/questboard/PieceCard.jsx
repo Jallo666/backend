@@ -6,7 +6,7 @@ import auraIcon from '../assets/icon/aura.svg';
 import coronaIcon from '../assets/icon/corona.svg';
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 
-export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, onFineTurno, pieceJustMoved, isSelected }) {
+export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, pieceJustMoved, isSelected }) {
   const isPlayer = piece.side === "player";
   const hpPct = Math.round((piece.hp / piece.hpMax) * 100);
   return (
@@ -71,16 +71,6 @@ export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick,
         </div>
       )}
 
-      {onFineTurno && (
-        <div className="qbg-card-skip">
-          <button
-            className={`qbg-btn ${pieceJustMoved ? "qbg-btn-gold" : "qbg-btn-dark"}`}
-            onClick={onFineTurno}
-          >
-            {pieceJustMoved ? "Fine Turno ✓" : "Fine Turno ⚠"}
-          </button>
-        </div>
-      )}
 
       {piece.aura?.length > 0 && (
         <div className="qbg-card-aura">

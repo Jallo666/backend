@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import './RotazioneTracker.css';
 import SilhouettePiece from '../SilhouettePiece.jsx';
-import { canMoveInRotation } from '../game/questboard/qb_rules.js';
+import { canMoveInRotation, canUseArdore } from '../game/questboard/qb_rules.js';
+import ardoreIcon from '../assets/icon/ardore.svg';
+import gestaIcon  from '../assets/icon/gesta.svg';
 
-function PieceRow({ p, rotation, isAi, collapsed, onClick, selected }) {
+function PieceRow({ p, rotation, ardoreTracker, isAi, collapsed, onClick, selected }) {
   const ready = canMoveInRotation(p.uid, rotation);
+  const hasArdore  = (p.ardore?.length ?? 0) > 0;
+  const hasGesta   = (p.gesta?.length ?? 0) > 0;
+  const ardoreAvail = hasArdore && canUseArdore(p.uid, ardoreTracker ?? { used: new Set() }) && p.canAct !== false;
+  const gestaAvail  = hasGesta  && p.canAct !== false;
   return (
     <div
       className={`qbg-rot-row ${isAi ? "qbg-rot-row-ai" : ""} ${ready ? "qbg-rot-ready" : "qbg-rot-done"} ${selected ? "qbg-rot-selected" : ""}`}
@@ -19,6 +25,12 @@ function PieceRow({ p, rotation, isAi, collapsed, onClick, selected }) {
             {!ready && <span className="qbg-rot-zzz-inline">💤</span>}
           </span>
           <span className="qbg-rot-stats">❤ {p.hp} &nbsp;⚔ {p.atk} &nbsp;🛡 {p.def}</span>
+          {(hasArdore || hasGesta) && (
+            <span className="qbg-rot-abilities">
+              {hasArdore && <span className={ardoreAvail ? 'qbg-ab-on' : 'qbg-ab-off'}><img src={ardoreIcon} alt="ardore" /></span>}
+              {hasGesta  && <span className={gestaAvail  ? 'qbg-ab-on' : 'qbg-ab-off'}><img src={gestaIcon}  alt="gesta"  /></span>}
+            </span>
+          )}
         </div>
       )}
     </div>
@@ -37,7 +49,7 @@ export default function RotazioneTracker({ game, openPieceTab, selectedUid }) {
       <div className="qbg-rot-content">
         {!collapsed && <div className="qbg-rot-section-label qbg-rot-section-player">⚔ TUE</div>}
         {game.playerPieces.map(p => (
-          <PieceRow key={p.uid} p={p} rotation={game.playerRotation} isAi={false} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} />
+          <PieceRow key={p.uid} p={p} rotation={game.playerRotation} ardoreTracker={game.playerArdoreTracker} isAi={false} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} />
         ))}
 
         {!collapsed && <>
@@ -45,7 +57,7 @@ export default function RotazioneTracker({ game, openPieceTab, selectedUid }) {
           <div className="qbg-rot-section-label qbg-rot-section-ai">🤖 AI</div>
         </>}
         {game.aiPieces.map(p => (
-          <PieceRow key={p.uid} p={p} rotation={game.aiRotation} isAi={true} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} />
+          <PieceRow key={p.uid} p={p} rotation={game.aiRotation} ardoreTracker={game.aiArdoreTracker} isAi={true} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} />
         ))}
       </div>
     </div>
