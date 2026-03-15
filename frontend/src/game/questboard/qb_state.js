@@ -4,7 +4,41 @@ import {
   createRotationTracker, registerMove, applyEndRoundHeal,
   canMoveInRotation, isBlocked,
   createArdoreTracker, registerArdore,
+  BOARD_SIZE,
 } from "./qb_rules.js";
+
+// Trova la cella libera più vicina al difensore raggiungibile dall'attaccante.
+// Priorità: celle ortogonali > diagonali a parità di distanza Chebyshev.
+function _closestAdvanceCell(attacker, defRow, defCol, allPieces) {
+  const occupied = new Set(
+    allPieces
+      .filter(p => p.uid !== attacker.uid)
+      .map(p => `${p.row},${p.col}`)
+  );
+
+  const candidates = [];
+  for (let dr = -attacker.mov; dr <= attacker.mov; dr++) {
+    for (let dc = -attacker.mov; dc <= attacker.mov; dc++) {
+      if (dr === 0 && dc === 0) continue;
+      const r = attacker.row + dr;
+      const c = attacker.col + dc;
+      if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) continue;
+      if (r === defRow && c === defCol) continue;       // non nella cella del difensore
+      if (occupied.has(`${r},${c}`)) continue;          // non occupata
+      const distToDef = Math.max(Math.abs(r - defRow), Math.abs(c - defCol));
+      const isOrtho   = dr === 0 || dc === 0;
+      candidates.push({ r, c, distToDef, isOrtho });
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  candidates.sort((a, b) => {
+    if (a.distToDef !== b.distToDef) return a.distToDef - b.distToDef;
+    return (a.isOrtho ? 0 : 1) - (b.isOrtho ? 0 : 1); // ortogonale prima
+  });
+  return candidates[0];
+}
 import { chooseBestMove, chooseArdoreAction, createAiFormation } from "./qb_ai.js";
 import { fromApi } from "./qb_pieces.js";
 
@@ -175,9 +209,9 @@ function _applyMove(state, piece, move, side) {
     const target = move.target;
     const result = resolveCombat(piece, target);
     newLog.push(
-      `${piece.nome} attacca ${target.nome}!` +
-      ` (${piece.hp}HP vs ${target.hp}HP)` +
-      ` → ${result.attackerWins ? `${piece.nome} vince` : `${target.nome} resiste`}`
+      result.defenderHp <= 0
+        ? `${piece.nome} attacca ${target.nome}! (-${result.dmg} HP) → eliminato!`
+        : `${piece.nome} attacca ${target.nome}! (-${result.dmg} HP) → ${result.defenderHp} HP rimasti`
     );
 
     combatAnim = {
@@ -187,12 +221,21 @@ function _applyMove(state, piece, move, side) {
     };
 
     // Aggiorna HP e posizioni
+    // Cella più vicina al difensore raggiungibile dall'attaccante (se difensore sopravvive)
+    const allForAdvance = [...state.playerPieces, ...state.aiPieces];
+    const currentDistToDef = Math.max(Math.abs(piece.row - move.row), Math.abs(piece.col - move.col));
+    const bestCell = result.defenderHp > 0
+      ? _closestAdvanceCell(piece, move.row, move.col, allForAdvance)
+      : null;
+    // Avanza solo se la cella trovata è effettivamente più vicina al difensore
+    const advanceCell = bestCell && bestCell.distToDef < currentDistToDef ? bestCell : null;
+
     const updatePiece = (p) => {
       if (p.uid === piece.uid) {
-        const alive = result.attackerHp > 0;
-        return alive
-          ? { ...p, hp: result.attackerHp, row: alive ? move.row : p.row, col: alive ? move.col : p.col }
-          : null; // rimosso
+        if (result.defenderHp > 0 && advanceCell) {
+          return { ...p, hp: result.attackerHp, row: advanceCell.r, col: advanceCell.c };
+        }
+        return { ...p, hp: result.attackerHp }; // avanzata nella cella del difensore gestita sotto
       }
       if (p.uid === target.uid) {
         return result.defenderHp > 0 ? { ...p, hp: result.defenderHp } : null;

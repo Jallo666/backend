@@ -1,0 +1,33 @@
+.qbg-status-hint {
+  position: absolute;
+  left: 0;
+  bottom: 24px;
+  background: rgba(10, 5, 1, 0.82) url('../assets/background-journal.png') center/cover no-repeat;
+  background-blend-mode: multiply;
+  border-top:    2px solid var(--hs-wood-rim);
+  border-right:  2px solid var(--hs-wood-rim);
+  border-bottom: 2px solid var(--hs-wood-rim);
+  border-radius: 0 10px 10px 0;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(240,192,64,0.08);
+  padding: 8px 16px 8px 12px;
+  z-index: 49;
+  max-width: 260px;
+  pointer-events: none;
+}
+
+.qbg-status-hint-text {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  color: var(--hs-gold);
+  letter-spacing: 0.05em;
+  line-height: 1.5;
+}
+
+@media (min-height: 600px) {
+  .qbg-status-hint-text { font-size: 17px; }
+  .qbg-status-hint { max-width: 340px; padding: 10px 20px 10px 14px; }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .qbg-status-hint { bottom: 4px; }
+}

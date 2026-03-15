@@ -1,12 +1,15 @@
 import { canMoveInRotation, BOARD_SIZE } from "../game/questboard/qb_rules.js";
 import BoardPiece from "./BoardPiece.jsx";
+import attackIcon from "../assets/icon/attacca.svg";
+import ardoreIcon from "../assets/icon/ardore.svg";
+import gestaIcon from "../assets/icon/gesta.svg";
 import "./QuestBoardGame.css";
 
 export default function GameBoard({
   game, cellSize, moveAnim, animCell,
   combatFlash, gestaMode, gestaHitAnim,
   ardoreMode, ardoreHitAnim, ardoreImpegnato,
-  onCellClick,
+  onCellClick, pendingAttack, onConfirmAttack,
 }) {
   const allPieces    = [...game.playerPieces, ...game.aiPieces];
   const pieceAt      = (r, c) => allPieces.find(p => p.row === r && p.col === c);
@@ -52,6 +55,7 @@ export default function GameBoard({
                 const isArdoreTarget = ardoreMode && p != null;
                 const isArdoreHit    = ardoreHitAnim?.row === r && ardoreHitAnim?.col === c;
                 const isArdoreImpeg  = ardoreImpegnato && p?.uid === ardoreImpegnato.pieceUid;
+                const isPendingTarget = pendingAttack && p?.uid === pendingAttack.defender?.uid;
                 const pieceSideClass = p
                   ? (p.side === "player" ? "qbg-cell-player-piece" : "qbg-cell-ai-piece")
                   : "";
@@ -89,6 +93,24 @@ export default function GameBoard({
                         isAtkCell={isAtkCell} isDefCell={isDefCell}
                         moveDx={moveDx} moveDy={moveDy}
                       />
+                    )}
+                    {isPendingTarget && (
+                      <button
+                        className="qbg-confirm-attack-btn"
+                        onClick={e => { e.stopPropagation(); onConfirmAttack(); }}
+                      ><img src={attackIcon} alt="attacca" /></button>
+                    )}
+                    {isArdoreTarget && !isPendingTarget && (
+                      <button
+                        className="qbg-confirm-ardore-btn"
+                        onClick={e => { e.stopPropagation(); onCellClick(r, c); }}
+                      ><img src={ardoreIcon} alt="ardore" /></button>
+                    )}
+                    {isGestaTarget && !isPendingTarget && !isArdoreTarget && (
+                      <button
+                        className="qbg-confirm-gesta-btn"
+                        onClick={e => { e.stopPropagation(); onCellClick(r, c); }}
+                      ><img src={gestaIcon} alt="gesta" /></button>
                     )}
                   </div>
                 );

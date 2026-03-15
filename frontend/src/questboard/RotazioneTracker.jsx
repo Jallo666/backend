@@ -3,11 +3,11 @@ import './RotazioneTracker.css';
 import SilhouettePiece from '../SilhouettePiece.jsx';
 import { canMoveInRotation } from '../game/questboard/qb_rules.js';
 
-function PieceRow({ p, rotation, isAi, collapsed, onClick }) {
+function PieceRow({ p, rotation, isAi, collapsed, onClick, selected }) {
   const ready = canMoveInRotation(p.uid, rotation);
   return (
     <div
-      className={`qbg-rot-row ${isAi ? "qbg-rot-row-ai" : ""} ${ready ? "qbg-rot-ready" : "qbg-rot-done"}`}
+      className={`qbg-rot-row ${isAi ? "qbg-rot-row-ai" : ""} ${ready ? "qbg-rot-ready" : "qbg-rot-done"} ${selected ? "qbg-rot-selected" : ""}`}
       onClick={() => onClick(p)}
     >
       <span className="qbg-rot-icon"><SilhouettePiece natura={p.natura} size={36} /></span>
@@ -25,7 +25,7 @@ function PieceRow({ p, rotation, isAi, collapsed, onClick }) {
   );
 }
 
-export default function RotazioneTracker({ game, openPieceTab }) {
+export default function RotazioneTracker({ game, openPieceTab, selectedUid }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -37,7 +37,7 @@ export default function RotazioneTracker({ game, openPieceTab }) {
       <div className="qbg-rot-content">
         {!collapsed && <div className="qbg-rot-section-label qbg-rot-section-player">⚔ TUE</div>}
         {game.playerPieces.map(p => (
-          <PieceRow key={p.uid} p={p} rotation={game.playerRotation} isAi={false} collapsed={collapsed} onClick={openPieceTab} />
+          <PieceRow key={p.uid} p={p} rotation={game.playerRotation} isAi={false} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} />
         ))}
 
         {!collapsed && <>
@@ -45,7 +45,7 @@ export default function RotazioneTracker({ game, openPieceTab }) {
           <div className="qbg-rot-section-label qbg-rot-section-ai">🤖 AI</div>
         </>}
         {game.aiPieces.map(p => (
-          <PieceRow key={p.uid} p={p} rotation={game.aiRotation} isAi={true} collapsed={collapsed} onClick={openPieceTab} />
+          <PieceRow key={p.uid} p={p} rotation={game.aiRotation} isAi={true} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} />
         ))}
       </div>
     </div>

@@ -15,43 +15,21 @@ const BATTLE_QUOTES = [
 // mode: "player" (player attacks, can cancel) | "ai" (ai attacks, read-only)
 export default function CombatPreview({ attacker, defender, onConfirm, onCancel, mode = "player" }) {
   const result  = resolveCombat(attacker, defender);
-  const atkDies = result.attackerHp <= 0;
   const defDies = result.defenderHp <= 0;
   const quote   = BATTLE_QUOTES[Math.floor(Math.random() * BATTLE_QUOTES.length)];
 
   let esito, resultClass;
-  if (mode === "ai") {
-    if (!atkDies && defDies) {
-      esito = `${defender.nome} verrà eliminato! Nessuna speranza di resistere.`;
-      resultClass = "qbg-cp-result-lose";
-    } else if (atkDies && !defDies) {
-      esito = `${defender.nome} resiste! L'attaccante verrà eliminato.`;
-      resultClass = "qbg-cp-result-win";
-    } else if (atkDies && defDies) {
-      esito = "Entrambi cadranno! Un sacrificio reciproco.";
-      resultClass = "qbg-cp-result-draw";
-    } else {
-      esito = `${defender.nome} subisce danni (${result.defenderHp} HP rimasti).`;
-      resultClass = "qbg-cp-result-draw";
-    }
+  if (defDies) {
+    esito = mode === "ai"
+      ? `${defender.nome} verrà eliminato!`
+      : `${defender.nome} verrà eliminato!`;
+    resultClass = mode === "ai" ? "qbg-cp-result-lose" : "qbg-cp-result-win";
   } else {
-    if (!atkDies && defDies) {
-      esito = `Vittoria! ${attacker.nome} sopravvive con ${result.attackerHp} HP.`;
-      resultClass = "qbg-cp-result-win";
-    } else if (atkDies && !defDies) {
-      esito = `Sconfitta... ${attacker.nome} verrà eliminato.`;
-      resultClass = "qbg-cp-result-lose";
-    } else if (atkDies && defDies) {
-      esito = "Entrambi cadranno in battaglia!";
-      resultClass = "qbg-cp-result-draw";
-    } else {
-      esito = `${attacker.nome} ferisce ${defender.nome} (${result.defenderHp} HP rimasti).`;
-      resultClass = "qbg-cp-result-win";
-    }
+    esito = mode === "ai"
+      ? `${defender.nome} subisce ${result.dmg} danni (${result.defenderHp} HP rimasti).`
+      : `${defender.nome} subisce ${result.dmg} danni (${result.defenderHp} HP rimasti).`;
+    resultClass = "qbg-cp-result-draw";
   }
-
-  const atkDmgPerRound = Math.max(1, attacker.atk - defender.def);
-  const defDmgPerRound = Math.max(1, defender.atk - attacker.def);
   const title = mode === "ai" ? "☠ L'AVVERSARIO ATTACCA! ☠" : "⚔ SFIDA AL DUELLO ⚔";
 
   return (
@@ -86,9 +64,7 @@ export default function CombatPreview({ attacker, defender, onConfirm, onCancel,
         <hr className="qbg-cp-separator" />
 
         <div className="qbg-cp-forecast">
-          Danni inflitti: <strong style={{ color: "#f0c040" }}>{atkDmgPerRound}/round</strong>
-          &nbsp;&nbsp;|&nbsp;&nbsp;
-          Danni subiti: <strong style={{ color: "#ee6060" }}>{defDmgPerRound}/round</strong>
+          Danni inflitti: <strong style={{ color: "#f0c040" }}>{result.dmg}</strong>
         </div>
 
         <div className={`qbg-cp-result ${resultClass}`}>{esito}</div>

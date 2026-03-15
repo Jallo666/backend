@@ -1,5 +1,6 @@
 import './ArdorePreview.css';
 import SilhouettePiece from '../SilhouettePiece.jsx';
+import ardoreIcon from '../assets/icon/ardore.svg';
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 
 export default function ArdorePreview({ caster, target, ardore, onConfirm, onCancel, mode }) {
@@ -12,7 +13,7 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
     <div className="ap-overlay">
       <div className={`ap-box${isAi ? " ap-box-ai" : ""}`}>
         <h2 className={`ap-title${isAi ? " ap-title-ai" : ""}`}>
-          {isAi ? "🤖 L'AI usa Ardore!" : `${ardore.icona} ${ardore.nome}`}
+          {isAi ? "🤖 L'AI usa Ardore!" : <><img src={ardoreIcon} alt="" className="ap-ardore-icon" /> {ardore.nome}</>}
         </h2>
 
         <div className="ap-matchup">
@@ -28,7 +29,7 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
             <span className="ap-piece-hp">❤ {caster.hp}</span>
           </div>
 
-          <span className="ap-arrow">🎯</span>
+          <span className="ap-arrow"><img src={ardoreIcon} alt="" className="ap-ardore-icon" /></span>
 
           {/* Target */}
           <div className="ap-piece ap-piece-target">
@@ -67,7 +68,7 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
             <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>⚡ OK</button>
           ) : (
             <>
-              <button className="qbg-btn qbg-btn-blue" onClick={onConfirm}>🎯 Spara!</button>
+              <button className="qbg-btn qbg-btn-blue" onClick={onConfirm}><img src={ardoreIcon} alt="" className="ap-ardore-icon" /> Spara!</button>
               <button className="qbg-btn qbg-btn-dark"  onClick={onCancel}>✕ Annulla</button>
             </>
           )}

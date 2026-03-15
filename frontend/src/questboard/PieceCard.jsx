@@ -1,12 +1,14 @@
 import './PieceCard.css';
 import SilhouettePiece from '../SilhouettePiece.jsx';
+import ardoreIcon from '../assets/icon/ardore.svg';
+import gestaIcon from '../assets/icon/gesta.svg';
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 
-export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, onSkipAction }) {
+export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, onSkipAction, isSelected }) {
   const isPlayer = piece.side === "player";
   const hpPct = Math.round((piece.hp / piece.hpMax) * 100);
   return (
-    <div className="qbg-piece-card">
+    <div className={`qbg-piece-card${isSelected ? " qbg-card-selected" : ""}`}>
       <div className="qbg-card-header">
         <span className={`qbg-card-icon qbg-card-icon-${piece.side}`}>
           <SilhouettePiece natura={piece.natura} size={80} />
@@ -49,7 +51,7 @@ export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick,
 
       {piece.gesta?.length > 0 && (
         <div className="qbg-card-gesta">
-          <div className="qbg-card-gesta-title">✨ Gesta</div>
+          <div className="qbg-card-gesta-title"><img src={gestaIcon} alt="" className="qbg-card-gesta-icon" /> Gesta</div>
           {piece.gesta.map(g => (
             <div key={g.id} className="qbg-card-gesta-row">
               <span className="qbg-card-gesta-nome">{g.icona} {g.nome}</span>
@@ -77,7 +79,7 @@ export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick,
 
       {piece.ardore?.length > 0 && (
         <div className="qbg-card-ardore">
-          <div className="qbg-card-ardore-title">🎯 Ardore</div>
+          <div className="qbg-card-ardore-title"><img src={ardoreIcon} alt="" className="qbg-card-ardore-icon" /> Ardore</div>
           {piece.ardore.map(a => (
             <div key={a.id} className="qbg-card-ardore-row">
               <div className="qbg-card-ardore-header">

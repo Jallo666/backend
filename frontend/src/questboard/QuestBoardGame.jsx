@@ -11,6 +11,7 @@ import CombatPreview from "./CombatPreview.jsx";
 import GestPreview from "./GestPreview.jsx";
 import ArdorePreview from "./ArdorePreview.jsx";
 import DiarioPanel from "./DiarioPanel.jsx";
+import StatusHint from "./StatusHint.jsx";
 import RotazioneTracker from "./RotazioneTracker.jsx";
 import GameHud from "./GameHud.jsx";
 import GameOverModal from "./GameOverModal.jsx";
@@ -20,9 +21,35 @@ import "./QuestBoardGame.css";
 
 const AI_DELAY_MS = 1200;
 
+function calcStatusHint(game, gestaMode, ardoreMode, pieceCard, pendingAttack) {
+  if (ardoreMode) {
+    const caster = game.playerPieces.find(p => p.uid === ardoreMode.casterUid);
+    const ardore = caster?.ardore?.find(a => a.id === ardoreMode.ardoreId);
+    return `Su chi vuoi usare ${ardore?.nome ?? 'Ardore'}?`;
+  }
+  if (gestaMode) {
+    const caster = game.playerPieces.find(p => p.uid === gestaMode.casterUid);
+    const gesta  = caster?.gesta?.find(g => g.id === gestaMode.gestaId);
+    return `Su chi vuoi usare ${gesta?.nome ?? 'Gesta'}?`;
+  }
+  if (pendingAttack) {
+    return `Clicca ancora per attaccare ${pendingAttack.defender?.nome ?? 'il nemico'}`;
+  }
+  if (pieceCard?.side === 'player' && !canMoveInRotation(pieceCard.uid, game.playerRotation)) {
+    return 'Ha già effettuato il suo turno';
+  }
+  if (game.selected) {
+    if (game.validMoves.length === 0) return 'Nessun movimento disponibile';
+    return 'Scegli la cella in cui spostarlo';
+  }
+  return null;
+}
+
 function calcCellSize() {
+  const mobileLandscape = window.innerHeight < 500 && window.matchMedia('(orientation: landscape)').matches;
+  if (!mobileLandscape) return 144;
   const maxByW = (window.innerWidth  - 60) / BOARD_SIZE;
-  const maxByH = (window.innerHeight - 200) / BOARD_SIZE;
+  const maxByH = (window.innerHeight - 20) / BOARD_SIZE;
   return Math.max(46, Math.min(maxByW, maxByH, 144));
 }
 
@@ -44,6 +71,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const [ardoreHitAnim,   setArdoreHitAnim]   = useState(null); // null | { row, col }
   const [ardoreImpegnato, setArdoreImpegnato] = useState(null); // null | { pieceUid }
   const [pendingAiMove,   setPendingAiMove]   = useState(null); // null | casterUid string
+  const [pendingAttack,   setPendingAttack]   = useState(null); // null | { attacker, defender, move }
   const [pieceCard,     setPieceCard]     = useState(null);
   const [cellSize,      setCellSize]      = useState(calcCellSize);
   const [showLog,       setShowLog]       = useState(true);
@@ -282,10 +310,16 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     const move = game.validMoves.find(m => m.row === row && m.col === col);
     if (move) {
       if (move.isAttack && move.target) {
-        // Mostra anteprima combattimento prima di attaccare
         const attacker = game.playerPieces.find(p => p.uid === game.selected);
         if (attacker) {
-          setCombatPreview({ attacker, defender: move.target, move });
+          if (pendingAttack?.defender?.uid === clickedPiece?.uid) {
+            // Secondo click sullo stesso nemico → conferma attacco
+            setCombatPreview({ attacker, defender: move.target, move });
+            setPendingAttack(null);
+          } else {
+            // Primo click → mostra hint, aspetta conferma
+            setPendingAttack({ attacker, defender: clickedPiece, move });
+          }
           return;
         }
       }
@@ -296,12 +330,21 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       setTimeout(() => setAnimCell(null), 300);
       setPieceCard(null); setActiveTab('diario');
       setArdoreImpegnato(null);
+      setPendingAttack(null);
       setGame(s => applyPlayerMove(s, row, col));
+      return;
+    }
+
+    // Nemico fuori portata con pezzo selezionato → deseleziona
+    if (game.selected && clickedPiece?.side === 'ai') {
+      setPendingAttack(null);
+      setGame(s => ({ ...s, selected: null, validMoves: [] }));
       return;
     }
 
     const playerPiece = game.playerPieces.find(p => p.row === row && p.col === col);
     if (playerPiece) {
+      setPendingAttack(null);
       const allOthers = allPiecesNow.filter(p => p.uid !== playerPiece.uid);
       if (isBlocked(playerPiece, allOthers) && canMoveInRotation(playerPiece.uid, game.playerRotation)) {
         setArdoreImpegnato(null);
@@ -312,12 +355,13 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       return;
     }
 
-    // Cella vuota: deseleziona (e chiudi scheda solo se nessun pezzo cliccato)
+    // Cella vuota: deseleziona
     if (!clickedPiece) {
+      setPendingAttack(null);
       setPieceCard(null); setActiveTab('diario');
       setGame(s => ({ ...s, selected: null, validMoves: [] }));
     }
-  }, [game, gestaMode, ardoreMode, ardoreImpegnato, triggerMoveAnim, openPieceTab]);
+  }, [game, gestaMode, ardoreMode, ardoreImpegnato, pendingAttack, triggerMoveAnim, openPieceTab]);
 
 
   return (
@@ -447,6 +491,12 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         combatFlash={combatFlash} gestaMode={gestaMode} gestaHitAnim={gestaHitAnim}
         ardoreMode={ardoreMode} ardoreHitAnim={ardoreHitAnim} ardoreImpegnato={ardoreImpegnato}
         onCellClick={handleCellClick}
+        pendingAttack={pendingAttack}
+        onConfirmAttack={() => {
+          const { attacker, defender, move } = pendingAttack;
+          setCombatPreview({ attacker, defender, move });
+          setPendingAttack(null);
+        }}
       />
 
       <DiarioPanel
@@ -454,6 +504,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         activeTab={activeTab} setActiveTab={setActiveTab}
         displayLog={displayLog}
         pieceCard={pieceCard} setPieceCard={setPieceCard}
+        selectedUid={pieceCard?.side === 'player' ? pieceCard?.uid : null}
         onGestaClick={
           game.turn === "player" && pieceCard?.side === "player"
             ? (gestaId) => {
@@ -501,7 +552,9 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
 
       {/* ── Info pezzo selezionato ── */}
 
-      <RotazioneTracker game={game} openPieceTab={openPieceTab} />
+      <StatusHint hint={calcStatusHint(game, gestaMode, ardoreMode, pieceCard, pendingAttack)} />
+
+      <RotazioneTracker game={game} openPieceTab={openPieceTab} selectedUid={pieceCard?.uid ?? null} />
 
     </div>
   );

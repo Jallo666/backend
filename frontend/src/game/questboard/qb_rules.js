@@ -54,26 +54,14 @@ export function isBlocked(piece, allPieces) {
 // Simula il duello tra attaccante e difensore.
 // Restituisce { attackerHp, defenderHp, log: [{round, aDmg, dDmg}] }
 export function resolveCombat(attacker, defender) {
-  let aHp = attacker.hp;
-  let dHp = defender.hp;
-  const log = [];
-  let round = 0;
-
-  while (aHp > 0 && dHp > 0) {
-    round++;
-    const aDmg = Math.max(1, attacker.atk - defender.def);
-    const dDmg = Math.max(1, defender.atk - attacker.def);
-    dHp -= aDmg;
-    aHp -= dDmg;
-    log.push({ round, aDmg, dDmg });
-    if (round > 100) break; // safety
-  }
-
+  const dmg = Math.max(1, attacker.atk - defender.def);
+  const defenderHp = Math.max(0, defender.hp - dmg);
   return {
-    attackerHp: Math.max(0, aHp),
-    defenderHp: Math.max(0, dHp),
-    log,
-    attackerWins: aHp > 0,
+    attackerHp: attacker.hp,
+    defenderHp,
+    dmg,
+    log: [{ round: 1, aDmg: dmg, dDmg: 0 }],
+    attackerWins: true,
   };
 }
 

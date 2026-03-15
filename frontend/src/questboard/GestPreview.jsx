@@ -1,5 +1,6 @@
 import './GestPreview.css';
 import SilhouettePiece from '../SilhouettePiece.jsx';
+import gestaIcon from '../assets/icon/gesta.svg';
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 
 export default function GestPreview({ caster, target, gesta, onConfirm, onCancel, mode }) {
@@ -12,7 +13,7 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
     <div className="gp-overlay">
       <div className={`gp-box${isAi ? " gp-box-ai" : ""}`}>
         <h2 className={`gp-title${isAi ? " gp-title-ai" : ""}`}>
-          {isAi ? "🤖 L'AI usa una gesta!" : `${gesta.icona} ${gesta.nome}`}
+          {isAi ? "🤖 L'AI usa una gesta!" : <><img src={gestaIcon} alt="" className="gp-gesta-icon" /> {gesta.nome}</>}
         </h2>
 
         <div className="gp-matchup">
@@ -28,7 +29,7 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
             <span className="gp-piece-hp">❤ {caster.hp}</span>
           </div>
 
-          <span className="gp-arrow">→</span>
+          <span className="gp-arrow"><img src={gestaIcon} alt="" className="gp-gesta-icon" /></span>
 
           {/* Target */}
           <div className="gp-piece gp-piece-target">
@@ -63,7 +64,7 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
             <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>⚡ OK</button>
           ) : (
             <>
-              <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>🔥 Lancia!</button>
+              <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}><img src={gestaIcon} alt="" className="gp-gesta-icon" /> Lancia!</button>
               <button className="qbg-btn qbg-btn-dark"  onClick={onCancel}>✕ Annulla</button>
             </>
           )}

@@ -1,0 +1,45 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="ardore" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffe8a3"/>
+      <stop offset="50%" stop-color="#ff9b2f"/>
+      <stop offset="100%" stop-color="#ff4b1f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Onda 1 -->
+  <path
+    d="M26 48
+       C 22 42, 22 36, 26 30
+       C 30 24, 30 18, 26 12"
+    fill="none"
+    stroke="url(#ardore)"
+    stroke-width="5"
+    stroke-linecap="round"
+  />
+
+  <!-- Onda 2 -->
+  <path
+    d="M38 48
+       C 34 42, 34 36, 38 30
+       C 42 24, 42 18, 38 12"
+    fill="none"
+    stroke="url(#ardore)"
+    stroke-width="5"
+    stroke-linecap="round"
+  />
+
+  <!-- Onda centrale più corta (accento bonus) -->
+  <path
+    d="M32 46
+       C 29 41, 29 35, 32 30
+       C 35 25, 35 19, 32 14"
+    fill="none"
+    stroke="url(#ardore)"
+    stroke-width="4"
+    stroke-linecap="round"
+    opacity="0.9"
+  />
+
+</svg>

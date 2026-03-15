@@ -55,6 +55,26 @@
 .qbg-rot-row.qbg-rot-done  { background: rgba(20,10,2,0.6); border-color: rgba(90,53,16,0.3); opacity: 0.55; }
 .qbg-rot-row-ai.qbg-rot-ready { border-color: rgba(200,60,60,0.3); }
 
+@keyframes rotRowPulse {
+  0%, 100% { border-color: rgba(60,200,90,0.7); box-shadow: 0 0 6px rgba(60,200,90,0.3); }
+  50%       { border-color: rgba(60,200,90,1);   box-shadow: 0 0 14px rgba(60,200,90,0.7); }
+}
+@keyframes rotRowPulseAi {
+  0%, 100% { border-color: rgba(200,60,60,0.7); box-shadow: 0 0 6px rgba(200,60,60,0.3); }
+  50%       { border-color: rgba(200,60,60,1);   box-shadow: 0 0 14px rgba(200,60,60,0.7); }
+}
+.qbg-rot-row.qbg-rot-selected {
+  background: rgba(30,70,30,0.5) !important;
+  border-color: rgba(60,200,90,0.9) !important;
+  animation: rotRowPulse 1.6s ease-in-out infinite;
+  opacity: 1 !important;
+}
+.qbg-rot-row-ai.qbg-rot-selected {
+  background: rgba(70,20,20,0.5) !important;
+  border-color: rgba(200,60,60,0.9) !important;
+  animation: rotRowPulseAi 1.6s ease-in-out infinite;
+}
+
 .qbg-rot-icon {
   flex-shrink: 0; display: flex; align-items: center;
   filter: drop-shadow(0 0 4px currentColor);
