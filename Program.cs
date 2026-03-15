@@ -326,10 +326,10 @@ void SeedPezziClassici(AppDbContext db, int utenteId)
 {
     var classici = new[]
     {
-        new PezzoUtente { UtenteId=utenteId, Nome="Guerriero",   Icona="⚔",  Hp=14, HpMax=14, Atk=4, Def=3, Mov=2 },
-        new PezzoUtente { UtenteId=utenteId, Nome="Arciere",     Icona="🏹", Hp=8,  HpMax=8,  Atk=6, Def=1, Mov=3 },
+        new PezzoUtente { UtenteId=utenteId, Nome="Cavaliere",   Icona="⚔",  Hp=14, HpMax=14, Atk=4, Def=3, Mov=2 },
+        new PezzoUtente { UtenteId=utenteId, Nome="Ranger",      Icona="🏹", Hp=8,  HpMax=8,  Atk=6, Def=1, Mov=3 },
         new PezzoUtente { UtenteId=utenteId, Nome="Scudiero",    Icona="🛡", Hp=18, HpMax=18, Atk=2, Def=5, Mov=1 },
-        new PezzoUtente { UtenteId=utenteId, Nome="Esploratore", Icona="🔭", Hp=9,  HpMax=9,  Atk=3, Def=2, Mov=4 },
+        new PezzoUtente { UtenteId=utenteId, Nome="Assassino",   Icona="🗡", Hp=9,  HpMax=9,  Atk=3, Def=2, Mov=4 },
         new PezzoUtente { UtenteId=utenteId, Nome="Mago",        Icona="✨", Hp=7,  HpMax=7,  Atk=7, Def=1, Mov=2 },
         new PezzoUtente { UtenteId=utenteId, Nome="Campione",    Icona="🏆", Hp=15, HpMax=15, Atk=5, Def=4, Mov=2 },
     };

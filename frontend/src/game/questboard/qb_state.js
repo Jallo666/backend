@@ -4,7 +4,10 @@ import {
   createRotationTracker, registerMove, applyEndRoundHeal,
   canMoveInRotation, isBlocked,
   createArdoreTracker, registerArdore,
+  applyAuraEffects,
+  getHealAmount,
   BOARD_SIZE,
+  calcScagliareDanno,
 } from "./qb_rules.js";
 
 // Trova la cella libera più vicina al difensore raggiungibile dall'attaccante.
@@ -40,7 +43,37 @@ function _closestAdvanceCell(attacker, defRow, defCol, allPieces) {
   return candidates[0];
 }
 import { chooseBestMove, chooseArdoreAction, createAiFormation } from "./qb_ai.js";
-import { fromApi } from "./qb_pieces.js";
+import { fromApi, AURA_CATALOG } from "./qb_pieces.js";
+
+// ── Forza del Popolo — inizializza bonus HP del Re ────────────────────────────
+function _initForzaDelPopolo(pieces) {
+  const reIdx = pieces.findIndex(p => p.isRe);
+  if (reIdx === -1) return pieces;
+  const re = pieces[reIdx];
+  const allyCount = pieces.length - 1;
+  const bonus = 2 * allyCount;
+  const updatedRe = {
+    ...re,
+    hp:    re.hp    + bonus,
+    hpMax: re.hpMax + bonus,
+    aura:  [...(re.aura ?? []), AURA_CATALOG.forza_del_popolo],
+  };
+  return pieces.map((p, i) => i === reIdx ? updatedRe : p);
+}
+
+// ── Forza del Popolo — riduce HP max del Re quando muore un alleato ───────────
+function _applyForzaDelPopolo(pieces, deadPieceName) {
+  const reIdx = pieces.findIndex(p => p.isRe && p.aura?.some(a => a.id === "forza_del_popolo"));
+  if (reIdx === -1) return { pieces, event: null };
+  const re = pieces[reIdx];
+  const newHpMax = re.hpMax - 2;
+  const newHp    = Math.max(1, Math.min(re.hp, newHpMax));
+  const updatedRe = { ...re, hp: newHp, hpMax: newHpMax };
+  return {
+    pieces: pieces.map((p, i) => i === reIdx ? updatedRe : p),
+    event:  { re: updatedRe, newHp, newHpMax, deadPieceName },
+  };
+}
 
 // ── Crea stato iniziale ───────────────────────────────────────────────────────
 // formazioneSalvata: [{id (uid pezzo), row, col, isRe}] dal backend
@@ -52,21 +85,23 @@ export function createGame(inventario, formazioneSalvata) {
 
   // Costruisci pezzi giocatore dalla formazione salvata
   // ogni slot ha: { uid: numericDbId, row, col, isRe }
-  const playerPieces = formazioneSalvata.map((slot, i) => {
-    const base = pezziMap[slot.uid];
-    if (!base) return null;
-    return {
-      ...base,
-      hp:   base.hpMax, // ripristina HP pieni a inizio partita
-      row:  slot.row,
-      col:  slot.col,
-      isRe: slot.isRe,
-      side: "player",
-      uid:  `player_${base.uid}_${i}`,
-    };
-  }).filter(Boolean);
+  const playerPieces = _initForzaDelPopolo(
+    formazioneSalvata.map((slot, i) => {
+      const base = pezziMap[slot.uid];
+      if (!base) return null;
+      return {
+        ...base,
+        hp:   base.hpMax,
+        row:  slot.row,
+        col:  slot.col,
+        isRe: slot.isRe,
+        side: "player",
+        uid:  `player_${base.uid}_${i}`,
+      };
+    }).filter(Boolean)
+  );
 
-  const aiPieces = createAiFormation();
+  const aiPieces = _initForzaDelPopolo(createAiFormation());
 
   return {
     playerPieces,
@@ -142,7 +177,13 @@ export function applyPlayerMove(state, toRow, toCol) {
   const move = state.validMoves.find(m => m.row === toRow && m.col === toCol);
   if (!move) return state;
 
-  return _applyMove(state, piece, move, "player");
+  return _applyMove(state, piece, move, "player", true);
+}
+
+// ── Fine turno esplicito giocatore ────────────────────────────────────────────
+// Chiamata dopo che il pezzo si è mosso — passa il turno all'AI.
+export function endPlayerPieceTurn(state) {
+  return _endTurn(state, "player");
 }
 
 // ── Turno AI completo (usato solo per mosse non-attacco dirette) ─────────────
@@ -198,11 +239,13 @@ export function applyAiChoice(state, pieceUid, toRow, toCol) {
 }
 
 // ── Funzione interna: applica una mossa ───────────────────────────────────────
-function _applyMove(state, piece, move, side) {
+// skipAutoEndTurn: se true (player), non chiama _endTurn — il ciclo-completo avviene comunque.
+function _applyMove(state, piece, move, side, skipAutoEndTurn = false) {
   let newLog = [...state.log];
   let newPlayerPieces = [...state.playerPieces];
   let newAiPieces     = [...state.aiPieces];
   let combatAnim = null;
+  let reAuraEvent = null;
 
   if (move.isAttack && move.target) {
     // Combattimento
@@ -246,6 +289,23 @@ function _applyMove(state, piece, move, side) {
     newPlayerPieces = newPlayerPieces.map(updatePiece).filter(Boolean);
     newAiPieces     = newAiPieces.map(updatePiece).filter(Boolean);
 
+    // Forza del Popolo — riduzione HP Re se un alleato è morto
+    if (result.defenderHp <= 0) {
+      const targetSide = state.playerPieces.some(p => p.uid === target.uid) ? "player" : "ai";
+      if (targetSide === "player") {
+        const fdp = _applyForzaDelPopolo(newPlayerPieces, target.nome);
+        newPlayerPieces = fdp.pieces;
+        reAuraEvent = fdp.event;
+      } else {
+        const fdp = _applyForzaDelPopolo(newAiPieces, target.nome);
+        newAiPieces = fdp.pieces;
+        reAuraEvent = fdp.event;
+      }
+      if (reAuraEvent) {
+        newLog.push(`👑 Forza del Popolo: ${reAuraEvent.re.nome} perde 2 HP massimi → ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP`);
+      }
+    }
+
     // Avanzata dell'attaccante se ha vinto (difensore eliminato)
     if (result.attackerHp > 0 && result.defenderHp <= 0) {
       const list = side === "player" ? newPlayerPieces : newAiPieces;
@@ -274,6 +334,7 @@ function _applyMove(state, piece, move, side) {
     selected:     null,
     validMoves:   [],
     combatAnim,
+    reAuraEvent:  reAuraEvent ?? null,
     ...(side === "player"
       ? { playerRotation: newTracker }
       : { aiRotation: newTracker }),
@@ -288,17 +349,23 @@ function _applyMove(state, piece, move, side) {
     return { ...newState, status: "over", winner, log: newLog.slice(-40) };
   }
 
-  // Passa al turno successivo
-  newState = _endTurn(newState, side);
+  // Passa al turno successivo (saltato se il giocatore usa Fine Turno esplicito)
+  if (!skipAutoEndTurn) {
+    newState = _endTurn(newState, side);
+  }
 
   // Fine ciclo: cura e incremento round
   if (newTracker.cycleComplete) {
     const round = newState.round;
+    const healAmount = getHealAmount(round);
     newState = {
       ...newState,
-      round: round + 1,
-      playerPieces: applyEndRoundHeal(newState.playerPieces, round),
-      aiPieces:     applyEndRoundHeal(newState.aiPieces, round),
+      round:               round + 1,
+      playerPieces:        applyEndRoundHeal(newState.playerPieces, round),
+      aiPieces:            applyEndRoundHeal(newState.aiPieces, round),
+      playerArdoreTracker: createArdoreTracker(),
+      aiArdoreTracker:     createArdoreTracker(),
+      cycleEndEvent:       { round, healAmount },
     };
     const heal = _getHealText(round);
     if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
@@ -315,7 +382,7 @@ function _getHealText(round) {
   if (round <= 3) return "+5 HP a tutti i sopravvissuti";
   if (round <= 6) return "+3 HP a tutti i sopravvissuti";
   if (round <= 9) return "+1 HP a tutti i sopravvissuti";
-  return null;
+  return "-2 HP a tutti (pericolo!)";
 }
 
 // ── Gesta ─────────────────────────────────────────────────────────────────────
@@ -327,7 +394,8 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
   const gesta = caster.gesta?.find(g => g.id === gestaId);
   if (!gesta) return state;
 
-  const nuovoHp    = Math.max(0, target.hp - gesta.danno);
+  const dannoEffettivo = applyAuraEffects(target, gesta.danno);
+  const nuovoHp    = Math.max(0, target.hp - dannoEffettivo);
   const targetMorto = nuovoHp <= 0;
   const updatePiece = (p) =>
     p.uid !== targetUid ? p : (targetMorto ? null : { ...p, hp: nuovoHp });
@@ -335,9 +403,23 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
   let newPlayerPieces = state.playerPieces.map(updatePiece).filter(Boolean);
   let newAiPieces     = state.aiPieces.map(updatePiece).filter(Boolean);
 
+  let reAuraEvent = null;
+  if (targetMorto) {
+    const targetSide = state.playerPieces.some(p => p.uid === targetUid) ? "player" : "ai";
+    if (targetSide === "player") {
+      const fdp = _applyForzaDelPopolo(newPlayerPieces, target.nome);
+      newPlayerPieces = fdp.pieces; reAuraEvent = fdp.event;
+    } else {
+      const fdp = _applyForzaDelPopolo(newAiPieces, target.nome);
+      newAiPieces = fdp.pieces; reAuraEvent = fdp.event;
+    }
+  }
+
+  const auraTag = dannoEffettivo < gesta.danno ? " [Difesa Possente]" : "";
+  const fdpTag  = reAuraEvent ? ` 👑 ${reAuraEvent.re.nome}: ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP` : "";
   const logMsg =
-    `${caster.nome} usa ${gesta.nome} su ${target.nome}! (-${gesta.danno} HP)` +
-    (targetMorto ? ` → ${target.nome} eliminato!` : ` → ${nuovoHp} HP rimasti`);
+    `${caster.nome} usa ${gesta.nome} su ${target.nome}! (-${dannoEffettivo} HP${auraTag})` +
+    (targetMorto ? ` → ${target.nome} eliminato!${fdpTag}` : ` → ${nuovoHp} HP rimasti`);
 
   const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
   const tracker = side === "player" ? state.playerRotation : state.aiRotation;
@@ -351,6 +433,7 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
     selected:     null,
     validMoves:   [],
     combatAnim:   null,
+    reAuraEvent:  reAuraEvent ?? null,
     ...(side === "player"
       ? { playerRotation: newTracker }
       : { aiRotation: newTracker }),
@@ -366,11 +449,106 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
   newState = _endTurn(newState, side);
   if (newTracker.cycleComplete) {
     const round = newState.round;
+    const healAmount = getHealAmount(round);
     newState = {
       ...newState,
-      round:        round + 1,
-      playerPieces: applyEndRoundHeal(newState.playerPieces, round),
-      aiPieces:     applyEndRoundHeal(newState.aiPieces, round),
+      round:               round + 1,
+      playerPieces:        applyEndRoundHeal(newState.playerPieces, round),
+      aiPieces:            applyEndRoundHeal(newState.aiPieces, round),
+      playerArdoreTracker: createArdoreTracker(),
+      aiArdoreTracker:     createArdoreTracker(),
+      cycleEndEvent:       { round, healAmount },
+    };
+    const heal = _getHealText(round);
+    if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
+  }
+
+  return newState;
+}
+
+// ── Scagliare ─────────────────────────────────────────────────────────────────
+export function applyScagliare(state, side, casterUid, targetUid, destRow, destCol) {
+  const allPieces = [...state.playerPieces, ...state.aiPieces];
+  const caster = allPieces.find(p => p.uid === casterUid);
+  const target = allPieces.find(p => p.uid === targetUid);
+  if (!caster || !target) return state;
+
+  const targetSide = state.playerPieces.some(p => p.uid === targetUid) ? "player" : "ai";
+  const isEnemy = targetSide !== side;
+
+  const rawDanno = isEnemy ? calcScagliareDanno(caster, destRow, destCol) : 0;
+  const dannoEffettivo = isEnemy ? applyAuraEffects(target, rawDanno) : 0;
+  const nuovoHp = Math.max(0, target.hp - dannoEffettivo);
+  const targetMorto = isEnemy && nuovoHp <= 0;
+
+  const updateTarget = (p) => {
+    if (p.uid !== targetUid) return p;
+    if (targetMorto) return null;
+    return { ...p, row: destRow, col: destCol, hp: nuovoHp };
+  };
+
+  let newPlayerPieces = state.playerPieces.map(updateTarget).filter(Boolean);
+  let newAiPieces     = state.aiPieces.map(updateTarget).filter(Boolean);
+
+  let reAuraEvent = null;
+  if (targetMorto) {
+    if (targetSide === "player") {
+      const fdp = _applyForzaDelPopolo(newPlayerPieces, target.nome);
+      newPlayerPieces = fdp.pieces; reAuraEvent = fdp.event;
+    } else {
+      const fdp = _applyForzaDelPopolo(newAiPieces, target.nome);
+      newAiPieces = fdp.pieces; reAuraEvent = fdp.event;
+    }
+  }
+
+  const auraTag = isEnemy && dannoEffettivo < rawDanno ? " [Difesa Possente]" : "";
+  const fdpTag  = reAuraEvent ? ` 👑 ${reAuraEvent.re.nome}: ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP` : "";
+  let logMsg;
+  if (!isEnemy) {
+    logMsg = `${caster.nome} scaglia ${target.nome} in (${destRow + 1},${destCol + 1})!`;
+  } else if (targetMorto) {
+    logMsg = `${caster.nome} scaglia ${target.nome}! (-${dannoEffettivo} HP${auraTag}) → eliminato!${fdpTag}`;
+  } else {
+    logMsg = `${caster.nome} scaglia ${target.nome}! (-${dannoEffettivo} HP${auraTag}) → ${nuovoHp} HP rimasti`;
+  }
+
+  const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
+  const tracker = side === "player" ? state.playerRotation : state.aiRotation;
+  const newTracker = registerMove(casterUid, tracker, aliveSidePieces);
+
+  let newState = {
+    ...state,
+    playerPieces: newPlayerPieces,
+    aiPieces:     newAiPieces,
+    log:          [...state.log, logMsg].slice(-40),
+    selected:     null,
+    validMoves:   [],
+    combatAnim:   null,
+    reAuraEvent:  reAuraEvent ?? null,
+    ...(side === "player"
+      ? { playerRotation: newTracker }
+      : { aiRotation: newTracker }),
+  };
+
+  const winner = checkWin(newPlayerPieces, newAiPieces);
+  if (winner) {
+    const winMsg = winner === "player" ? "⚜ VITTORIA! Hai sconfitto il Re nemico!" :
+                   winner === "ai"     ? "☠ SCONFITTA. Il tuo Re è caduto." : "Pareggio.";
+    return { ...newState, status: "over", winner, log: [...newState.log, winMsg].slice(-40) };
+  }
+
+  newState = _endTurn(newState, side);
+  if (newTracker.cycleComplete) {
+    const round = newState.round;
+    const healAmount = getHealAmount(round);
+    newState = {
+      ...newState,
+      round:               round + 1,
+      playerPieces:        applyEndRoundHeal(newState.playerPieces, round),
+      aiPieces:            applyEndRoundHeal(newState.aiPieces, round),
+      playerArdoreTracker: createArdoreTracker(),
+      aiArdoreTracker:     createArdoreTracker(),
+      cycleEndEvent:       { round, healAmount },
     };
     const heal = _getHealText(round);
     if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
@@ -388,7 +566,8 @@ export function applyArdore(state, side, casterUid, ardoreId, targetUid) {
   const ardore = caster.ardore?.find(a => a.id === ardoreId);
   if (!ardore) return state;
 
-  const nuovoHp    = Math.max(0, target.hp - ardore.danno);
+  const dannoEffettivo = applyAuraEffects(target, ardore.danno);
+  const nuovoHp    = Math.max(0, target.hp - dannoEffettivo);
   const targetMorto = nuovoHp <= 0;
   const updatePiece = (p) =>
     p.uid !== targetUid ? p : (targetMorto ? null : { ...p, hp: nuovoHp });
@@ -396,9 +575,23 @@ export function applyArdore(state, side, casterUid, ardoreId, targetUid) {
   let newPlayerPieces = state.playerPieces.map(updatePiece).filter(Boolean);
   let newAiPieces     = state.aiPieces.map(updatePiece).filter(Boolean);
 
+  let reAuraEvent = null;
+  if (targetMorto) {
+    const targetSide = state.playerPieces.some(p => p.uid === targetUid) ? "player" : "ai";
+    if (targetSide === "player") {
+      const fdp = _applyForzaDelPopolo(newPlayerPieces, target.nome);
+      newPlayerPieces = fdp.pieces; reAuraEvent = fdp.event;
+    } else {
+      const fdp = _applyForzaDelPopolo(newAiPieces, target.nome);
+      newAiPieces = fdp.pieces; reAuraEvent = fdp.event;
+    }
+  }
+
+  const auraTag = dannoEffettivo < ardore.danno ? " [Difesa Possente]" : "";
+  const fdpTag  = reAuraEvent ? ` 👑 ${reAuraEvent.re.nome}: ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP` : "";
   const logMsg =
-    `${caster.nome} usa ${ardore.nome} su ${target.nome}! (-${ardore.danno} HP)` +
-    (targetMorto ? ` → ${target.nome} eliminato!` : ` → ${nuovoHp} HP rimasti`);
+    `${caster.nome} usa ${ardore.nome} su ${target.nome}! (-${dannoEffettivo} HP${auraTag})` +
+    (targetMorto ? ` → ${target.nome} eliminato!${fdpTag}` : ` → ${nuovoHp} HP rimasti`);
 
   // Registra ardore (non la rotazione — il pezzo può ancora muoversi)
   const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
@@ -411,6 +604,7 @@ export function applyArdore(state, side, casterUid, ardoreId, targetUid) {
     aiPieces:     newAiPieces,
     log:          [...state.log, logMsg].slice(-40),
     combatAnim:   null,
+    reAuraEvent:  reAuraEvent ?? null,
     ...(side === "player"
       ? { playerArdoreTracker: newArdoreTracker }
       : { aiArdoreTracker:     newArdoreTracker }),
@@ -443,14 +637,107 @@ export function skipPieceTurn(state, uid) {
   if (newTracker.cycleComplete) {
     const round = state.round;
     const heal = _getHealText(round);
+    const healAmount = getHealAmount(round);
     newState = {
       ...newState,
-      round: round + 1,
-      playerPieces: applyEndRoundHeal(newState.playerPieces, round),
-      aiPieces:     applyEndRoundHeal(newState.aiPieces, round),
+      round:               round + 1,
+      playerPieces:        applyEndRoundHeal(newState.playerPieces, round),
+      aiPieces:            applyEndRoundHeal(newState.aiPieces, round),
+      playerArdoreTracker: createArdoreTracker(),
+      aiArdoreTracker:     createArdoreTracker(),
+      cycleEndEvent:       { round, healAmount },
     };
     if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
   }
+  return newState;
+}
+
+// ── Ardore Carica (tipo: "movimento") ────────────────────────────────────────
+// Sposta il pezzo di 1 cella senza consumare la rotazione.
+export function applyArdoreCarica(state, side, casterUid, toRow, toCol) {
+  const pieces = side === "player" ? state.playerPieces : state.aiPieces;
+  const caster = pieces.find(p => p.uid === casterUid);
+  if (!caster) return state;
+
+  const updatedPieces = pieces.map(p =>
+    p.uid === casterUid ? { ...p, row: toRow, col: toCol } : p
+  );
+
+  const ardoreTracker = side === "player" ? state.playerArdoreTracker : state.aiArdoreTracker;
+  const newArdoreTracker = registerArdore(casterUid, ardoreTracker ?? createArdoreTracker(), updatedPieces);
+
+  const logMsg = `${caster.nome} scatta in avanti! (Carica)`;
+  return {
+    ...state,
+    playerPieces: side === "player" ? updatedPieces : state.playerPieces,
+    aiPieces:     side === "ai"     ? updatedPieces : state.aiPieces,
+    log:          [...state.log, logMsg].slice(-40),
+    ...(side === "player"
+      ? { playerArdoreTracker: newArdoreTracker }
+      : { aiArdoreTracker:     newArdoreTracker }),
+  };
+}
+
+// ── Ardore Carica — attacco adiacente ────────────────────────────────────────
+// Risolve combattimento Carica: danno, registra ardore, non consuma rotazione.
+export function applyArdoreCaricaAttack(state, side, casterUid, targetUid) {
+  const allPieces = [...state.playerPieces, ...state.aiPieces];
+  const caster = allPieces.find(p => p.uid === casterUid);
+  const target = allPieces.find(p => p.uid === targetUid);
+  if (!caster || !target) return state;
+
+  const result = resolveCombat(caster, target);
+  const targetMorto = result.defenderHp <= 0;
+
+  const updatePiece = (p) => {
+    if (p.uid === targetUid)
+      return targetMorto ? null : { ...p, hp: result.defenderHp };
+    return p;
+  };
+
+  let newPlayerPieces = state.playerPieces.map(updatePiece).filter(Boolean);
+  let newAiPieces     = state.aiPieces.map(updatePiece).filter(Boolean);
+
+  let reAuraEvent = null;
+  if (targetMorto) {
+    const targetSide = state.playerPieces.some(p => p.uid === targetUid) ? "player" : "ai";
+    if (targetSide === "player") {
+      const fdp = _applyForzaDelPopolo(newPlayerPieces, target.nome);
+      newPlayerPieces = fdp.pieces; reAuraEvent = fdp.event;
+    } else {
+      const fdp = _applyForzaDelPopolo(newAiPieces, target.nome);
+      newAiPieces = fdp.pieces; reAuraEvent = fdp.event;
+    }
+  }
+
+  const logMsg = targetMorto
+    ? `${caster.nome} carica ${target.nome}! (-${result.dmg} HP) → eliminato!`
+    : `${caster.nome} carica ${target.nome}! (-${result.dmg} HP) → ${result.defenderHp} HP rimasti`;
+
+  // Registra ardore (non la rotazione — il pezzo può ancora muoversi)
+  const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
+  const ardoreTracker = side === "player" ? state.playerArdoreTracker : state.aiArdoreTracker;
+  const newArdoreTracker = registerArdore(casterUid, ardoreTracker ?? createArdoreTracker(), aliveSidePieces);
+
+  const newState = {
+    ...state,
+    playerPieces: newPlayerPieces,
+    aiPieces:     newAiPieces,
+    log:          [...state.log, logMsg].slice(-40),
+    combatAnim:   { attackerUid: casterUid, defenderUid: targetUid, log: result.log },
+    reAuraEvent:  reAuraEvent ?? null,
+    ...(side === "player"
+      ? { playerArdoreTracker: newArdoreTracker }
+      : { aiArdoreTracker:     newArdoreTracker }),
+  };
+
+  const winner = checkWin(newPlayerPieces, newAiPieces);
+  if (winner) {
+    const winMsg = winner === "player" ? "⚜ VITTORIA! Hai sconfitto il Re nemico!" :
+                   winner === "ai"     ? "☠ SCONFITTA. Il tuo Re è caduto." : "Pareggio.";
+    return { ...newState, status: "over", winner, log: [...newState.log, winMsg].slice(-40) };
+  }
+
   return newState;
 }
 

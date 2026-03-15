@@ -9,7 +9,7 @@ import { CHESS_ICONS } from "./qb_pieces.js";
 //   4. Si allontana dal pericolo (evita di esporre il proprio Re)
 //   5. Rompe il blocco (non stare fermi)
 
-import { getValidMoves, resolveCombat, canMoveInRotation } from "./qb_rules.js";
+import { getValidMoves, resolveCombat, canMoveInRotation, getScagliareTargets, getScagliareDest, calcScagliareDanno } from "./qb_rules.js";
 
 const INF = 999999;
 
@@ -100,6 +100,49 @@ function scoreArdore(piece, ardore, target) {
   return score + Math.random() * 5;
 }
 
+// Valuta Scagliare: ritorna il punteggio della combinazione caster+target+dest migliore
+// e la destinazione scelta. Restituisce { score, targetUid, destRow, destCol } | null
+function bestScagliareOption(caster, allPieces, playerPieces) {
+  const targets = getScagliareTargets(caster, allPieces);
+  if (targets.length === 0) return null;
+
+  let best = null;
+  let bestScore = -Infinity;
+
+  for (const target of targets) {
+    const dests = getScagliareDest(caster, target.uid, allPieces);
+    for (const dest of dests) {
+      const isEnemy = target.side !== caster.side;
+      const rawDanno = isEnemy ? calcScagliareDanno(caster, dest.row, dest.col) : 0;
+      const nuovoHp = isEnemy ? Math.max(0, target.hp - rawDanno) : target.hp;
+      const eliminato = isEnemy && nuovoHp <= 0;
+
+      let score = 0;
+      if (isEnemy) {
+        if (eliminato && target.isRe) score += 10000;
+        if (eliminato)                score += 500 + target.hpMax;
+        if (target.isRe)              score += 300;
+        score += rawDanno * 10;
+      } else {
+        // Spostare un alleato: piccolo bonus se lo avvicina al Re nemico
+        const playerKing = playerPieces.find(p => p.isRe);
+        if (playerKing) {
+          const distPrima = Math.max(Math.abs(target.row - playerKing.row), Math.abs(target.col - playerKing.col));
+          const distDopo  = Math.max(Math.abs(dest.row - playerKing.row), Math.abs(dest.col - playerKing.col));
+          score += (distPrima - distDopo) * 10;
+        }
+      }
+      score += Math.random() * 3;
+
+      if (score > bestScore) {
+        bestScore = score;
+        best = { score, targetUid: target.uid, destRow: dest.row, destCol: dest.col };
+      }
+    }
+  }
+  return best;
+}
+
 // Sceglie il bersaglio migliore per Ardore; restituisce { piece, ardoreId, targetUid } | null
 // Usa solo se il punteggio è positivo (vale la pena usarlo)
 export function chooseArdoreAction(aiPieces, playerPieces, aiArdoreTracker) {
@@ -147,11 +190,19 @@ export function chooseBestMove(aiPieces, playerPieces, rotationTracker) {
 
     // Valuta gesta
     for (const gesta of (piece.gesta ?? [])) {
-      for (const target of allPieces.filter(p => p.uid !== piece.uid)) {
-        const score = scoreGesta(piece, gesta, target);
-        if (score > bestScore) {
-          bestScore = score;
-          bestChoice = { piece, gestaId: gesta.id, targetUid: target.uid };
+      if (gesta.id === "scagliare") {
+        const opt = bestScagliareOption(piece, allPieces, playerPieces);
+        if (opt && opt.score > bestScore) {
+          bestScore = opt.score;
+          bestChoice = { piece, gestaId: gesta.id, targetUid: opt.targetUid, destRow: opt.destRow, destCol: opt.destCol };
+        }
+      } else {
+        for (const target of allPieces.filter(p => p.uid !== piece.uid)) {
+          const score = scoreGesta(piece, gesta, target);
+          if (score > bestScore) {
+            bestScore = score;
+            bestChoice = { piece, gestaId: gesta.id, targetUid: target.uid };
+          }
         }
       }
     }
@@ -163,16 +214,16 @@ export function chooseBestMove(aiPieces, playerPieces, rotationTracker) {
 // ── Formazione AI di default ──────────────────────────────────────────────────
 // L'AI usa gli stessi 6 pezzi classici con statistiche identiche.
 // Posizionati nelle prime 2 righe (righe 0-1 dall'alto = lato AI).
-import { CLASSIC_PIECES, PIECE_COLORS, NATURA_DA_NOME, gesteDiNatura, ardoreDiNatura } from "./qb_pieces.js";
+import { CLASSIC_PIECES, PIECE_COLORS, NATURA_DA_NOME, gesteDiNatura, ardoreDiNatura, auraDiNatura } from "./qb_pieces.js";
 import { canUseArdore } from "./qb_rules.js";
 
 export function createAiFormation() {
   const positions = [
     // [row, col, isRe]
-    [0, 0, false], // Guerriero
-    [0, 1, false], // Arciere
+    [0, 0, false], // Cavaliere
+    [0, 1, false], // Ranger
     [0, 2, true],  // Scudiero → designato Re dell'AI
-    [0, 3, false], // Esploratore
+    [0, 3, false], // Assassino
     [0, 4, false], // Mago
     [0, 5, false], // Campione
   ];
@@ -197,6 +248,7 @@ export function createAiFormation() {
       natura: NATURA_DA_NOME[tmpl.nome] ?? null,
       gesta:  gesteDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
       ardore: ardoreDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
+      aura:   auraDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
       ...colors,
     };
   });

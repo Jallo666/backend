@@ -1,3 +1,35 @@
+// ── Catalogo AURA ────────────────────────────────────────────────────────────
+export const AURA_CATALOG = {
+  difesa_possente: {
+    id:    "difesa_possente",
+    nome:  "Difesa Possente",
+    icona: "🛡",
+    desc:  "I danni subiti sono sempre dimezzati, qualunque sia la fonte.",
+  },
+  attacco_furtivo: {
+    id:    "attacco_furtivo",
+    nome:  "Attacco Furtivo",
+    icona: "🗡",
+    desc:  "Gli attacchi fisici ignorano completamente la DEF del bersaglio.",
+  },
+  forza_del_popolo: {
+    id:    "forza_del_popolo",
+    nome:  "Forza del Popolo",
+    icona: "👑",
+    desc:  "Gli HP massimi aumentano di 2 per ogni alleato in vita. Se un alleato cade, il Re perde 2 HP massimi.",
+  },
+};
+
+const AURA_PER_NATURA = {
+  Baluardo: ["difesa_possente"],
+  Ombra:    ["attacco_furtivo"],
+};
+
+export function auraDiNatura(natura) {
+  const ids = AURA_PER_NATURA[natura] ?? [];
+  return ids.map(id => AURA_CATALOG[id]).filter(Boolean);
+}
+
 // ── Catalogo ARDORE ───────────────────────────────────────────────────────────
 export const ARDORE_CATALOG = {
   tiro_precisione: {
@@ -8,10 +40,20 @@ export const ARDORE_CATALOG = {
     isArdore: true,
     desc:    "Azione bonus: scegli un bersaglio e infliggi 3 danni diretti.",
   },
+  carica: {
+    id:      "carica",
+    nome:    "Carica",
+    icona:   "⚡",
+    tipo:    "movimento",
+    celle:   1,
+    isArdore: true,
+    desc:    "Azione bonus: scatta di 1 cella verso il nemico senza consumare il turno.",
+  },
 };
 
 const ARDORE_PER_NATURA = {
-  Arciere: ["tiro_precisione"],
+  Arciere:  ["tiro_precisione"],
+  Guerriero: ["carica"],
 };
 
 export function ardoreDiNatura(natura) {
@@ -28,10 +70,18 @@ export const GESTA_CATALOG = {
     danno: 5,
     desc:  "Infligge 5 danni a un personaggio scelto nell'arena (amico o nemico).",
   },
+  scagliare: {
+    id:    "scagliare",
+    nome:  "Scagliare",
+    icona: "💨",
+    danno: 0, // dinamico: floor(ATK/2) × distanza Chebyshev dal campione
+    desc:  "Lancia una pedina adiacente in una cella libera entro 2 celle. Infligge ATK/2 × distanza ai nemici (gli alleati vengono solo riposizionati).",
+  },
 };
 
 export const GESTA_PER_NATURA = {
-  Arcano: ["dardo_fuoco"],
+  Arcano:    ["dardo_fuoco"],
+  Sentinella: ["scagliare"],
 };
 
 export function gesteDiNatura(natura) {
@@ -45,41 +95,44 @@ export function gesteDiNatura(natura) {
 
 // Simboli scacchistici per tipo pezzo (override dell'icona API)
 export const CHESS_ICONS = {
-  guerriero:   "♞",   // cavallo  — combattente corpo a corpo
-  arciere:     "♝",   // alfiere  — attacco a distanza diagonale
+  cavaliere:   "♞",   // cavallo  — combattente corpo a corpo
+  ranger:      "♝",   // alfiere  — attacco a distanza diagonale
   scudiero:    "♜",   // torre    — difensore solido
-  esploratore: "♟",   // pedone   — ricognitore veloce
+  assassino:   "♟",   // pedone   — ombra letale
   mago:        "♛",   // regina   — potere magico devastante
   campione:    "♚",   // re-forma — campione dell'esercito
 };
 
 export const CLASSIC_PIECES = [
-  { id: "guerriero",   nome: "Guerriero",   icona: CHESS_ICONS.guerriero,   hp: 14, hpMax: 14, atk: 4, def: 3, mov: 2 },
-  { id: "arciere",     nome: "Arciere",     icona: CHESS_ICONS.arciere,     hp: 8,  hpMax: 8,  atk: 6, def: 1, mov: 3 },
+  { id: "cavaliere",   nome: "Cavaliere",   icona: CHESS_ICONS.cavaliere,   hp: 14, hpMax: 14, atk: 4, def: 3, mov: 2 },
+  { id: "ranger",      nome: "Ranger",      icona: CHESS_ICONS.ranger,      hp: 8,  hpMax: 8,  atk: 6, def: 1, mov: 3 },
   { id: "scudiero",    nome: "Scudiero",    icona: CHESS_ICONS.scudiero,    hp: 18, hpMax: 18, atk: 2, def: 5, mov: 1 },
-  { id: "esploratore", nome: "Esploratore", icona: CHESS_ICONS.esploratore, hp: 9,  hpMax: 9,  atk: 3, def: 2, mov: 4 },
+  { id: "assassino",   nome: "Assassino",   icona: CHESS_ICONS.assassino,   hp: 9,  hpMax: 9,  atk: 3, def: 2, mov: 4 },
   { id: "mago",        nome: "Mago",        icona: CHESS_ICONS.mago,        hp: 7,  hpMax: 7,  atk: 7, def: 1, mov: 2 },
   { id: "campione",    nome: "Campione",    icona: CHESS_ICONS.campione,    hp: 15, hpMax: 15, atk: 5, def: 4, mov: 2 },
 ];
 
 // Colori per tipo pezzo (usati nell'UI)
 export const PIECE_COLORS = {
-  guerriero:   { bg: "#2a1a0e", border: "#8b5020", glow: "#c87030" },
-  arciere:     { bg: "#0e1a0e", border: "#206020", glow: "#40c040" },
+  cavaliere:   { bg: "#2a1a0e", border: "#8b5020", glow: "#c87030" },
+  ranger:      { bg: "#0e1a0e", border: "#206020", glow: "#40c040" },
   scudiero:    { bg: "#0a0a2a", border: "#203880", glow: "#4060d0" },
-  esploratore: { bg: "#1a1a0a", border: "#706020", glow: "#d0b030" },
+  assassino:   { bg: "#1a1a0a", border: "#706020", glow: "#d0b030" },
   mago:        { bg: "#1a0a2a", border: "#602080", glow: "#a040e0" },
   campione:    { bg: "#2a1a0a", border: "#906020", glow: "#e0a030" },
 };
 
 // Natura per pezzi classici senza campo materiali (backward compat)
 export const NATURA_DA_NOME = {
-  "Guerriero":   "Guerriero",
-  "Arciere":     "Arciere",
+  "Cavaliere":   "Guerriero",
+  "Ranger":      "Arciere",
   "Scudiero":    "Baluardo",
-  "Esploratore": "Ombra",
+  "Assassino":   "Ombra",
   "Mago":        "Arcano",
   "Campione":    "Sentinella",
+  // backward compat per dati DB pre-rename
+  "Guerriero":   "Guerriero",
+  "Arciere":     "Arciere",
 };
 
 export const NATURA_COLORE = {
@@ -110,6 +163,7 @@ export function fromApi(apiPiece) {
     natura,
     gesta:  gesteDiNatura(natura),
     ardore: ardoreDiNatura(natura),
+    aura:   auraDiNatura(natura),
     ...colors,
   };
 }

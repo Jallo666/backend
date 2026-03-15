@@ -65,6 +65,8 @@ export default function CombatPreview({ attacker, defender, onConfirm, onCancel,
 
         <div className="qbg-cp-forecast">
           Danni inflitti: <strong style={{ color: "#f0c040" }}>{result.dmg}</strong>
+          {result.furtivo    && <span className="qbg-cp-aura-note"> 🗡 Attacco Furtivo</span>}
+          {result.auraActive && <span className="qbg-cp-aura-note"> 🛡 Difesa Possente</span>}
         </div>
 
         <div className={`qbg-cp-result ${resultClass}`}>{esito}</div>

@@ -1,52 +1,72 @@
 /* ── Dialog anteprima gesta ── */
 .gp-overlay {
   position: fixed; inset: 0; z-index: 110;
-  background: rgba(4, 2, 8, 0.92);
+  background: rgba(8, 4, 0, 0.75);
   display: flex; align-items: center; justify-content: center;
 }
 .gp-box {
-  background: linear-gradient(160deg, #1a0c28, #0e0818);
-  border: 3px solid #ff6020; border-radius: 10px;
-  padding: 24px 28px; max-width: 420px; width: 94%;
-  box-shadow: 0 0 60px rgba(255,80,0,0.30), inset 0 0 40px rgba(255,80,0,0.04);
+  background: rgba(10, 5, 1, 0.92) url('../assets/background-journal.png') center/cover no-repeat;
+  background-blend-mode: multiply;
+  border-top:    2px solid var(--hs-wood-rim);
+  border-left:   2px solid var(--hs-wood-rim);
+  border-right:  2px solid var(--hs-wood-rim);
+  border-bottom: 2px solid var(--hs-wood-rim);
+  border-radius: 14px;
+  box-shadow: 0 6px 40px rgba(0,0,0,0.7), inset 0 -1px 0 rgba(240,192,64,0.08);
+  padding: 24px 28px; max-width: 480px; width: 94%;
   display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center;
 }
 .gp-title {
-  font-size: 14px; color: #ff8040; letter-spacing: 0.1em;
-  text-shadow: 0 0 16px rgba(255,100,0,0.6);
-  display: flex; align-items: center; gap: 8px;
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 15px; color: #ff8040; letter-spacing: 0.12em;
+  text-shadow: 0 0 16px rgba(255,100,0,0.5);
+  border-bottom: 1px solid var(--hs-wood-rim);
+  padding-bottom: 10px; width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .gp-gesta-icon {
   width: 22px; height: 22px; object-fit: contain;
   filter: invert(60%) sepia(100%) saturate(400%) hue-rotate(330deg) brightness(1.3);
   flex-shrink: 0;
 }
-.gp-arrow { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.gp-arrow .gp-gesta-icon { width: 28px; height: 28px; }
 .gp-matchup {
-  display: flex; align-items: center; justify-content: center; gap: 18px; width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 20px; width: 100%;
 }
 .gp-piece {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1;
-  padding: 8px; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1;
+  padding: 10px; border-radius: 6px;
 }
-.gp-piece-caster { background: rgba(160,80,200,0.15); border: 1px solid rgba(160,80,200,0.4); }
-.gp-piece-target  { background: rgba(200,40,40,0.15);  border: 1px solid rgba(200,40,40,0.4); }
-.gp-piece-name { font-size: 9px; color: #e8d8c0; }
-.gp-natura     { font-size: 7px; font-weight: bold; }
-.gp-piece-hp   { font-size: 8px; color: #c8a060; }
-.gp-hp-bar  { width: 100%; height: 4px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-top: 2px; }
+.gp-piece-caster { background: rgba(160,80,200,0.12); border: 1px solid rgba(160,80,200,0.35); }
+.gp-piece-target  { background: rgba(200,40,40,0.12);  border: 1px solid rgba(200,40,40,0.35); }
+.gp-piece-name { font-family: 'Cinzel', serif; font-size: 11px; color: var(--hs-cream); }
+.gp-natura     { font-family: 'Cinzel', serif; font-size: 8px; font-weight: bold; }
+.gp-piece-hp   { font-family: 'Cinzel', serif; font-size: 9px; color: #c8a060; }
+.gp-hp-bar  { width: 100%; height: 5px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-top: 2px; }
 .gp-hp-fill { height: 100%; background: linear-gradient(90deg, #cc2222, #eeaa22, #22cc44); }
-.gp-arrow { font-size: 20px; color: #ff6020; flex-shrink: 0; text-shadow: 0 0 10px rgba(255,80,0,0.6); }
-.gp-separator { width: 100%; border: none; border-top: 1px solid #3a1a08; }
-.gp-effect { font-size: 11px; color: #d4b880; }
+.gp-arrow {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.gp-arrow .gp-gesta-icon { width: 28px; height: 28px; }
+.gp-separator { width: 100%; border: none; border-top: 1px solid var(--hs-wood-rim); }
+.gp-aura-note { font-family: 'Cinzel', serif; font-size: 10px; color: #80c4ff; font-style: italic; }
+.gp-effect {
+  font-family: 'Cinzel', serif;
+  font-size: 12px; line-height: 1.9; color: #d4b880;
+}
 .gp-effect-kill { color: #ee4444; text-shadow: 0 0 10px rgba(220,40,40,0.5); font-weight: bold; }
+.gp-ai-label { font-family: 'Cinzel', serif; font-size: 11px; color: #e8c8a0; }
 .gp-btns { display: flex; gap: 12px; justify-content: center; }
 
 /* ── Variante AI ── */
-.gp-box-ai {
-  border-color: #cc2020;
-  box-shadow: 0 0 60px rgba(200,20,20,0.30), inset 0 0 40px rgba(200,20,20,0.04);
+.gp-box-ai { border-color: #7a2020; }
+.gp-title-ai { color: #ee5555; text-shadow: 0 0 16px rgba(220,40,40,0.6); }
+
+@media (min-height: 600px) {
+  .gp-box { max-width: 580px; padding: 28px 34px; gap: 18px; }
+  .gp-title { font-size: 18px; }
+  .gp-piece-name { font-size: 14px; }
+  .gp-piece-hp { font-size: 12px; }
+  .gp-natura { font-size: 10px; }
+  .gp-effect { font-size: 15px; }
+  .gp-ai-label { font-size: 13px; }
 }
-.gp-title-ai { color: #ee6060; text-shadow: 0 0 16px rgba(220,40,40,0.6); }
-.gp-ai-label { font-size: 11px; color: #e8c8a0; }

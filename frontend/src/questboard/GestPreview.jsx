@@ -2,9 +2,12 @@ import './GestPreview.css';
 import SilhouettePiece from '../SilhouettePiece.jsx';
 import gestaIcon from '../assets/icon/gesta.svg';
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
+import { applyAuraEffects } from '../game/questboard/qb_rules.js';
 
 export default function GestPreview({ caster, target, gesta, onConfirm, onCancel, mode }) {
-  const hpDopo    = Math.max(0, target.hp - gesta.danno);
+  const dannoEffettivo = applyAuraEffects(target, gesta.danno);
+  const auraActive = dannoEffettivo < gesta.danno;
+  const hpDopo    = Math.max(0, target.hp - dannoEffettivo);
   const eliminato = hpDopo <= 0;
   const hpPct     = Math.round((target.hp / target.hpMax) * 100);
   const isAi      = mode === "ai";
@@ -53,10 +56,11 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
           <p className="gp-ai-label">{caster.nome} usa <strong>{gesta.icona} {gesta.nome}</strong> su {target.nome}</p>
         )}
 
+        {auraActive && <p className="gp-aura-note">🛡 Difesa Possente: danno dimezzato!</p>}
         <p className={`gp-effect ${eliminato ? "gp-effect-kill" : ""}`}>
           {eliminato
             ? `${target.nome} verrà eliminato!`
-            : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${gesta.danno})`}
+            : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${dannoEffettivo})`}
         </p>
 
         <div className="gp-btns">
@@ -64,7 +68,7 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
             <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>⚡ OK</button>
           ) : (
             <>
-              <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}><img src={gestaIcon} alt="" className="gp-gesta-icon" /> Lancia!</button>
+              <button className="qbg-btn qbg-btn-orange" onClick={onConfirm}><img src={gestaIcon} alt="" className="gp-gesta-icon" /> Lancia!</button>
               <button className="qbg-btn qbg-btn-dark"  onClick={onCancel}>✕ Annulla</button>
             </>
           )}

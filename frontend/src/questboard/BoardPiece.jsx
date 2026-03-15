@@ -1,4 +1,5 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
+import coronaIcon from "../assets/icon/corona.svg";
 import "./BoardPiece.css";
 
 export default function BoardPiece({
@@ -32,7 +33,7 @@ export default function BoardPiece({
       </div>
 
       {/* RE badge — top-right */}
-      {p.isRe && <div className="bp-re-badge">♛</div>}
+      {p.isRe && <div className="bp-re-badge"><img src={coronaIcon} alt="RE" style={{ width: "100%", height: "100%", filter: "drop-shadow(0 0 3px #f0c040)" }} /></div>}
 
       {/* Dormiente — overlay scuro + emoji */}
       {hasMoved && <div className="bp-sleep-overlay" />}

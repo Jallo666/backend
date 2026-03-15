@@ -3,8 +3,9 @@ import {
   createGame, resolveCoinFlip, selectPiece,
   applyPlayerMove, applyAiTurn, applyAiMoveOnly, applyAiMoveForPiece, skipBlockedPiece, skipPieceTurn,
   peekAiMove, applyAiChoice, applyGesta, applyArdore,
+  endPlayerPieceTurn, applyArdoreCarica, applyArdoreCaricaAttack, applyScagliare,
 } from "../game/questboard/qb_state.js";
-import { isBlocked, canMoveInRotation, canUseArdore, BOARD_SIZE } from "../game/questboard/qb_rules.js";
+import { isBlocked, canMoveInRotation, canUseArdore, BOARD_SIZE, getScagliareTargets, getScagliareDest, calcScagliareDanno } from "../game/questboard/qb_rules.js";
 import { chooseBestMove } from "../game/questboard/qb_ai.js";
 import GameBoard from "./GameBoard.jsx";
 import CombatPreview from "./CombatPreview.jsx";
@@ -16,6 +17,8 @@ import RotazioneTracker from "./RotazioneTracker.jsx";
 import GameHud from "./GameHud.jsx";
 import GameOverModal from "./GameOverModal.jsx";
 import GameOptionsModal from "./GameOptionsModal.jsx";
+import ReAuraNotification from "./ReAuraNotification.jsx";
+import RoundEndNotification from "./RoundEndNotification.jsx";
 import CoinFlip from "./CoinFlip.jsx";
 import "./QuestBoardGame.css";
 
@@ -23,6 +26,7 @@ const AI_DELAY_MS = 1200;
 
 function calcStatusHint(game, gestaMode, ardoreMode, pieceCard, pendingAttack) {
   if (ardoreMode) {
+    if (ardoreMode.tipo === "movimento") return "Scegli una cella adiacente (Carica)";
     const caster = game.playerPieces.find(p => p.uid === ardoreMode.casterUid);
     const ardore = caster?.ardore?.find(a => a.id === ardoreMode.ardoreId);
     return `Su chi vuoi usare ${ardore?.nome ?? 'Ardore'}?`;
@@ -30,6 +34,12 @@ function calcStatusHint(game, gestaMode, ardoreMode, pieceCard, pendingAttack) {
   if (gestaMode) {
     const caster = game.playerPieces.find(p => p.uid === gestaMode.casterUid);
     const gesta  = caster?.gesta?.find(g => g.id === gestaMode.gestaId);
+    if (gestaMode.gestaId === "scagliare" && gestaMode.phase === "selectDest") {
+      return "Scegli dove lanciare la pedina";
+    }
+    if (gestaMode.gestaId === "scagliare") {
+      return "Scegli una pedina adiacente da lanciare";
+    }
     return `Su chi vuoi usare ${gesta?.nome ?? 'Gesta'}?`;
   }
   if (pendingAttack) {
@@ -61,15 +71,17 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const [combatFlash,   setCombatFlash]   = useState(null);
   const [combatPreview,    setCombatPreview]    = useState(null); // { attacker, defender, move }
   const [aiAttackPreview,  setAiAttackPreview]  = useState(null); // { piece, move, defender }
-  const [gestaMode,     setGestaMode]     = useState(null); // null | { gestaId, casterUid }
+  const [gestaMode,     setGestaMode]     = useState(null); // null | { gestaId, casterUid, phase?, targetUid? }
   const [gestaPreview,  setGestaPreview]  = useState(null); // null | { caster, target, gesta }
   const [aiGestaPreview, setAiGestaPreview] = useState(null); // null | { caster, target, gesta }
+  const [aiScagliarePreview, setAiScagliarePreview] = useState(null); // null | { caster, target, destRow, destCol, danno }
   const [gestaHitAnim,  setGestaHitAnim]  = useState(null); // null | { row, col }
   const [ardoreMode,      setArdoreMode]      = useState(null); // null | { ardoreId, casterUid }
   const [ardorePreview,   setArdorePreview]   = useState(null); // null | { caster, target, ardore }
   const [aiArdorePreview, setAiArdorePreview] = useState(null); // null | { caster, target, ardore }
   const [ardoreHitAnim,   setArdoreHitAnim]   = useState(null); // null | { row, col }
   const [ardoreImpegnato, setArdoreImpegnato] = useState(null); // null | { pieceUid }
+  const [caricaAttackPreview, setCaricaAttackPreview] = useState(null); // null | { caster, target }
   const [pendingAiMove,   setPendingAiMove]   = useState(null); // null | casterUid string
   const [pendingAttack,   setPendingAttack]   = useState(null); // null | { attacker, defender, move }
   const [pieceCard,     setPieceCard]     = useState(null);
@@ -78,6 +90,9 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const [showOptions,   setShowOptions]   = useState(false);
   const [activeTab,     setActiveTab]     = useState('diario'); // 'diario' | 'pezzo'
   const [displayLog,    setDisplayLog]    = useState(() => game.log);
+  const [reAuraNotif,       setReAuraNotif]       = useState(null);
+  const [roundEndNotif,     setRoundEndNotif]     = useState(null);
+  const [pendingFineTurnoUid, setPendingFineTurnoUid] = useState(null);
 
   const aiTimerRef      = useRef(null);
   const moveAnimTimer   = useRef(null);
@@ -123,6 +138,17 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
 
         // Fase 2: mossa/gesta regolare
         const choice = peek?.move;
+        if (choice?.gestaId === "scagliare") {
+          const caster = s.aiPieces.find(p => p.uid === choice.piece.uid);
+          const target = [...s.aiPieces, ...s.playerPieces].find(p => p.uid === choice.targetUid);
+          if (caster && target) {
+            const danno = [...s.playerPieces].some(p => p.uid === target.uid)
+              ? calcScagliareDanno(caster, choice.destRow, choice.destCol)
+              : 0;
+            setAiScagliarePreview({ caster, target, destRow: choice.destRow, destCol: choice.destCol, danno });
+            return s;
+          }
+        }
         if (choice?.gestaId) {
           const caster = s.aiPieces.find(p => p.uid === choice.piece.uid);
           const target = [...s.aiPieces, ...s.playerPieces].find(p => p.uid === choice.targetUid);
@@ -202,6 +228,21 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     setShowLog(true);
   }, []);
 
+  // ── Forza del Popolo — popup notifica ────────────────────────────────────────
+  useEffect(() => {
+    if (game.reAuraEvent) setReAuraNotif(game.reAuraEvent);
+  }, [game.reAuraEvent]);
+
+  // ── Fine ciclo — popup notifica ───────────────────────────────────────────────
+  useEffect(() => {
+    if (game.cycleEndEvent) setRoundEndNotif(game.cycleEndEvent);
+  }, [game.cycleEndEvent]);
+
+  // ── Reset Fine Turno quando il turno torna al giocatore (dopo AI) ────────────
+  useEffect(() => {
+    if (game.turn === "player") setPendingFineTurnoUid(null);
+  }, [game.turn]);
+
   // ── Animazione combattimento ───────────────────────────────────────────────
   useEffect(() => {
     if (!game.combatAnim) return;
@@ -219,12 +260,38 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     if (!combatPreview) return;
     const { move } = combatPreview;
     const moving = game.playerPieces.find(p => p.uid === game.selected);
+    const movingUid = game.selected;
     if (moving) triggerMoveAnim(moving.row, moving.col, move.row, move.col);
     setCombatPreview(null);
-    setPieceCard(null); setActiveTab('diario');
-    setArdoreImpegnato(null);
+    setArdoreImpegnato({ pieceUid: movingUid });
+    setPendingFineTurnoUid(movingUid);
     setGame(s => applyPlayerMove(s, move.row, move.col));
   }, [combatPreview, game, triggerMoveAnim]);
+
+  // ── Conferma Carica attacco dopo preview (giocatore) ─────────────────────
+  const confirmCaricaAttack = useCallback(() => {
+    if (!caricaAttackPreview) return;
+    const { caster, target } = caricaAttackPreview;
+    setCaricaAttackPreview(null);
+    setArdoreHitAnim({ row: target.row, col: target.col });
+    setTimeout(() => setArdoreHitAnim(null), 1000);
+    setGame(s => {
+      const afterAttack = applyArdoreCaricaAttack(s, "player", caster.uid, target.uid);
+      if (afterAttack.status === "over") return afterAttack;
+      return selectPiece(afterAttack, caster.uid);
+    });
+    setArdoreImpegnato({ pieceUid: caster.uid });
+  }, [caricaAttackPreview]);
+
+  // ── Conferma scagliare AI dopo preview ───────────────────────────────────
+  const confirmAiScagliare = useCallback(() => {
+    if (!aiScagliarePreview) return;
+    const { caster, target, destRow, destCol } = aiScagliarePreview;
+    setAiScagliarePreview(null);
+    setGestaHitAnim({ row: destRow, col: destCol });
+    setTimeout(() => setGestaHitAnim(null), 1000);
+    setGame(s => applyScagliare(s, "ai", caster.uid, target.uid, destRow, destCol));
+  }, [aiScagliarePreview]);
 
   // ── Conferma gesta AI dopo preview ───────────────────────────────────────
   const confirmAiGesta = useCallback(() => {
@@ -264,20 +331,51 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     const allPiecesNow = [...game.playerPieces, ...game.aiPieces];
     const clickedPiece = allPiecesNow.find(p => p.row === row && p.col === col);
 
-    // Modalità ardore: clicca target → mostra conferma
-    if (ardoreMode && clickedPiece) {
+    // Modalità ardore
+    if (ardoreMode) {
       const caster = game.playerPieces.find(p => p.uid === ardoreMode.casterUid);
       const ardore = caster?.ardore?.find(a => a.id === ardoreMode.ardoreId);
-      if (caster && ardore) {
+
+      if (ardore?.tipo === "movimento" && caster) {
+        const dr = Math.abs(row - caster.row);
+        const dc = Math.abs(col - caster.col);
+        const isAdjacent = dr <= 1 && dc <= 1 && (dr + dc > 0);
+
+        // Carica: click su cella vuota adiacente → spostamento
+        if (!clickedPiece && isAdjacent) {
+          setArdoreMode(null);
+          setGame(s => {
+            const afterCarica = applyArdoreCarica(s, "player", caster.uid, row, col);
+            if (afterCarica.status === "over") return afterCarica;
+            return selectPiece(afterCarica, caster.uid);
+          });
+          setArdoreImpegnato({ pieceUid: caster.uid });
+          return;
+        }
+
+        // Carica: click su nemico adiacente → attacco
+        if (clickedPiece?.side === "ai" && isAdjacent) {
+          setArdoreMode(null);
+          setCaricaAttackPreview({ caster, target: clickedPiece });
+          return;
+        }
+
+        setArdoreMode(null);
+        return;
+      }
+
+      // Ardore danno: clicca target → mostra conferma
+      if (clickedPiece && caster && ardore) {
         setArdorePreview({ caster, target: clickedPiece, ardore });
+        setArdoreMode(null);
+      } else {
         setArdoreMode(null);
       }
       return;
     }
-    if (ardoreMode) {
-      setArdoreMode(null);
-      return;
-    }
+
+    // Mostra scheda su qualsiasi pezzo (anche nemico) — sempre, indipendentemente dallo stato
+    if (clickedPiece) openPieceTab(clickedPiece);
 
     // Se impegnato: blocca selezione di altri pezzi del player e deselection
     if (ardoreImpegnato) {
@@ -286,24 +384,52 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       if (!clickedPiece && !game.validMoves.some(m => m.row === row && m.col === col)) return;
     }
 
-    // Modalità gesta: clicca target → mostra conferma
-    if (gestaMode && clickedPiece) {
-      const caster = game.playerPieces.find(p => p.uid === gestaMode.casterUid);
-      const gesta  = caster?.gesta?.find(g => g.id === gestaMode.gestaId);
-      if (caster && gesta) {
-        setGestaPreview({ caster, target: clickedPiece, gesta });
-        setGestaMode(null);
-      }
-      return;
-    }
+    // Modalità gesta
     if (gestaMode) {
+      const caster = game.playerPieces.find(p => p.uid === gestaMode.casterUid);
+
+      // ── Scagliare fase 2: scegli destinazione ──────────────────────────────
+      if (gestaMode.gestaId === "scagliare" && gestaMode.phase === "selectDest") {
+        const allPiecesNow2 = [...game.playerPieces, ...game.aiPieces];
+        const dests = getScagliareDest(caster, gestaMode.targetUid, allPiecesNow2);
+        if (dests.some(d => d.row === row && d.col === col)) {
+          setGestaMode(null);
+          setGame(s => applyScagliare(s, "player", caster.uid, gestaMode.targetUid, row, col));
+        } else {
+          setGestaMode(null);
+        }
+        return;
+      }
+
+      // ── Scagliare fase 1: scegli pedina adiacente da lanciare ──────────────
+      if (gestaMode.gestaId === "scagliare" && clickedPiece) {
+        const allPiecesNow2 = [...game.playerPieces, ...game.aiPieces];
+        const validTargets = getScagliareTargets(caster, allPiecesNow2);
+        if (validTargets.some(t => t.uid === clickedPiece.uid)) {
+          setGestaMode({ ...gestaMode, phase: "selectDest", targetUid: clickedPiece.uid });
+        } else {
+          setGestaMode(null);
+        }
+        return;
+      }
+      if (gestaMode.gestaId === "scagliare") {
+        setGestaMode(null);
+        return;
+      }
+
+      // ── Gesta normale: clicca target → mostra conferma ────────────────────
+      if (clickedPiece) {
+        const gesta = caster?.gesta?.find(g => g.id === gestaMode.gestaId);
+        if (caster && gesta) {
+          setGestaPreview({ caster, target: clickedPiece, gesta });
+          setGestaMode(null);
+        }
+        return;
+      }
       // click su cella vuota → annulla gesta mode
       setGestaMode(null);
       return;
     }
-
-    // Mostra scheda su qualsiasi pezzo (anche nemico)
-    if (clickedPiece) openPieceTab(clickedPiece);
 
     if (game.turn !== "player") return;
 
@@ -325,12 +451,13 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       }
       // Spostamento semplice — applica subito
       const moving = game.playerPieces.find(p => p.uid === game.selected);
+      const movingUid = game.selected;
       if (moving) triggerMoveAnim(moving.row, moving.col, row, col);
       setAnimCell({ row, col });
       setTimeout(() => setAnimCell(null), 300);
-      setPieceCard(null); setActiveTab('diario');
-      setArdoreImpegnato(null);
+      setArdoreImpegnato({ pieceUid: movingUid });
       setPendingAttack(null);
+      setPendingFineTurnoUid(movingUid);
       setGame(s => applyPlayerMove(s, row, col));
       return;
     }
@@ -364,6 +491,34 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   }, [game, gestaMode, ardoreMode, ardoreImpegnato, pendingAttack, triggerMoveAnim, openPieceTab]);
 
 
+  // ── Dati per UI Scagliare ──────────────────────────────────────────────────
+  let scagliareTargetUids = null; // fase 1: uid delle pedine lanciabili
+  let scagliareDests = null;      // fase 2: celle di atterraggio con danno
+  if (gestaMode?.gestaId === "scagliare") {
+    const scagliareCaster = game.playerPieces.find(p => p.uid === gestaMode.casterUid);
+    if (scagliareCaster) {
+      const allPiecesForScagliare = [...game.playerPieces, ...game.aiPieces];
+      if (gestaMode.phase === "selectTarget") {
+        scagliareTargetUids = getScagliareTargets(scagliareCaster, allPiecesForScagliare).map(p => p.uid);
+      } else if (gestaMode.phase === "selectDest") {
+        scagliareDests = getScagliareDest(scagliareCaster, gestaMode.targetUid, allPiecesForScagliare)
+          .map(d => ({ ...d, danno: calcScagliareDanno(scagliareCaster, d.row, d.col) }));
+      }
+    }
+  }
+
+  const hudFineTurnoUid = pendingFineTurnoUid ?? ardoreImpegnato?.pieceUid;
+  const hudPieceJustMoved = pendingFineTurnoUid !== null;
+  const onFineTurnoHud = game.turn === "player" && hudFineTurnoUid
+    ? () => {
+        const moved = pendingFineTurnoUid !== null;
+        setPendingFineTurnoUid(null);
+        setArdoreImpegnato(null);
+        if (moved) { setGame(s => endPlayerPieceTurn(s)); }
+        else { setGame(s => skipPieceTurn(s, hudFineTurnoUid)); }
+      }
+    : null;
+
   return (
     <div className="qbg-root" style={{ "--cell-size": `${cellSize}px` }}>
 
@@ -381,6 +536,28 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       {/* ── Game Over ── */}
       {game.status === "over" && (
         <GameOverModal winner={game.winner} onBack={onBack} />
+      )}
+
+      {/* ── Forza del Popolo ── */}
+      {reAuraNotif && (
+        <ReAuraNotification
+          event={reAuraNotif}
+          onDismiss={() => {
+            setReAuraNotif(null);
+            setGame(g => ({ ...g, reAuraEvent: null }));
+          }}
+        />
+      )}
+
+      {/* ── Fine Ciclo ── */}
+      {roundEndNotif && !reAuraNotif && (
+        <RoundEndNotification
+          event={roundEndNotif}
+          onDismiss={() => {
+            setRoundEndNotif(null);
+            setGame(g => ({ ...g, cycleEndEvent: null }));
+          }}
+        />
       )}
 
       {/* ── Anteprima combattimento giocatore ── */}
@@ -440,6 +617,29 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         />
       )}
 
+      {/* ── Carica attacco giocatore ── */}
+      {caricaAttackPreview && (
+        <CombatPreview
+          attacker={caricaAttackPreview.caster}
+          defender={caricaAttackPreview.target}
+          onConfirm={confirmCaricaAttack}
+          onCancel={() => setCaricaAttackPreview(null)}
+          mode="player"
+        />
+      )}
+
+      {/* ── Scagliare AI ── */}
+      {aiScagliarePreview && (
+        <GestPreview
+          caster={aiScagliarePreview.caster}
+          target={aiScagliarePreview.target}
+          gesta={{ id: "scagliare", nome: "Scagliare", icona: "💨", danno: aiScagliarePreview.danno }}
+          onConfirm={confirmAiScagliare}
+          onCancel={confirmAiScagliare}
+          mode="ai"
+        />
+      )}
+
       {/* ── Notifica gesta AI ── */}
       {aiGestaPreview && (
         <GestPreview
@@ -471,13 +671,40 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       )}
 
       {/* ── HUD ── */}
-      <GameHud game={game} utente={utente} onOptions={() => setShowOptions(true)} />
+      <GameHud game={game} utente={utente} onOptions={() => setShowOptions(true)} onFineTurno={onFineTurnoHud} pieceJustMoved={hudPieceJustMoved} />
 
       {showOptions && (
         <GameOptionsModal
           onClose={() => setShowOptions(false)}
           onRestart={() => {
             setShowOptions(false);
+            clearTimeout(aiTimerRef.current);
+            clearTimeout(moveAnimTimer.current);
+            clearTimeout(combatTimer.current);
+            clearTimeout(logTimer.current);
+            setArdoreImpegnato(null);
+            setPendingFineTurnoUid(null);
+            setArdoreMode(null);
+            setGestaMode(null);
+            setPendingAttack(null);
+            setCombatPreview(null);
+            setGestaPreview(null);
+            setArdorePreview(null);
+            setAiAttackPreview(null);
+            setAiArdorePreview(null);
+            setAiGestaPreview(null);
+            setAiScagliarePreview(null);
+            setCaricaAttackPreview(null);
+            setPendingAiMove(null);
+            setPieceCard(null);
+            setActiveTab('diario');
+            setReAuraNotif(null);
+            setRoundEndNotif(null);
+            setCombatFlash(null);
+            setMoveAnim(null);
+            setAnimCell(null);
+            setGestaHitAnim(null);
+            setArdoreHitAnim(null);
             setGame(() => createGame(inventario, formazione));
           }}
           onRetire={() => { setShowOptions(false); onBack(); }}
@@ -497,43 +724,60 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
           setCombatPreview({ attacker, defender, move });
           setPendingAttack(null);
         }}
+        scagliareTargetUids={scagliareTargetUids}
+        scagliareDests={scagliareDests}
       />
 
       <DiarioPanel
         showLog={showLog} setShowLog={setShowLog}
         activeTab={activeTab} setActiveTab={setActiveTab}
         displayLog={displayLog}
-        pieceCard={pieceCard} setPieceCard={setPieceCard}
+        pieceCard={[...game.playerPieces, ...game.aiPieces].find(p => p.uid === pieceCard?.uid) ?? pieceCard}
+        setPieceCard={setPieceCard}
         selectedUid={pieceCard?.side === 'player' ? pieceCard?.uid : null}
         onGestaClick={
           game.turn === "player" && pieceCard?.side === "player"
             ? (gestaId) => {
-                setGestaMode({ gestaId, casterUid: pieceCard.uid });
+                const phase = gestaId === "scagliare" ? "selectTarget" : undefined;
+                setGestaMode({ gestaId, casterUid: pieceCard.uid, phase });
                 setActiveTab('diario');
               }
             : null
         }
-        onSkipAction={
+        onFineTurno={
           game.turn === "player" && pieceCard?.side === "player" &&
-          canMoveInRotation(pieceCard?.uid, game.playerRotation) &&
           (
-            (!ardoreImpegnato || ardoreImpegnato.pieceUid !== pieceCard?.uid) ||
-            // Permetti skip se il pezzo impegnato non ha mosse valide (è bloccato)
-            (ardoreImpegnato?.pieceUid === pieceCard?.uid && game.validMoves.length === 0)
+            pendingFineTurnoUid === pieceCard?.uid ||
+            (
+              canMoveInRotation(pieceCard?.uid, game.playerRotation) &&
+              (
+                !ardoreImpegnato ||
+                ardoreImpegnato.pieceUid !== pieceCard?.uid ||
+                game.validMoves.length === 0
+              )
+            )
           )
             ? () => {
+                const moved = pendingFineTurnoUid === pieceCard?.uid;
+                setPendingFineTurnoUid(null);
                 setPieceCard(null); setActiveTab('diario');
                 setArdoreImpegnato(null);
-                setGame(s => skipPieceTurn(s, pieceCard.uid));
+                if (moved) {
+                  setGame(s => endPlayerPieceTurn(s));
+                } else {
+                  setGame(s => skipPieceTurn(s, pieceCard.uid));
+                }
               }
             : null
         }
+        pieceJustMoved={pendingFineTurnoUid === pieceCard?.uid}
         onArdoreClick={
           game.turn === "player" && pieceCard?.side === "player" &&
-          canMoveInRotation(pieceCard?.uid, game.playerRotation) &&
+          (canMoveInRotation(pieceCard?.uid, game.playerRotation) || pendingFineTurnoUid === pieceCard?.uid) &&
           canUseArdore(pieceCard?.uid, game.playerArdoreTracker ?? { used: new Set() })
             ? (ardoreId) => {
-                setArdoreMode({ ardoreId, casterUid: pieceCard.uid });
+                const ardoreObj = pieceCard.ardore?.find(a => a.id === ardoreId);
+                setArdoreMode({ ardoreId, casterUid: pieceCard.uid, tipo: ardoreObj?.tipo });
                 setActiveTab('diario');
               }
             : null

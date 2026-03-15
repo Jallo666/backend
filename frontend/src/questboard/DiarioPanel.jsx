@@ -1,7 +1,7 @@
 import './DiarioPanel.css';
 import PieceCard from './PieceCard.jsx';
 
-export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveTab, displayLog, pieceCard, setPieceCard, onGestaClick, onArdoreClick, ardoreUsed, onSkipAction, selectedUid }) {
+export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveTab, displayLog, pieceCard, setPieceCard, onGestaClick, onArdoreClick, ardoreUsed, onFineTurno, pieceJustMoved, selectedUid }) {
   return (
     <div className={`qbg-log-panel ${showLog ? "" : "qbg-log-hidden"}`}>
 
@@ -44,7 +44,8 @@ export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveT
               onGestaClick={onGestaClick}
               onArdoreClick={onArdoreClick}
               ardoreUsed={ardoreUsed}
-              onSkipAction={onSkipAction}
+              onFineTurno={onFineTurno}
+              pieceJustMoved={pieceJustMoved}
               isSelected={pieceCard?.uid === selectedUid}
             />
           </div>

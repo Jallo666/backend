@@ -94,6 +94,38 @@
 }
 .qbg-btn-skip:hover { border-color: var(--hs-gold); color: var(--hs-gold); background: #3a2400; }
 
+/* ── Sezione Aura ── */
+.qbg-card-aura {
+  margin-top: 10px; border-top: 1px solid var(--hs-wood-rim); padding-top: 8px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.qbg-card-aura-title {
+  font-size: 9px; color: #a0d4ff; letter-spacing: 0.08em; font-weight: bold;
+  display: flex; align-items: center; gap: 5px;
+}
+.qbg-card-aura-icon {
+  width: 22px; height: 22px; object-fit: contain;
+  filter: invert(80%) sepia(40%) saturate(300%) hue-rotate(180deg) brightness(1.4);
+}
+@media (min-height: 600px) {
+  .qbg-card-aura-icon { width: 30px; height: 30px; }
+}
+.qbg-card-aura-row {
+  background: rgba(100,180,255,0.07); border: 1px solid rgba(100,180,255,0.25);
+  border-radius: 4px; padding: 5px 8px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.qbg-card-aura-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+}
+.qbg-card-aura-nome  { font-size: 9px; color: #b8dcff; }
+.qbg-card-aura-badge {
+  font-size: 7px; color: #6090b0; font-style: italic;
+  border: 1px solid rgba(100,180,255,0.3); border-radius: 3px;
+  padding: 1px 5px; white-space: nowrap;
+}
+.qbg-card-aura-desc { font-size: 7.5px; color: #8090b0; }
+
 /* ── Sezione Ardore ── */
 .qbg-card-ardore {
   margin-top: 10px; border-top: 1px solid var(--hs-wood-rim); padding-top: 8px;
@@ -227,6 +259,22 @@
   font-family: 'Cinzel', serif;
   font-size: 8px;
 }
+.qbg-log-piece-content .qbg-card-aura-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+}
+.qbg-log-piece-content .qbg-card-aura-nome {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+}
+.qbg-log-piece-content .qbg-card-aura-desc {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+}
+.qbg-log-piece-content .qbg-card-aura-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+}
 
 @media (min-height: 600px) {
   /* Card floating (bottom sheet) */
@@ -242,6 +290,10 @@
   .qbg-card-gesta-nome { font-size: 15px; }
   .qbg-card-gesta-desc { font-size: 13px; }
   .qbg-card-gesta-btn { font-size: 12px !important; padding: 5px 16px !important; }
+  .qbg-card-aura-title { font-size: 14px; }
+  .qbg-card-aura-nome { font-size: 15px; }
+  .qbg-card-aura-desc { font-size: 13px; }
+  .qbg-card-aura-badge { font-size: 12px; }
   .qbg-card-ardore-title { font-size: 14px; }
   .qbg-card-ardore-nome { font-size: 15px; }
   .qbg-card-ardore-desc { font-size: 13px; }
@@ -266,4 +318,8 @@
   .qbg-log-piece-content .qbg-card-ardore-desc { font-size: 14px; }
   .qbg-log-piece-content .qbg-card-ardore-badge { font-size: 13px; }
   .qbg-log-piece-content .qbg-card-ardore-btn { font-size: 14px !important; padding: 6px 18px !important; }
+  .qbg-log-piece-content .qbg-card-aura-title { font-size: 16px; }
+  .qbg-log-piece-content .qbg-card-aura-nome { font-size: 17px; }
+  .qbg-log-piece-content .qbg-card-aura-desc { font-size: 14px; }
+  .qbg-log-piece-content .qbg-card-aura-badge { font-size: 13px; }
 }

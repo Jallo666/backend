@@ -65,10 +65,10 @@
 .bp-re-badge {
   position: absolute; top: 2px; right: 2px;
   background: rgba(20,14,0,0.88); border: 1px solid var(--hs-gold, #f0c040);
-  border-radius: 3px; padding: 1px 4px;
-  font-size: clamp(9px, 1.1vw, 13px); color: var(--hs-gold, #f0c040);
-  text-shadow: 0 0 10px rgba(240,192,64,0.95);
-  pointer-events: none; z-index: 4; line-height: 1;
+  border-radius: 3px; padding: 2px;
+  width: clamp(14px, 1.8vw, 18px); height: clamp(14px, 1.8vw, 18px);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; z-index: 4;
 }
 
 /* ── Dormiente — overlay + emoji ── */

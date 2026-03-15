@@ -1,53 +1,74 @@
 /* ── Dialog anteprima ardore ── */
 .ap-overlay {
   position: fixed; inset: 0; z-index: 110;
-  background: rgba(4, 2, 8, 0.92);
+  background: rgba(8, 4, 0, 0.75);
   display: flex; align-items: center; justify-content: center;
 }
 .ap-box {
-  background: linear-gradient(160deg, #080c28, #050818);
-  border: 3px solid #4080ff; border-radius: 10px;
-  padding: 24px 28px; max-width: 420px; width: 94%;
-  box-shadow: 0 0 60px rgba(40,100,255,0.30), inset 0 0 40px rgba(40,100,255,0.04);
+  background: rgba(10, 5, 1, 0.92) url('../assets/background-journal.png') center/cover no-repeat;
+  background-blend-mode: multiply;
+  border-top:    2px solid var(--hs-wood-rim);
+  border-left:   2px solid var(--hs-wood-rim);
+  border-right:  2px solid var(--hs-wood-rim);
+  border-bottom: 2px solid var(--hs-wood-rim);
+  border-radius: 14px;
+  box-shadow: 0 6px 40px rgba(0,0,0,0.7), inset 0 -1px 0 rgba(240,192,64,0.08);
+  padding: 24px 28px; max-width: 480px; width: 94%;
   display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center;
 }
 .ap-title {
-  font-size: 14px; color: #6090ff; letter-spacing: 0.1em;
-  text-shadow: 0 0 16px rgba(60,120,255,0.6);
-  display: flex; align-items: center; gap: 8px;
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 15px; color: #6090ff; letter-spacing: 0.12em;
+  text-shadow: 0 0 16px rgba(60,120,255,0.5);
+  border-bottom: 1px solid var(--hs-wood-rim);
+  padding-bottom: 10px; width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
 }
 .ap-ardore-icon {
   width: 20px; height: 20px; object-fit: contain;
   filter: invert(60%) sepia(80%) saturate(400%) hue-rotate(200deg) brightness(1.4);
   flex-shrink: 0;
 }
-.ap-arrow { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.ap-arrow .ap-ardore-icon { width: 28px; height: 28px; }
 .ap-matchup {
-  display: flex; align-items: center; justify-content: center; gap: 18px; width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 20px; width: 100%;
 }
 .ap-piece {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1;
-  padding: 8px; border-radius: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1;
+  padding: 10px; border-radius: 6px;
 }
-.ap-piece-caster { background: rgba(40,80,200,0.15); border: 1px solid rgba(40,80,200,0.4); }
-.ap-piece-target  { background: rgba(200,40,40,0.15);  border: 1px solid rgba(200,40,40,0.4); }
-.ap-piece-name { font-size: 9px; color: #e8d8c0; }
-.ap-natura     { font-size: 7px; font-weight: bold; }
-.ap-piece-hp   { font-size: 8px; color: #90b0d0; }
-.ap-hp-bar  { width: 100%; height: 4px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-top: 2px; }
+.ap-piece-caster { background: rgba(40,80,200,0.12); border: 1px solid rgba(40,80,200,0.35); }
+.ap-piece-target  { background: rgba(200,40,40,0.12); border: 1px solid rgba(200,40,40,0.35); }
+.ap-piece-name { font-family: 'Cinzel', serif; font-size: 11px; color: var(--hs-cream); }
+.ap-natura     { font-family: 'Cinzel', serif; font-size: 8px; font-weight: bold; }
+.ap-piece-hp   { font-family: 'Cinzel', serif; font-size: 9px; color: #90b0d0; }
+.ap-hp-bar  { width: 100%; height: 5px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-top: 2px; }
 .ap-hp-fill { height: 100%; background: linear-gradient(90deg, #cc2222, #eeaa22, #22cc44); }
-.ap-arrow { font-size: 20px; flex-shrink: 0; }
-.ap-separator { width: 100%; border: none; border-top: 1px solid #0a1830; }
-.ap-effect { font-size: 11px; color: #90b8d8; }
+.ap-arrow {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ap-arrow .ap-ardore-icon { width: 28px; height: 28px; }
+.ap-separator { width: 100%; border: none; border-top: 1px solid var(--hs-wood-rim); }
+.ap-aura-note { font-family: 'Cinzel', serif; font-size: 10px; color: #80c4ff; font-style: italic; }
+.ap-effect {
+  font-family: 'Cinzel', serif;
+  font-size: 12px; line-height: 1.9; color: #d4b880;
+}
 .ap-effect-kill { color: #ee4444; text-shadow: 0 0 10px rgba(220,40,40,0.5); font-weight: bold; }
-.ap-bonus-label { font-size: 8px; color: #5070a0; font-style: italic; letter-spacing: 0.05em; }
+.ap-bonus-label { font-family: 'Cinzel', serif; font-size: 9px; color: #5070a0; font-style: italic; letter-spacing: 0.05em; }
+.ap-ai-label { font-family: 'Cinzel', serif; font-size: 11px; color: #a0b8d8; }
 .ap-btns { display: flex; gap: 12px; justify-content: center; }
 
 /* ── Variante AI ── */
-.ap-box-ai {
-  border-color: #2050cc;
-  box-shadow: 0 0 60px rgba(20,50,200,0.30), inset 0 0 40px rgba(20,50,200,0.04);
-}
+.ap-box-ai { border-color: #2050cc; }
 .ap-title-ai { color: #8099ee; text-shadow: 0 0 16px rgba(40,80,220,0.6); }
-.ap-ai-label { font-size: 11px; color: #a0b8d8; }
+
+@media (min-height: 600px) {
+  .ap-box { max-width: 580px; padding: 28px 34px; gap: 18px; }
+  .ap-title { font-size: 18px; }
+  .ap-piece-name { font-size: 14px; }
+  .ap-piece-hp { font-size: 12px; }
+  .ap-natura { font-size: 10px; }
+  .ap-effect { font-size: 15px; }
+  .ap-bonus-label { font-size: 11px; }
+  .ap-ai-label { font-size: 13px; }
+}

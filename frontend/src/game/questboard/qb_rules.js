@@ -49,17 +49,33 @@ export function isBlocked(piece, allPieces) {
   return getValidMoves(piece, allPieces).length === 0;
 }
 
+// ── Aura ───────────────────────────────────────────────────────────────────────
+
+// Applica gli effetti passivi dell'Aura al danno in entrata.
+export function applyAuraEffects(target, rawDmg) {
+  if (target.aura?.some(a => a.id === "difesa_possente")) {
+    return Math.max(1, Math.floor(rawDmg / 2));
+  }
+  return rawDmg;
+}
+
 // ── Combattimento ─────────────────────────────────────────────────────────────
 
 // Simula il duello tra attaccante e difensore.
-// Restituisce { attackerHp, defenderHp, log: [{round, aDmg, dDmg}] }
+// Restituisce { attackerHp, defenderHp, dmg, auraActive, log }
 export function resolveCombat(attacker, defender) {
-  const dmg = Math.max(1, attacker.atk - defender.def);
+  const hasAttaccoFurtivo = attacker.aura?.some(a => a.id === "attacco_furtivo");
+  const rawDmg = hasAttaccoFurtivo
+    ? attacker.atk
+    : Math.max(1, attacker.atk - defender.def);
+  const dmg = applyAuraEffects(defender, rawDmg);
   const defenderHp = Math.max(0, defender.hp - dmg);
   return {
     attackerHp: attacker.hp,
     defenderHp,
     dmg,
+    auraActive:   dmg < rawDmg,
+    furtivo:      hasAttaccoFurtivo,
     log: [{ round: 1, aDmg: dmg, dDmg: 0 }],
     attackerWins: true,
   };
@@ -70,17 +86,18 @@ export function getHealAmount(round) {
   if (round <= 3) return 5;
   if (round <= 6) return 3;
   if (round <= 9) return 1;
-  return 0;
+  return -2; // round 10+: danno a tutti i sopravvissuti
 }
 
-// Applica cura a fine round ai pezzi sopravvissuti (side = "player" | "ai")
+// Applica cura (o danno) a fine round ai pezzi sopravvissuti
 export function applyEndRoundHeal(pieces, round) {
   const heal = getHealAmount(round);
   if (heal === 0) return pieces;
-  return pieces.map(p => ({
-    ...p,
-    hp: Math.min(p.hpMax, p.hp + heal),
-  }));
+  if (heal > 0) {
+    return pieces.map(p => ({ ...p, hp: Math.min(p.hpMax, p.hp + heal) }));
+  }
+  // heal < 0: danno — i pezzi non possono scendere sotto 1 HP
+  return pieces.map(p => ({ ...p, hp: Math.max(1, p.hp + heal) }));
 }
 
 // ── Rotazione ─────────────────────────────────────────────────────────────────
@@ -128,6 +145,41 @@ export function registerArdore(uid, tracker, alivePieces) {
   newUsed.add(uid);
   const aliveUids = alivePieces.map(p => p.uid);
   return { used: aliveUids.every(id => newUsed.has(id)) ? new Set() : newUsed };
+}
+
+// ── Scagliare ──────────────────────────────────────────────────────────────────
+
+// Pedine adiacenti al caster (distanza Chebyshev 1), escluso se stesso
+export function getScagliareTargets(caster, allPieces) {
+  return allPieces.filter(p =>
+    p.uid !== caster.uid &&
+    Math.abs(p.row - caster.row) <= 1 &&
+    Math.abs(p.col - caster.col) <= 1
+  );
+}
+
+// Celle libere entro 2 celle dal campione (dist Chebyshev 1-2), escluse posizioni occupate
+// La pedina lanciata (thrownPieceUid) non conta come occupante (si libera dalla cella)
+export function getScagliareDest(caster, thrownPieceUid, allPieces) {
+  const occupied = new Set(
+    allPieces.filter(p => p.uid !== thrownPieceUid).map(p => `${p.row},${p.col}`)
+  );
+  const dests = [];
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const dist = Math.max(Math.abs(r - caster.row), Math.abs(c - caster.col));
+      if (dist >= 1 && dist <= 2 && !occupied.has(`${r},${c}`)) {
+        dests.push({ row: r, col: c });
+      }
+    }
+  }
+  return dests;
+}
+
+// Danno Scagliare: floor(ATK/2) × distanza Chebyshev dal campione alla cella di atterraggio
+export function calcScagliareDanno(caster, destRow, destCol) {
+  const dist = Math.max(Math.abs(destRow - caster.row), Math.abs(destCol - caster.col));
+  return Math.floor(caster.atk / 2) * dist;
 }
 
 // ── Condizione di vittoria ────────────────────────────────────────────────────

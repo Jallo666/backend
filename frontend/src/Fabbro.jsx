@@ -7,12 +7,14 @@ const SAVE_KEY = "qb_game_stats";
 
 // Natura per i pezzi classici già esistenti senza campo materiali
 const NATURA_DA_NOME = {
-  "Guerriero":   "Guerriero",
-  "Arciere":     "Arciere",
+  "Cavaliere":   "Guerriero",
+  "Ranger":      "Arciere",
   "Scudiero":    "Baluardo",
-  "Esploratore": "Ombra",
+  "Assassino":   "Ombra",
   "Mago":        "Arcano",
   "Campione":    "Sentinella",
+  "Guerriero":   "Guerriero",
+  "Arciere":     "Arciere",
 };
 
 const NATURA_COLORE = {
@@ -26,12 +28,12 @@ const NATURA_COLORE = {
 
 const RICETTE = [
   {
-    id: "guerriero",   nome: "Guerriero",   icona: "⚔",  natura: "Guerriero",
+    id: "cavaliere",   nome: "Cavaliere",   icona: "⚔",  natura: "Guerriero",
     hp: 14, hpMax: 14, atk: 4, def: 3, mov: 2,
     desc: "Il soldato di base. Equilibrato, affidabile, il pilastro di ogni formazione.",
   },
   {
-    id: "arciere",     nome: "Arciere",     icona: "🏹", natura: "Arciere",
+    id: "ranger",      nome: "Ranger",      icona: "🏹", natura: "Arciere",
     hp: 8,  hpMax: 8,  atk: 6, def: 1, mov: 3,
     desc: "Attacco a distanza letale. Fragile ma colpisce forte da lontano.",
   },
@@ -41,9 +43,9 @@ const RICETTE = [
     desc: "La roccia della difesa. Quasi impossibile da abbattere ma lentissimo.",
   },
   {
-    id: "esploratore", nome: "Esploratore", icona: "🔭", natura: "Ombra",
+    id: "assassino",   nome: "Assassino",   icona: "🗡", natura: "Ombra",
     hp: 9,  hpMax: 9,  atk: 3, def: 2, mov: 4,
-    desc: "Rogue del campo di battaglia. Si muove nell'ombra e aggira il nemico.",
+    desc: "L'ombra del campo di battaglia. Si muove veloce e colpisce dove fa più male.",
   },
   {
     id: "mago",        nome: "Mago",        icona: "✨", natura: "Arcano",

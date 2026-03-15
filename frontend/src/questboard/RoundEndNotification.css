@@ -1,0 +1,41 @@
+/* ── Notifica Fine Ciclo ── */
+.ren-overlay {
+  position: fixed; inset: 0; z-index: 121;
+  background: rgba(8, 4, 0, 0.75);
+  display: flex; align-items: center; justify-content: center;
+}
+.ren-box {
+  background: rgba(10, 5, 1, 0.92) url('../assets/background-journal.png') center/cover no-repeat;
+  background-blend-mode: multiply;
+  border: 2px solid var(--hs-wood-rim);
+  border-radius: 14px;
+  box-shadow: 0 6px 40px rgba(0,0,0,0.7), inset 0 -1px 0 rgba(240,192,64,0.08);
+  padding: 24px 28px; max-width: 380px; width: 94%;
+  display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center;
+}
+.ren-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 15px; color: var(--hs-gold); letter-spacing: 0.12em;
+  text-shadow: 0 0 16px rgba(240,192,64,0.5);
+  border-bottom: 1px solid var(--hs-wood-rim);
+  padding-bottom: 10px; width: 100%;
+}
+.ren-title-damage {
+  color: #ee4444;
+  text-shadow: 0 0 16px rgba(240,64,64,0.5);
+}
+.ren-separator { width: 100%; border: none; border-top: 1px solid var(--hs-wood-rim); }
+.ren-effect {
+  font-family: 'Cinzel', serif; font-size: 14px; font-weight: bold;
+}
+.ren-next {
+  font-family: 'Cinzel', serif; font-size: 11px; color: #c8a060; line-height: 1.5;
+}
+.ren-btns { display: flex; justify-content: center; }
+
+@media (min-height: 600px) {
+  .ren-box { max-width: 460px; padding: 28px 34px; gap: 16px; }
+  .ren-title { font-size: 18px; }
+  .ren-effect { font-size: 17px; }
+  .ren-next { font-size: 14px; }
+}

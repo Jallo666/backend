@@ -10,6 +10,7 @@ export default function GameBoard({
   combatFlash, gestaMode, gestaHitAnim,
   ardoreMode, ardoreHitAnim, ardoreImpegnato,
   onCellClick, pendingAttack, onConfirmAttack,
+  scagliareTargetUids, scagliareDests,
 }) {
   const allPieces    = [...game.playerPieces, ...game.aiPieces];
   const pieceAt      = (r, c) => allPieces.find(p => p.row === r && p.col === c);
@@ -50,9 +51,18 @@ export default function GameBoard({
 
                 const isAtkCell     = combatFlash && p?.uid === combatFlash.atkUid;
                 const isDefCell     = combatFlash && p?.uid === combatFlash.defUid;
-                const isGestaTarget  = gestaMode && p != null;
+                const isScagliareTgt = scagliareTargetUids && p != null && scagliareTargetUids.includes(p.uid);
+                const scagliareDest  = scagliareDests?.find(d => d.row === r && d.col === c);
+                const isGestaTarget  = !scagliareTargetUids && !scagliareDests && gestaMode && p != null;
                 const isGestaHit     = gestaHitAnim?.row === r && gestaHitAnim?.col === c;
-                const isArdoreTarget = ardoreMode && p != null;
+                const caricaCaster   = ardoreMode?.tipo === "movimento"
+                  ? game.playerPieces.find(p2 => p2.uid === ardoreMode.casterUid)
+                  : null;
+                const isArdoreTarget = ardoreMode && ardoreMode.tipo !== "movimento" && p != null;
+                const isCaricaCell   = caricaCaster && p == null
+                  && Math.abs(r - caricaCaster.row) <= 1
+                  && Math.abs(c - caricaCaster.col) <= 1
+                  && (r !== caricaCaster.row || c !== caricaCaster.col);
                 const isArdoreHit    = ardoreHitAnim?.row === r && ardoreHitAnim?.col === c;
                 const isArdoreImpeg  = ardoreImpegnato && p?.uid === ardoreImpegnato.pieceUid;
                 const isPendingTarget = pendingAttack && p?.uid === pendingAttack.defender?.uid;
@@ -74,9 +84,12 @@ export default function GameBoard({
                       isTo             ? "qbg-cell-to"          : "",
                       isAtkCell        ? "qbg-cell-combat-atk"  : "",
                       isDefCell        ? "qbg-cell-combat-def"  : "",
-                      isGestaTarget    ? "qbg-cell-gesta-target"  : "",
-                      isGestaHit       ? "qbg-cell-gesta-hit"     : "",
+                      isGestaTarget    ? "qbg-cell-gesta-target"   : "",
+                      isScagliareTgt   ? "qbg-cell-scagliare-tgt"  : "",
+                      scagliareDest    ? "qbg-cell-scagliare-dest" : "",
+                      isGestaHit       ? "qbg-cell-gesta-hit"      : "",
                       isArdoreTarget   ? "qbg-cell-ardore-target" : "",
+                      isCaricaCell     ? "qbg-cell-carica-target" : "",
                       isArdoreHit      ? "qbg-cell-ardore-hit"    : "",
                       isArdoreImpeg    ? "qbg-cell-ardore-impeg"  : "",
                     ].join(" ")}
@@ -111,6 +124,18 @@ export default function GameBoard({
                         className="qbg-confirm-gesta-btn"
                         onClick={e => { e.stopPropagation(); onCellClick(r, c); }}
                       ><img src={gestaIcon} alt="gesta" /></button>
+                    )}
+                    {isScagliareTgt && !isPendingTarget && !isArdoreTarget && (
+                      <button
+                        className="qbg-confirm-gesta-btn qbg-confirm-scagliare-tgt"
+                        onClick={e => { e.stopPropagation(); onCellClick(r, c); }}
+                      ><img src={gestaIcon} alt="scagliare" /></button>
+                    )}
+                    {scagliareDest && (
+                      <button
+                        className="qbg-confirm-scagliare-dest-btn"
+                        onClick={e => { e.stopPropagation(); onCellClick(r, c); }}
+                      >💨 {scagliareDest.danno}</button>
                     )}
                   </div>
                 );

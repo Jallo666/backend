@@ -54,6 +54,7 @@
 .qbg-cp-result-win  { color: #44dd66; text-shadow: 0 0 10px rgba(40,200,60,0.5); }
 .qbg-cp-result-lose { color: #ee4444; text-shadow: 0 0 10px rgba(220,40,40,0.5); }
 .qbg-cp-result-draw { color: var(--hs-gold); }
+.qbg-cp-aura-note   { color: #80c4ff; font-size: 10px; font-style: italic; }
 .qbg-cp-quote {
   font-family: 'Cinzel', serif;
   font-size: 10px; color: #8a6030; font-style: italic;

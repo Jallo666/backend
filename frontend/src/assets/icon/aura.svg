@@ -1,0 +1,29 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5e7b3"/>
+      <stop offset="50%" stop-color="#c9a24a"/>
+      <stop offset="100%" stop-color="#7a5520"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Stella medievale stilizzata a 8 punte -->
+  <polygon
+    points="
+      32,8
+      36,24
+      52,32
+      36,40
+      32,56
+      28,40
+      12,32
+      28,24
+    "
+    fill="url(#steel)"
+    stroke="#4a2d0a"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+
+</svg>

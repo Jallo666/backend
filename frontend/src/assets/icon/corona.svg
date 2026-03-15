@@ -1,0 +1,69 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="imperialGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f9e9a8"/>
+      <stop offset="50%" stop-color="#d4a843"/>
+      <stop offset="100%" stop-color="#8a5d1a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base corona -->
+  <rect
+    x="8" y="40" width="48" height="10" rx="2" ry="2"
+    fill="#d4a843"
+    stroke="#4a2d0a"
+    stroke-width="3"
+  />
+
+  <!-- Corpo principale con 3 punte -->
+  <path
+    d="
+      M8 40
+      L14 22
+      L24 30
+      L32 18
+      L40 30
+      L50 22
+      L56 40
+      Z
+    "
+    fill="url(#imperialGold)"
+    stroke="#4a2d0a"
+    stroke-width="3"
+    stroke-linejoin="round"
+  />
+
+  <!-- Arco imperiale superiore -->
+  <path
+    d="
+      M20 24
+      C 26 16, 38 16, 44 24
+    "
+    fill="none"
+    stroke="#4a2d0a"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+
+  <!-- Croce / gioiello superiore -->
+  <circle
+    cx="32" cy="20" r="3.2"
+    fill="#fef9c3"
+    stroke="#4a2d0a"
+    stroke-width="2"
+  />
+
+  <!-- Gemma centrale grande -->
+  <circle
+    cx="32" cy="32" r="4.5"
+    fill="#fef9c3"
+    stroke="#4a2d0a"
+    stroke-width="2"
+  />
+
+  <!-- Gemme laterali -->
+  <circle cx="20" cy="34" r="3" fill="#fef9c3" stroke="#4a2d0a" stroke-width="2"/>
+  <circle cx="44" cy="34" r="3" fill="#fef9c3" stroke="#4a2d0a" stroke-width="2"/>
+
+</svg>

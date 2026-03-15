@@ -248,10 +248,10 @@ function King({ size }) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 const MAP = {
-  esploratore: Pawn,
-  guerriero:   Knight,
+  assassino:   Pawn,
+  cavaliere:   Knight,
   scudiero:    Rook,
-  arciere:     Bishop,
+  ranger:      Bishop,
   mago:        Queen,
   campione:    King,
 };

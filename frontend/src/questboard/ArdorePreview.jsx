@@ -2,9 +2,12 @@ import './ArdorePreview.css';
 import SilhouettePiece from '../SilhouettePiece.jsx';
 import ardoreIcon from '../assets/icon/ardore.svg';
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
+import { applyAuraEffects } from '../game/questboard/qb_rules.js';
 
 export default function ArdorePreview({ caster, target, ardore, onConfirm, onCancel, mode }) {
-  const hpDopo    = Math.max(0, target.hp - ardore.danno);
+  const dannoEffettivo = applyAuraEffects(target, ardore.danno);
+  const auraActive = dannoEffettivo < ardore.danno;
+  const hpDopo    = Math.max(0, target.hp - dannoEffettivo);
   const eliminato = hpDopo <= 0;
   const hpPct     = Math.round((target.hp / target.hpMax) * 100);
   const isAi      = mode === "ai";
@@ -53,10 +56,11 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
           <p className="ap-ai-label">{caster.nome} usa <strong>{ardore.icona} {ardore.nome}</strong> su {target.nome}</p>
         )}
 
+        {auraActive && <p className="ap-aura-note">🛡 Difesa Possente: danno dimezzato!</p>}
         <p className={`ap-effect ${eliminato ? "ap-effect-kill" : ""}`}>
           {eliminato
             ? `${target.nome} verrà eliminato!`
-            : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${ardore.danno})`}
+            : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${dannoEffettivo})`}
         </p>
 
         {!isAi && (

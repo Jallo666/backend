@@ -1,7 +1,7 @@
 import settingsIcon from "../assets/icon/settings.svg";
 import "./QuestBoardGame.css";
 
-export default function GameHud({ game, utente, onOptions }) {
+export default function GameHud({ game, utente, onOptions, onFineTurno, pieceJustMoved }) {
   return (
     <div className="qbg-hud">
       <div className="qbg-hud-matchup">
@@ -39,6 +39,15 @@ export default function GameHud({ game, utente, onOptions }) {
           </div>
         </div>
       </div>
+
+      {onFineTurno && (
+        <button
+          className={`qbg-hud-fine-turno ${pieceJustMoved ? "qbg-hud-fine-turno-ready" : "qbg-hud-fine-turno-skip"}`}
+          onClick={onFineTurno}
+        >
+          {pieceJustMoved ? "Fine\nTurno" : "Fine\nTurno"}
+        </button>
+      )}
 
       <button className="qbg-back-btn" onClick={onOptions} title="Opzioni">
         <img src={settingsIcon} alt="opzioni" className="qbg-settings-icon" />

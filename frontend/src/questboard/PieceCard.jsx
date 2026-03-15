@@ -2,9 +2,11 @@ import './PieceCard.css';
 import SilhouettePiece from '../SilhouettePiece.jsx';
 import ardoreIcon from '../assets/icon/ardore.svg';
 import gestaIcon from '../assets/icon/gesta.svg';
+import auraIcon from '../assets/icon/aura.svg';
+import coronaIcon from '../assets/icon/corona.svg';
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 
-export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, onSkipAction, isSelected }) {
+export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, onFineTurno, pieceJustMoved, isSelected }) {
   const isPlayer = piece.side === "player";
   const hpPct = Math.round((piece.hp / piece.hpMax) * 100);
   return (
@@ -15,7 +17,7 @@ export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick,
         </span>
         <span className="qbg-card-title">
           {piece.nome}
-          {piece.isRe && <> &nbsp;<span style={{ color: "#f0c040" }}>♛ RE</span></>}
+          {piece.isRe && <> &nbsp;<img src={coronaIcon} alt="RE" style={{ width: 16, height: 16, verticalAlign: "middle", filter: "drop-shadow(0 0 4px #f0c040)" }} /></>}
           {piece.natura && (
             <span className="qbg-card-natura" style={{ color: NATURA_COLORE[piece.natura] ?? "#888", borderColor: NATURA_COLORE[piece.natura] ?? "#888" }}>
               {piece.natura}
@@ -69,11 +71,29 @@ export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick,
         </div>
       )}
 
-      {onSkipAction && (
+      {onFineTurno && (
         <div className="qbg-card-skip">
-          <button className="qbg-btn-skip" onClick={onSkipAction}>
-            ⏭ Salta Azione
+          <button
+            className={`qbg-btn ${pieceJustMoved ? "qbg-btn-gold" : "qbg-btn-dark"}`}
+            onClick={onFineTurno}
+          >
+            {pieceJustMoved ? "Fine Turno ✓" : "Fine Turno ⚠"}
           </button>
+        </div>
+      )}
+
+      {piece.aura?.length > 0 && (
+        <div className="qbg-card-aura">
+          <div className="qbg-card-aura-title"><img src={auraIcon} alt="" className="qbg-card-aura-icon" /> Aura</div>
+          {piece.aura.map(a => (
+            <div key={a.id} className="qbg-card-aura-row">
+              <div className="qbg-card-aura-header">
+                <span className="qbg-card-aura-nome">{a.icona} {a.nome}</span>
+                <span className="qbg-card-aura-badge">Sempre Attiva</span>
+              </div>
+              <span className="qbg-card-aura-desc">{a.desc}</span>
+            </div>
+          ))}
         </div>
       )}
 
