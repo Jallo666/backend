@@ -262,7 +262,13 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     const gestaUsed      = piece?.canAct === false;
     const selectedNoMoves = game.selected === activeUid && game.validMoves.length === 0;
     const ardoreAndMoved  = ardoreUsedUid === activeUid && pendingFineTurnoUid === activeUid;
-    if (gestaUsed || selectedNoMoves || ardoreAndMoved) setShowEndTurnPopup(true);
+    const ardoreTracker   = game.playerArdoreTracker ?? { used: new Set() };
+    const hasArdore       = (piece?.ardore?.length ?? 0) > 0;
+    const ardoreAvail     = hasArdore && canUseArdore(piece?.uid, ardoreTracker);
+    const hasGesta        = (piece?.gesta?.length ?? 0) > 0;
+    const gestaAvail      = hasGesta && piece?.canAct !== false;
+    const movedWithNothingLeft = pendingFineTurnoUid === activeUid && !ardoreAvail && !gestaAvail;
+    if (gestaUsed || selectedNoMoves || ardoreAndMoved || movedWithNothingLeft) setShowEndTurnPopup(true);
   }, [pendingFineTurnoUid, ardoreImpegnato, ardoreUsedUid, game]);
 
   // ── Popup annuncio turno ───────────────────────────────────────────────────
@@ -319,7 +325,8 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     });
     setArdoreImpegnato({ pieceUid: caster.uid });
     setArdoreUsedUid(caster.uid);
-    setPendingFineTurnoUid(caster.uid);
+    // NON settiamo pendingFineTurnoUid: carica non consuma la rotazione,
+    // la pedina deve ancora fare il movimento regolare.
   }, [caricaAttackPreview]);
 
   // ── Conferma scagliare AI dopo preview ───────────────────────────────────
