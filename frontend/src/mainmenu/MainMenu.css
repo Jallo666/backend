@@ -207,8 +207,9 @@
   border: none;
   border-radius: 10px;
   color: rgba(245, 230, 200, 0.95);
-  font-family: 'Press Start 2P', monospace;
-  font-size: 16px;
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  letter-spacing: 0.1em;
   cursor: pointer;
   transition: background 0.25s, transform 0.15s;
   text-align: left;
@@ -375,7 +376,7 @@
 
 /* ── Buttons ── */
 .mm-btn {
-  font-family: 'Press Start 2P', monospace; font-size: 14px;
+  font-family: 'Cinzel', serif; font-size: 18px; letter-spacing: 0.1em;
   padding: 14px 20px; border-radius: 6px; border: none; cursor: pointer;
   margin-top: 4px; align-self: center;
   transition: filter 0.15s, transform 0.1s; position: relative; overflow: hidden;
@@ -457,12 +458,12 @@
 @media (orientation: landscape) {
   .mm-main-layout {
     height: auto;
-    max-height: 100vh;
+    max-height: 100%;
   }
 
   .mm-content {
     height: auto;
-    max-height: 100vh;
+    max-height: 100%;
     overflow: hidden;
   }
 

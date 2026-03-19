@@ -3,7 +3,7 @@ import { SFIDANTI } from "./sfidanti.js";
 import { CLASSIC_PIECES, NATURA_DA_NOME, ardoreDiNatura, gesteDiNatura, auraDiNatura } from "./game/questboard/qb_pieces.js";
 import SilhouettePiece from "./SilhouettePiece.jsx";
 import "./LocandaPage.css";
-import backIcon   from "./assets/icon/back.svg";
+import BackButton from "./components/BackButton.jsx";
 import dragoImg   from "./assets/luoghi/drago_addormentato.png";
 import ardoreIcon from "./assets/icon/ardore.svg";
 import gestaIcon  from "./assets/icon/gesta.svg";
@@ -91,9 +91,7 @@ export default function LocandaPage({ onBack, onApriFormazione }) {
     <div className="loc-root">
       <div className="loc-stars-container" ref={starsRef} />
 
-      <button className="loc-back-btn" onClick={onBack} title="Torna al Menu">
-        <img src={backIcon} alt="Menu" />
-      </button>
+      <BackButton onClick={onBack} title="Torna al Menu" absolute />
 
       <div className="loc-content">
         <div className="loc-header">

@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import SilhouettePiece from "./SilhouettePiece.jsx";
+import SilhouettePiece from "../SilhouettePiece.jsx";
+import BackButton from "../components/BackButton.jsx";
 import "./Fabbro.css";
 
 const API_URL  = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 const SAVE_KEY = "qb_game_stats";
 
-// Natura per i pezzi classici già esistenti senza campo materiali
 const NATURA_DA_NOME = {
   "Cavaliere":   "Guerriero",
   "Ranger":      "Arciere",
@@ -28,32 +28,32 @@ const NATURA_COLORE = {
 
 const RICETTE = [
   {
-    id: "cavaliere",   nome: "Cavaliere",   icona: "⚔",  natura: "Guerriero",
+    id: "cavaliere",   nome: "Cavaliere",   natura: "Guerriero",
     hp: 14, hpMax: 14, atk: 4, def: 3, mov: 2,
     desc: "Il soldato di base. Equilibrato, affidabile, il pilastro di ogni formazione.",
   },
   {
-    id: "ranger",      nome: "Ranger",      icona: "🏹", natura: "Arciere",
+    id: "ranger",      nome: "Ranger",      natura: "Arciere",
     hp: 8,  hpMax: 8,  atk: 6, def: 1, mov: 3,
     desc: "Attacco a distanza letale. Fragile ma colpisce forte da lontano.",
   },
   {
-    id: "scudiero",    nome: "Scudiero",    icona: "🛡", natura: "Baluardo",
+    id: "scudiero",    nome: "Scudiero",    natura: "Baluardo",
     hp: 18, hpMax: 18, atk: 2, def: 5, mov: 1,
     desc: "La roccia della difesa. Quasi impossibile da abbattere ma lentissimo.",
   },
   {
-    id: "assassino",   nome: "Assassino",   icona: "🗡", natura: "Ombra",
+    id: "assassino",   nome: "Assassino",   natura: "Ombra",
     hp: 9,  hpMax: 9,  atk: 3, def: 2, mov: 4,
     desc: "L'ombra del campo di battaglia. Si muove veloce e colpisce dove fa più male.",
   },
   {
-    id: "mago",        nome: "Mago",        icona: "✨", natura: "Arcano",
+    id: "mago",        nome: "Mago",        natura: "Arcano",
     hp: 7,  hpMax: 7,  atk: 7, def: 1, mov: 2,
     desc: "Potere arcano devastante. Va protetto a ogni costo.",
   },
   {
-    id: "campione",    nome: "Campione",    icona: "🏆", natura: "Sentinella",
+    id: "campione",    nome: "Campione",    natura: "Sentinella",
     hp: 15, hpMax: 15, atk: 5, def: 4, mov: 2,
     desc: "Il guardiano della formazione. Statistiche equilibrate su tutti i fronti.",
   },
@@ -67,11 +67,8 @@ function leggiGemme() {
   return 0;
 }
 
-
 function getNatura(pezzo) {
-  // materiali contiene la natura per i pezzi forgiati dal Fabbro
   if (pezzo.materiali) return pezzo.materiali;
-  // per i classici seedati prima dell'introduzione della natura
   return NATURA_DA_NOME[pezzo.nome] ?? null;
 }
 
@@ -85,7 +82,7 @@ function NaturaTag({ natura }) {
   );
 }
 
-export default function Fabbro({ token, onBack, onBackToMenu }) {
+export default function Fabbro({ token, onBack }) {
   const [gemme]      = useState(leggiGemme);
   const [scelta,     setScelta]     = useState(null);
   const [forgiando,  setForgiando]  = useState(false);
@@ -113,7 +110,7 @@ export default function Fabbro({ token, onBack, onBackToMenu }) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          nome: scelta.nome, icona: scelta.icona,
+          nome: scelta.nome,
           hp: scelta.hp, hpMax: scelta.hpMax,
           atk: scelta.atk, def: scelta.def, mov: scelta.mov,
           materiali: scelta.natura,
@@ -122,7 +119,7 @@ export default function Fabbro({ token, onBack, onBackToMenu }) {
       if (!res.ok) throw new Error();
       const pezzo = await res.json();
       setInventario(prev => [...prev, pezzo]);
-      setMsg({ testo: `${scelta.nome} (${scelta.natura}) forgiato! Ora è nella tua collezione.`, tipo: "ok" });
+      setMsg({ testo: `${scelta.nome} forgiato! Ora è nella tua collezione.`, tipo: "ok" });
     } catch {
       setMsg({ testo: "Errore durante la forgiatura. Riprova.", tipo: "err" });
     } finally {
@@ -133,28 +130,27 @@ export default function Fabbro({ token, onBack, onBackToMenu }) {
   return (
     <div className="fab-root">
 
-      <nav className="fab-nav">
-        <button className="fab-nav-btn" onClick={onBack}>← Città</button>
-        <div className="fab-gemme">💎 {gemme} gemme</div>
-        <button className="fab-nav-btn" onClick={onBackToMenu}>⌂ Menu</button>
-      </nav>
-
+      {/* ── Header ── */}
       <header className="fab-header">
-        <div className="fab-header-icon">⚒️</div>
-        <div>
+        <BackButton onClick={onBack} title="Torna al Menu" />
+        <div className="fab-header-center">
           <h1 className="fab-title">L'Incudine Rossa</h1>
           <p className="fab-subtitle">Brom il Fabbro — «Dimmi che guerriero vuoi e lo forgio.»</p>
+        </div>
+        <div className="fab-header-right">
+          <span className="fab-gemme">💎 {gemme}</span>
         </div>
       </header>
 
       <div className="fab-body">
 
-        {/* ── Ricette ────────────────────────────────────────────────────── */}
+        {/* ── Ricette ── */}
         <div className="fab-ricette">
-          <div className="fab-section-title">🔥 RICETTE</div>
+          <div className="fab-section-title">Ricette</div>
           {RICETTE.map(r => {
-            const isSelected = scelta?.id === r.id;
-            const natColore  = NATURA_COLORE[r.natura] ?? "#888";
+            const isSelected   = scelta?.id === r.id;
+            const natColore    = NATURA_COLORE[r.natura] ?? "#888";
+            const giaForgiato  = inventario.some(p => p.nome === r.nome);
             return (
               <button
                 key={r.id}
@@ -166,18 +162,21 @@ export default function Fabbro({ token, onBack, onBackToMenu }) {
                   <span className="fab-ricetta-nome">{r.nome}</span>
                   <span className="fab-ricetta-natura" style={{ color: natColore }}>{r.natura}</span>
                 </div>
-                <span className="fab-ricetta-costo fab-ricetta-costo-gratis">GRATIS</span>
+                {giaForgiato
+                  ? <span className="fab-ricetta-badge-ok">✓</span>
+                  : <span className="fab-ricetta-costo">Gratis</span>
+                }
               </button>
             );
           })}
         </div>
 
-        {/* ── Dettaglio + forgia ─────────────────────────────────────────── */}
+        {/* ── Dettaglio + forgia ── */}
         <div className="fab-dettaglio">
           {!scelta ? (
             <div className="fab-vuoto">
               <div className="fab-vuoto-icon">⚒️</div>
-              <p>Seleziona una ricetta<br />per vedere i dettagli</p>
+              <p className="fab-vuoto-testo">Scegli una ricetta per vedere i dettagli</p>
             </div>
           ) : (
             <>
@@ -206,11 +205,6 @@ export default function Fabbro({ token, onBack, onBackToMenu }) {
                 ))}
               </div>
 
-              <div className="fab-costo-box">
-                <span>Costo forgiatura:</span>
-                <span className="fab-costo-val fab-ricetta-costo-gratis">GRATIS</span>
-              </div>
-
               {msg && (
                 <div className={`fab-msg fab-msg-${msg.tipo}`}>{msg.testo}</div>
               )}
@@ -220,15 +214,15 @@ export default function Fabbro({ token, onBack, onBackToMenu }) {
                 onClick={handleForgia}
                 disabled={forgiando}
               >
-                {forgiando ? "⚒ Forgiatura in corso..." : `⚒ Forgia ${scelta.nome}`}
+                {forgiando ? "⚒ Forgiatura..." : `⚒ Forgia ${scelta.nome}`}
               </button>
             </>
           )}
         </div>
 
-        {/* ── Collezione attuale ─────────────────────────────────────────── */}
+        {/* ── Collezione ── */}
         <div className="fab-inventario">
-          <div className="fab-section-title">🎒 COLLEZIONE ({inventario.length})</div>
+          <div className="fab-section-title">Collezione ({inventario.length})</div>
           <div className="fab-inv-list">
             {inventario.map(p => {
               const natura   = getNatura(p);
@@ -238,7 +232,7 @@ export default function Fabbro({ token, onBack, onBackToMenu }) {
                   <SilhouettePiece natura={getNatura(p)} size={40} />
                   <div className="fab-inv-info">
                     <span className="fab-inv-nome">{p.nome}</span>
-                    <span className="fab-inv-stats">HP{p.hp} ATK{p.atk} DEF{p.def} MOV{p.mov}</span>
+                    <span className="fab-inv-stats">❤{p.hp} ⚔{p.atk} 🛡{p.def} 👟{p.mov}</span>
                   </div>
                   {natura && (
                     <span className="fab-inv-natura" style={{ color: natColor }}>{natura}</span>

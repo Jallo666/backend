@@ -4,6 +4,7 @@ import Registrazione from "./Registrazione";
 import Gioco from "./Gioco";
 import MainMenu from "./mainmenu/MainMenu";
 import LocandaPage from "./LocandaPage";
+import Fabbro from "./fabbro/Fabbro";
 import Formazione from "./formazione/Formazione";
 import QuestBoardGame from "./questboard/QuestBoardGame";
 import useMusic from "./music/useMusic";
@@ -124,6 +125,7 @@ function App() {
     setStartFloor(floor); setSaveData(player); setPagina("dungeon");
   };
   const enterLocanda = () => setPagina("locanda");
+  const enterFabbro  = () => setPagina("fabbro");
   const enterFormazione = (sfidante = null) => {
     setQbSfidante(sfidante);
     setPagina("formazione");
@@ -163,6 +165,7 @@ function App() {
         utente={utente}
         onEnterDungeon={enterDungeon}
         onEnterLocanda={enterLocanda}
+        onEnterFabbro={enterFabbro}
         onGilda={() => setPagina("gilda")}
         onLogout={handleLogout}
       />
@@ -177,6 +180,10 @@ function App() {
         </div>
       </div>
     );
+  }
+
+  if (pagina === "fabbro") {
+    return <Fabbro token={token} onBack={() => setPagina("mainmenu")} />;
   }
 
   if (pagina === "locanda") {

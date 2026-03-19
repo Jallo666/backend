@@ -6,7 +6,7 @@ import GameFooter from "./GameFooter";
 import logo from "../assets/questboard_logo.svg";
 
 // ── Componente principale ─────────────────────────────────────────────────────
-export default function MainMenu({ utente, onEnterDungeon, onEnterLocanda, onGilda, onLogout }) {
+export default function MainMenu({ utente, onEnterDungeon, onEnterLocanda, onEnterFabbro, onGilda, onLogout }) {
   const starsRef = useRef(null);
   const [saveData, setSaveData] = useState(null);
   const [activeTab, setActiveTab] = useState(PANELS[0].id);
@@ -43,8 +43,9 @@ export default function MainMenu({ utente, onEnterDungeon, onEnterLocanda, onGil
   const statHp = saveData ? `${saveData.hp}/${saveData.maxHp}` : "20/20";
 
   const handlePanel = (id) => {
-    if (id === "dungeon") onEnterDungeon(1, null);
+    if (id === "dungeon")    onEnterDungeon(1, null);
     if (id === "questboard") onEnterLocanda();
+    if (id === "fabbro")     onEnterFabbro?.();
   };
 
   return (
