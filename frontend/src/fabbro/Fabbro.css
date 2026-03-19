@@ -11,6 +11,28 @@
   flex-direction: column;
 }
 
+/* ── Toast ── */
+.fab-toast {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  padding: 12px 28px;
+  border-radius: 8px;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: fabToastIn 0.2s ease;
+}
+.fab-toast-ok  { color: #60cc60; border: 1px solid rgba(48, 136, 32, 0.5); background: rgba(0, 30, 0, 0.92); }
+.fab-toast-err { color: #cc5030; border: 1px solid rgba(136, 40, 16, 0.5); background: rgba(30, 0, 0, 0.92); }
+@keyframes fabToastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
 /* ── Header ── */
 .fab-header {
   padding: 10px 20px;
@@ -58,6 +80,49 @@
   background: rgba(0, 20, 50, 0.5);
 }
 
+/* ── Materiali panel ── */
+.fab-materiali {
+  display: flex;
+  flex: 1;
+  border-top: 1px solid rgba(90, 53, 16, 0.3);
+  min-height: 0;
+}
+.risorsa-pannello {
+  flex: 1;
+  border-right: 1px solid rgba(90, 53, 16, 0.5) !important;
+}
+.risorsa-pannello:last-child { border-right: none !important; }
+
+/* ── RisorsaItemCard ── */
+.risorsa-item-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  border-radius: 10px;
+  background: rgba(10, 5, 1, 0.7);
+  border: 1px solid rgba(90, 53, 16, 0.35);
+  width: 100%;
+}
+.risorsa-item-icon {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.risorsa-item-icon-fallback { font-size: 48px; }
+.risorsa-item-nome {
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  color: #c8a060;
+}
+.risorsa-item-qty {
+  font-family: 'Cinzel', serif;
+  font-size: 32px;
+  color: #f0c040;
+}
+
 /* ── Body ── */
 .fab-body {
   display: flex;
@@ -67,36 +132,104 @@
   min-height: 0;
 }
 
-/* ── Ricette ── */
-.fab-ricette {
-  width: 240px;
+/* ── PannelloLista (condiviso) ── */
+.pnl-root {
   flex-shrink: 0;
   background: rgba(4, 2, 1, 0.88);
-  border-right: 1px solid rgba(90, 53, 16, 0.5);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 14px 12px;
-  gap: 8px;
+  gap: 10px;
+}
+.pnl-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.pnl-list::-webkit-scrollbar { width: 3px; }
+.pnl-list::-webkit-scrollbar-thumb { background: rgba(90, 53, 16, 0.6); border-radius: 2px; }
+
+/* ── Ricette ── */
+.fab-ricette {
+  width: 420px;
+  border-right: 1px solid rgba(90, 53, 16, 0.5);
 }
 
 .fab-section-title {
   font-family: 'Cinzel', serif;
-  font-size: 14px;
+  font-size: 45px;
   color: #f0c040;
   letter-spacing: 0.1em;
-  border-bottom: 1px solid rgba(90, 53, 16, 0.5);
-  padding-bottom: 8px;
-  margin-bottom: 4px;
   flex-shrink: 0;
+  margin: 0;
 }
 
-.fab-ricetta {
+/* ── Ricette header + cerca ── */
+.fab-ricette-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  padding: 10px 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(90, 53, 16, 0.5);
+  padding-bottom: 10px;
+  margin-bottom: 2px;
+}
+.fab-cerca-btn {
+  font-size: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+  padding: 2px 4px;
+}
+.fab-cerca-btn:hover { opacity: 1; }
+.fab-cerca-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.fab-cerca-input {
+  flex: 1;
+  background: rgba(10, 5, 1, 0.8);
+  border: 1px solid rgba(90, 53, 16, 0.6);
   border-radius: 6px;
+  padding: 7px 12px;
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  color: #f5e0b0;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+.fab-cerca-input::placeholder { color: rgba(200, 160, 96, 0.4); }
+.fab-cerca-input:focus { border-color: rgba(240, 192, 64, 0.6); }
+.fab-cerca-clear {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: #c8a060;
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 4px 6px;
+  flex-shrink: 0;
+}
+.fab-cerca-clear:hover { opacity: 1; }
+
+/* ── RicettaCard ── */
+.fab-ricetta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 10px;
   cursor: pointer;
   background: rgba(10, 5, 1, 0.7);
   border: 1px solid rgba(90, 53, 16, 0.35);
@@ -104,53 +237,160 @@
   font-family: inherit;
   width: 100%;
   transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
 }
-.fab-ricetta:hover {
+.fab-ricetta-card:hover {
   background: rgba(240, 192, 64, 0.07);
   border-color: rgba(90, 53, 16, 0.7);
 }
-.fab-ricetta-sel {
+.fab-ricetta-card-sel {
   background: rgba(240, 192, 64, 0.12) !important;
   border-color: rgba(240, 192, 64, 0.6) !important;
-  box-shadow: 0 0 8px rgba(240, 192, 64, 0.2);
+  box-shadow: 0 0 12px rgba(240, 192, 64, 0.22);
 }
-
-.fab-ricetta-info {
+/* default (non selezionata): riga — silhouette piccola a sinistra */
+.fab-rc-always {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+.fab-rc-silhouette img {
+  width: 64px !important;
+  height: 64px !important;
+  transition: width 0.35s ease, height 0.35s ease;
+}
+.fab-rc-header {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  flex: 1;
-  overflow: hidden;
+  gap: 5px;
 }
-.fab-ricetta-nome {
+
+/* selezionata: colonna — silhouette grande centrata */
+.fab-ricetta-card-sel .fab-rc-always {
+  flex-direction: column;
+  align-items: center;
+}
+.fab-ricetta-card-sel .fab-rc-silhouette img {
+  width: 200px !important;
+  height: 200px !important;
+}
+.fab-ricetta-card-sel .fab-rc-header {
+  text-align: center;
+}
+.fab-rc-nome {
   font-family: 'Cinzel', serif;
-  font-size: 13px;
+  font-size: 26px;
   color: #f5e0b0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.fab-ricetta-natura {
+.fab-rc-natura {
   font-family: 'Crimson Text', serif;
-  font-size: 12px;
+  font-size: 20px;
   font-weight: bold;
 }
-.fab-ricetta-costo {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  color: #60a860;
-  flex-shrink: 0;
+
+/* ── Collassabile ── */
+.fab-rc-collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s ease;
 }
-.fab-ricetta-badge-ok {
-  font-size: 14px;
-  color: #60a860;
+.fab-ricetta-card-sel .fab-rc-collapsible {
+  grid-template-rows: 1fr;
+}
+.fab-rc-collapsible-inner {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 2px;
+}
+.fab-rc-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.fab-rc-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  background: rgba(10, 5, 1, 0.6);
+  border: 1px solid rgba(90, 53, 16, 0.4);
+  border-radius: 8px;
+  padding: 10px 6px;
+}
+.fab-rc-stat-icon { font-size: 1.1rem; filter: brightness(0) invert(1); }
+.fab-rc-stat-val {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  color: #f0c040;
+}
+.fab-rc-stat-lbl {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: #c8a060;
+}
+
+/* ── Abilità nella card ── */
+.fab-rc-abilita {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(90, 53, 16, 0.3);
+}
+.fab-rc-ab-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.fab-rc-ab-icon {
+  width: 28px;
+  height: 28px;
+  opacity: 0.85;
   flex-shrink: 0;
+  margin-top: 3px;
+}
+.fab-rc-ab-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.fab-rc-ab-nome {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  color: #f0c040;
+}
+.fab-rc-ab-desc {
+  font-family: 'Crimson Text', serif;
+  font-size: 17px;
+  color: #c8a060;
+  line-height: 1.5;
+}
+
+/* ── Centro ── */
+.fab-centro {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* ── Dettaglio ── */
+.fab-dettaglio .pnl-list { overflow: visible; }
 .fab-dettaglio {
   flex: 1;
-  padding: 24px 28px;
+  min-height: 0;
+  padding: 14px 12px;
+  background: rgba(4, 2, 1, 0.88);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
   overflow-y: auto;
 }
 
@@ -166,10 +406,11 @@
 .fab-vuoto-icon { font-size: 3.5rem; opacity: 0.2; }
 .fab-vuoto-testo {
   font-family: 'Crimson Text', serif;
-  font-size: 14px;
+  font-size: 26px;
   color: #c8a060;
   line-height: 1.7;
   margin: 0;
+  text-align: center;
 }
 
 .fab-det-header {
@@ -236,87 +477,207 @@
   padding: 10px 14px;
   border-radius: 6px;
   line-height: 1.6;
+  min-height: 42px;
 }
+.fab-msg-vuoto { border: 1px solid transparent; background: transparent; }
 .fab-msg-ok  { color: #60cc60; border: 1px solid rgba(48, 136, 32, 0.5); background: rgba(0, 40, 0, 0.4); }
 .fab-msg-err { color: #cc5030; border: 1px solid rgba(136, 40, 16, 0.5); background: rgba(40, 0, 0, 0.4); }
 
+/* ── RequisitiForgia ── */
+.req-root {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: rgba(10, 5, 1, 0.7);
+  border: 1px solid rgba(90, 53, 16, 0.35);
+  border-radius: 10px;
+  padding: 18px;
+}
+.req-titolo {
+  font-family: 'Crimson Text', serif;
+  font-size: 26px;
+  color: #c8a060;
+  margin: 0;
+  line-height: 1.5;
+}
+.req-nome {
+  font-family: 'Cinzel', serif;
+  color: #f0c040;
+}
+.req-lista { display: flex; flex-direction: row; gap: 10px; }
+.req-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(90, 53, 16, 0.3);
+  background: rgba(4, 2, 1, 0.6);
+  flex: 1;
+}
+.req-ok { border-color: rgba(48, 136, 32, 0.5); }
+.req-no { border-color: rgba(136, 40, 16, 0.5); }
+.req-icon {
+  width: 48px; height: 48px;
+  object-fit: contain; image-rendering: pixelated; flex-shrink: 0;
+}
+.req-label { font-family: 'Cinzel', serif; font-size: 20px; color: #f5e0b0; }
+.req-qty   { font-family: 'Cinzel', serif; font-size: 20px; color: #c8a060; }
+.req-hai   { font-family: 'Crimson Text', serif; font-size: 18px; color: #888; }
+.req-check { font-size: 26px; font-weight: bold; flex-shrink: 0; }
+.req-ok .req-check { color: #60cc60; }
+.req-no .req-check { color: #cc5030; }
+
+/* ── Sezione Forgia ── */
+.fab-forgia-sezione {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 14px;
+  padding: 18px;
+  background: rgba(10, 5, 1, 0.7);
+  border: 1px solid rgba(90, 53, 16, 0.35);
+  border-radius: 10px;
+  margin-top: auto;
+}
+.fab-forgia-nome-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.fab-forgia-nome-label {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  color: #c8a060;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fab-forgia-nome-badge {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: rgba(200, 160, 96, 0.55);
+  border: 1px solid rgba(200, 160, 96, 0.25);
+  border-radius: 20px;
+  padding: 1px 10px;
+  font-style: italic;
+}
+.fab-forgia-nome-input {
+  width: 100%;
+  flex: 1;
+  background: rgba(4, 2, 1, 0.7);
+  border: 1px solid rgba(90, 53, 16, 0.35);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: 'Crimson Text', serif;
+  font-size: 18px;
+  color: rgba(245, 224, 176, 0.3);
+  outline: none;
+  cursor: not-allowed;
+  box-sizing: border-box;
+}
+.fab-forgia-nome-input::placeholder { color: rgba(200, 160, 96, 0.2); }
+
 .fab-btn-forgia {
+  position: relative;
+  flex: 1;
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  padding: 20px 28px;
+  background: linear-gradient(135deg, #3a1c08, #7a4214, #3a1c08);
+  border: 2px solid rgba(240, 192, 64, 0.6);
+  color: #f0c040;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: filter 0.2s, transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  box-shadow: 0 4px 20px rgba(240, 192, 64, 0.2);
+}
+.fab-btn-forgia-icon { font-size: 28px; flex-shrink: 0; }
+.fab-btn-forgia-testo { flex: 1; text-align: center; }
+.fab-btn-forgia:hover:not(:disabled) {
+  filter: brightness(1.25);
+  transform: translateY(-2px);
+  border-color: rgba(240, 192, 64, 0.95);
+  box-shadow: 0 6px 28px rgba(240, 192, 64, 0.35);
+}
+.fab-btn-forgia:active:not(:disabled) { transform: translateY(0) scale(0.98); }
+.fab-btn-forgia:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Animazione forgiatura */
+.fab-btn-forgia--animating {
+  animation: forgiaColpo 1.6s ease-out;
+}
+@keyframes forgiaColpo {
+  0%   { transform: scale(1);     filter: brightness(1);   box-shadow: 0 4px 20px rgba(240,192,64,0.2); }
+  8%   { transform: scale(1.06);  filter: brightness(1.7); box-shadow: 0 0 60px rgba(240,192,64,0.9), 0 0 100px rgba(255,120,0,0.5); }
+  13%  { transform: scale(0.96) translateX(-5px); filter: brightness(1.4); }
+  18%  { transform: scale(0.98) translateX(5px);  filter: brightness(1.3); }
+  23%  { transform: scale(0.97) translateX(-3px); }
+  28%  { transform: scale(1.00) translateX(3px);  }
+  33%  { transform: scale(1.01) translateX(-1px); box-shadow: 0 0 30px rgba(240,192,64,0.55); filter: brightness(1.15); }
+  45%  { transform: scale(1.00); box-shadow: 0 0 18px rgba(240,192,64,0.35); filter: brightness(1.07); }
+  100% { transform: scale(1);    box-shadow: 0 4px 20px rgba(240,192,64,0.2); filter: brightness(1); }
+}
+
+/* ── InventarioCard ── */
+.inv-card { cursor: default; }
+.inv-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.fab-ricetta-card-sel .inv-card-top { justify-content: center; }
+.inv-btn-x {
+  flex-shrink: 0;
+  align-self: flex-start;
+  background: none;
+  border: 1px solid rgba(180, 40, 20, 0.4);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  color: #cc5030;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+.inv-btn-x:hover { opacity: 1; border-color: rgba(180, 40, 20, 0.9); }
+.inv-btn-elimina {
   font-family: 'Cinzel', serif;
   font-size: 16px;
-  letter-spacing: 0.1em;
-  padding: 14px 24px;
-  background: linear-gradient(135deg, #2a1808, #6a3810);
-  border: 2px solid rgba(240, 192, 64, 0.55);
-  color: #f0c040;
+  letter-spacing: 0.12em;
+  padding: 12px;
+  width: 100%;
+  background: rgba(60, 10, 5, 0.7);
+  border: 2px solid rgba(180, 40, 20, 0.5);
+  color: #cc5030;
   border-radius: 8px;
   cursor: pointer;
-  transition: filter 0.15s, transform 0.1s, border-color 0.15s;
-  margin-top: auto;
-  align-self: flex-start;
+  transition: filter 0.15s, border-color 0.15s;
 }
-.fab-btn-forgia:hover:not(:disabled) {
+.inv-btn-elimina:hover {
   filter: brightness(1.2);
-  transform: translateY(-2px);
-  border-color: rgba(240, 192, 64, 1);
+  border-color: rgba(200, 60, 30, 0.9);
 }
-.fab-btn-forgia:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Collezione ── */
 .fab-inventario {
-  width: 220px;
-  flex-shrink: 0;
-  background: rgba(4, 2, 1, 0.88);
+  width: 420px;
   border-left: 1px solid rgba(90, 53, 16, 0.5);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 14px 12px;
-  gap: 8px;
-}
-.fab-inv-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow-y: auto;
-  flex: 1;
-}
-.fab-inv-list::-webkit-scrollbar { width: 3px; }
-.fab-inv-list::-webkit-scrollbar-thumb { background: rgba(90, 53, 16, 0.6); border-radius: 2px; }
-
-.fab-inv-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: 6px;
-  background: rgba(10, 5, 1, 0.7);
-  border: 1px solid rgba(90, 53, 16, 0.3);
-}
-.fab-inv-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  overflow: hidden;
-}
-.fab-inv-nome {
-  font-family: 'Cinzel', serif;
-  font-size: 12px;
-  color: #f5e0b0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.fab-inv-stats {
-  font-family: 'Crimson Text', serif;
-  font-size: 11px;
-  color: #c8a060;
-}
-.fab-inv-natura {
-  font-family: 'Cinzel', serif;
-  font-size: 10px;
-  font-weight: bold;
-  flex-shrink: 0;
 }
 
 /* ── Mobile portrait ── */
@@ -324,22 +685,26 @@
   .fab-body { flex-direction: column; overflow: visible; min-height: unset; }
   .fab-root { height: auto; overflow: auto; }
   .fab-ricette {
-    width: 100%; max-height: 200px;
+    width: 100%; max-height: 260px;
     border-right: none; border-bottom: 1px solid rgba(90, 53, 16, 0.5);
-    flex-direction: row; flex-wrap: wrap; gap: 6px; padding: 10px;
+    flex-direction: row; flex-wrap: wrap; gap: 8px; padding: 10px;
   }
-  .fab-ricetta  { width: calc(50% - 3px); flex: none; }
+  .fab-ricetta-card { width: calc(50% - 4px); flex: none; }
   .fab-dettaglio { padding: 16px; }
   .fab-inventario { width: 100%; border-left: none; border-top: 1px solid rgba(90, 53, 16, 0.5); max-height: 240px; }
 }
 
 /* ── Landscape piccolo ── */
 @media (max-height: 600px) and (orientation: landscape) {
-  .fab-ricette   { width: 200px; gap: 6px; padding: 10px 8px; }
-  .fab-inventario { width: 180px; padding: 10px 8px; }
+  .fab-ricette   { width: 420px; gap: 6px; padding: 10px 8px; }
+  .fab-section-title { font-size: 45px; }
+  .fab-inventario { width: 420px; }
   .fab-det-nome  { font-size: 16px; }
   .fab-dettaglio { padding: 14px 18px; gap: 12px; }
-  .fab-btn-forgia { font-size: 13px; padding: 10px 16px; }
+  .fab-btn-forgia { font-size: 15px; padding: 14px 18px; }
+  .fab-btn-forgia-icon { font-size: 20px; }
+  .fab-forgia-sezione { padding: 12px; gap: 10px; }
+  .fab-forgia-nome-input { padding: 8px 12px; font-size: 15px; }
   .fab-header { min-height: 48px; padding: 6px 16px; }
   .back-btn { width: 44px; height: 44px; padding: 10px; }
   .back-btn-icon { width: 22px; height: 22px; }

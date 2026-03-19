@@ -1,30 +1,14 @@
 import { useState, useEffect } from "react";
-import SilhouettePiece from "../SilhouettePiece.jsx";
 import BackButton from "../components/BackButton.jsx";
+import MaterialiPanel from "./MaterialiPanel.jsx";
+import RicettaCard from "./RicettaCard.jsx";
+import InventarioCard from "./InventarioCard.jsx";
+import PannelloLista from "./PannelloLista.jsx";
+import RequisitiForgia, { puoForgiare } from "./RequisitiForgia.jsx";
 import "./Fabbro.css";
 
 const API_URL  = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 const SAVE_KEY = "qb_game_stats";
-
-const NATURA_DA_NOME = {
-  "Cavaliere":   "Guerriero",
-  "Ranger":      "Arciere",
-  "Scudiero":    "Baluardo",
-  "Assassino":   "Ombra",
-  "Mago":        "Arcano",
-  "Campione":    "Sentinella",
-  "Guerriero":   "Guerriero",
-  "Arciere":     "Arciere",
-};
-
-const NATURA_COLORE = {
-  Guerriero: "#d04030",
-  Arciere:   "#a0c040",
-  Baluardo:  "#4080c0",
-  Ombra:     "#9040c0",
-  Arcano:    "#40b0d0",
-  Sentinella:"#c0a030",
-};
 
 const RICETTE = [
   {
@@ -67,27 +51,16 @@ function leggiGemme() {
   return 0;
 }
 
-function getNatura(pezzo) {
-  if (pezzo.materiali) return pezzo.materiali;
-  return NATURA_DA_NOME[pezzo.nome] ?? null;
-}
-
-function NaturaTag({ natura }) {
-  if (!natura) return null;
-  const colore = NATURA_COLORE[natura] ?? "#888";
-  return (
-    <span className="fab-natura-tag" style={{ "--natura-color": colore }}>
-      {natura}
-    </span>
-  );
-}
-
 export default function Fabbro({ token, onBack }) {
   const [gemme]      = useState(leggiGemme);
   const [scelta,     setScelta]     = useState(null);
   const [forgiando,  setForgiando]  = useState(false);
+  const [animating,  setAnimating]  = useState(false);
   const [msg,        setMsg]        = useState(null);
   const [inventario, setInventario] = useState([]);
+  const [materiali,  setMateriali]  = useState([]);
+  const [toast,      setToast]      = useState(null);
+  const [invAperta,  setInvAperta]  = useState(null); // { testo, tipo: "ok"|"err" }
 
   useEffect(() => {
     fetch(`${API_URL}/api/inventario`, {
@@ -98,9 +71,43 @@ export default function Fabbro({ token, onBack }) {
       .catch(() => {});
   }, [token]);
 
+  useEffect(() => {
+    fetch(`${API_URL}/api/materiali`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data => setMateriali(data))
+      .catch(() => {});
+  }, [token]);
+
+  const mostraToast = (testo, tipo) => {
+    setToast({ testo, tipo });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleElimina = async (id) => {
+    const pezzo = inventario.find(p => p.id === id);
+    try {
+      const res = await fetch(`${API_URL}/api/inventario/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setInventario(prev => prev.filter(p => p.id !== id));
+        mostraToast(`Eliminato ${pezzo?.nome ?? "pezzo"}`, "ok");
+      } else {
+        mostraToast("Errore durante l'eliminazione.", "err");
+      }
+    } catch {
+      mostraToast("Errore durante l'eliminazione.", "err");
+    }
+  };
+
   const handleForgia = async () => {
     if (!scelta || forgiando) return;
     setForgiando(true);
+    setAnimating(true);
+    setTimeout(() => setAnimating(false), 1600);
     setMsg(null);
     try {
       const res = await fetch(`${API_URL}/api/inventario/crafta`, {
@@ -129,6 +136,9 @@ export default function Fabbro({ token, onBack }) {
 
   return (
     <div className="fab-root">
+      {toast && (
+        <div className={`fab-toast fab-toast-${toast.tipo}`}>{toast.testo}</div>
+      )}
 
       {/* ── Header ── */}
       <header className="fab-header">
@@ -145,103 +155,86 @@ export default function Fabbro({ token, onBack }) {
       <div className="fab-body">
 
         {/* ── Ricette ── */}
-        <div className="fab-ricette">
-          <div className="fab-section-title">Ricette</div>
-          {RICETTE.map(r => {
-            const isSelected   = scelta?.id === r.id;
-            const natColore    = NATURA_COLORE[r.natura] ?? "#888";
-            const giaForgiato  = inventario.some(p => p.nome === r.nome);
-            return (
-              <button
-                key={r.id}
-                className={`fab-ricetta${isSelected ? " fab-ricetta-sel" : ""}`}
-                onClick={() => { setScelta(r); setMsg(null); }}
-              >
-                <SilhouettePiece natura={r.natura} size={48} />
-                <div className="fab-ricetta-info">
-                  <span className="fab-ricetta-nome">{r.nome}</span>
-                  <span className="fab-ricetta-natura" style={{ color: natColore }}>{r.natura}</span>
-                </div>
-                {giaForgiato
-                  ? <span className="fab-ricetta-badge-ok">✓</span>
-                  : <span className="fab-ricetta-costo">Gratis</span>
-                }
-              </button>
-            );
-          })}
-        </div>
+        <PannelloLista
+          className="fab-ricette"
+          titolo="Ricette"
+          items={RICETTE}
+          filterFn={(r, q) => r.nome.toLowerCase().includes(q.toLowerCase()) || r.natura.toLowerCase().includes(q.toLowerCase())}
+          renderItem={r => (
+            <RicettaCard
+              key={r.id}
+              ricetta={r}
+              selected={scelta?.id === r.id}
+              giaForgiato={inventario.some(p => p.nome === r.nome)}
+              onClick={() => { setScelta(r); setMsg(null); }}
+            />
+          )}
+        />
 
-        {/* ── Dettaglio + forgia ── */}
+        {/* ── Centro: dettaglio + materiali ── */}
+        <div className="fab-centro">
         <div className="fab-dettaglio">
+          <div className="pnl-header">
+            <span className="fab-section-title">Dettaglio</span>
+          </div>
           {!scelta ? (
             <div className="fab-vuoto">
-              <div className="fab-vuoto-icon">⚒️</div>
               <p className="fab-vuoto-testo">Scegli una ricetta per vedere i dettagli</p>
             </div>
           ) : (
-            <>
-              <div className="fab-det-header">
-                <SilhouettePiece natura={scelta.natura} size={80} />
-                <div>
-                  <div className="fab-det-nome">{scelta.nome}</div>
-                  <NaturaTag natura={scelta.natura} />
+            <div className="pnl-list">
+              <RequisitiForgia pezzo={scelta} materiali={materiali} />
+
+              <div className="fab-forgia-sezione">
+                <div className="fab-forgia-nome-wrap">
+                  <label className="fab-forgia-nome-label">
+                    Nome della pedina
+                    <span className="fab-forgia-nome-badge">Presto disponibile</span>
+                  </label>
+                  <input
+                    className="fab-forgia-nome-input"
+                    type="text"
+                    placeholder={`Es. "${scelta.nome}"`}
+                    disabled
+                  />
                 </div>
+                <button
+                  className={`fab-btn-forgia${animating ? " fab-btn-forgia--animating" : ""}`}
+                  onClick={handleForgia}
+                  disabled={forgiando || !puoForgiare(materiali)}
+                >
+                  <span className="fab-btn-forgia-icon">⚒</span>
+                  <span className="fab-btn-forgia-testo">
+                    {forgiando ? "Forgiatura..." : `Forgia ${scelta.nome}`}
+                  </span>
+                </button>
               </div>
 
-              <p className="fab-det-desc">{scelta.desc}</p>
-
-              <div className="fab-stats-grid">
-                {[
-                  { lbl: "HP",  val: scelta.hp,  icon: "❤" },
-                  { lbl: "ATK", val: scelta.atk, icon: "⚔" },
-                  { lbl: "DEF", val: scelta.def, icon: "🛡" },
-                  { lbl: "MOV", val: scelta.mov, icon: "👟" },
-                ].map(s => (
-                  <div key={s.lbl} className="fab-stat">
-                    <span className="fab-stat-icon">{s.icon}</span>
-                    <span className="fab-stat-val">{s.val}</span>
-                    <span className="fab-stat-lbl">{s.lbl}</span>
-                  </div>
-                ))}
+              <div className={`fab-msg${msg ? ` fab-msg-${msg.tipo}` : " fab-msg-vuoto"}`}>
+                {msg?.testo ?? ""}
               </div>
-
-              {msg && (
-                <div className={`fab-msg fab-msg-${msg.tipo}`}>{msg.testo}</div>
-              )}
-
-              <button
-                className="fab-btn-forgia"
-                onClick={handleForgia}
-                disabled={forgiando}
-              >
-                {forgiando ? "⚒ Forgiatura..." : `⚒ Forgia ${scelta.nome}`}
-              </button>
-            </>
+            </div>
           )}
         </div>
-
-        {/* ── Collezione ── */}
-        <div className="fab-inventario">
-          <div className="fab-section-title">Collezione ({inventario.length})</div>
-          <div className="fab-inv-list">
-            {inventario.map(p => {
-              const natura   = getNatura(p);
-              const natColor = NATURA_COLORE[natura] ?? "#888";
-              return (
-                <div key={p.id} className="fab-inv-item">
-                  <SilhouettePiece natura={getNatura(p)} size={40} />
-                  <div className="fab-inv-info">
-                    <span className="fab-inv-nome">{p.nome}</span>
-                    <span className="fab-inv-stats">❤{p.hp} ⚔{p.atk} 🛡{p.def} 👟{p.mov}</span>
-                  </div>
-                  {natura && (
-                    <span className="fab-inv-natura" style={{ color: natColor }}>{natura}</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <MaterialiPanel materiali={materiali} />
         </div>
+
+        {/* ── Armeria ── */}
+        <PannelloLista
+          className="fab-inventario"
+          titolo={`Armeria (${inventario.length})`}
+          items={inventario}
+          filterFn={(p, q) => p.nome.toLowerCase().includes(q.toLowerCase())}
+          renderItem={p => (
+            <InventarioCard
+              key={p.id}
+              pezzo={p}
+              aperto={invAperta === p.id}
+              onToggle={() => setInvAperta(v => v === p.id ? null : p.id)}
+              onElimina={handleElimina}
+            />
+          )}
+        />
 
       </div>
     </div>

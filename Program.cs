@@ -136,6 +136,42 @@ using (var scope = app.Services.CreateScope())
     }
     catch { }
 
+    // Migrazione: tabella MaterialiUtente
+    try
+    {
+        if (isPostgres)
+        {
+            db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ""MaterialiUtente"" (
+                    ""Id""        SERIAL PRIMARY KEY,
+                    ""UtenteId""  INTEGER NOT NULL,
+                    ""Tipo""      TEXT    NOT NULL DEFAULT '',
+                    ""Categoria"" TEXT    NOT NULL DEFAULT 'materiale',
+                    ""Quantita""  INTEGER NOT NULL DEFAULT 0
+                )");
+        }
+        else
+        {
+            db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ""MaterialiUtente"" (
+                    ""Id""        INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ""UtenteId""  INTEGER NOT NULL,
+                    ""Tipo""      TEXT    NOT NULL DEFAULT '',
+                    ""Categoria"" TEXT    NOT NULL DEFAULT 'materiale',
+                    ""Quantita""  INTEGER NOT NULL DEFAULT 0
+                )");
+        }
+    }
+    catch { }
+
+    // Seed materiali per utenti esistenti senza materiali
+    var utentiSenzaMateriali = db.Utenti
+        .Where(u => !db.MaterialiUtente.Any(m => m.UtenteId == u.Id))
+        .ToList();
+    foreach (var u in utentiSenzaMateriali)
+        SeedMaterialiDefault(db, u.Id);
+    if (utentiSenzaMateriali.Any()) db.SaveChanges();
+
     // Seed admin
     if (!db.Utenti.Any(u => u.Ruolo == "admin"))
     {
@@ -250,6 +286,28 @@ app.MapPost("/api/inventario/crafta", async (ClaimsPrincipal user, CraftaRequest
     return Results.Ok(new { pezzo.Id, pezzo.Nome, pezzo.Icona, pezzo.Hp, pezzo.HpMax, pezzo.Atk, pezzo.Def, pezzo.Mov, pezzo.IsClassico, pezzo.Materiali });
 }).RequireAuthorization();
 
+// ── Endpoint: elimina pezzo inventario ───────────────────────────────────────
+app.MapDelete("/api/inventario/{id}", async (int id, ClaimsPrincipal user, AppDbContext db) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    var pezzo = await db.PezziUtente.FindAsync(id);
+    if (pezzo is null || pezzo.UtenteId != utenteId) return Results.NotFound();
+    db.PezziUtente.Remove(pezzo);
+    await db.SaveChangesAsync();
+    return Results.Ok();
+}).RequireAuthorization();
+
+// ── Endpoint: materiali utente ────────────────────────────────────────────────
+app.MapGet("/api/materiali", async (ClaimsPrincipal user, AppDbContext db) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    var materiali = await db.MaterialiUtente
+        .Where(m => m.UtenteId == utenteId)
+        .Select(m => new { m.Tipo, m.Categoria, m.Quantita })
+        .ToListAsync();
+    return Results.Ok(materiali);
+}).RequireAuthorization();
+
 // ── Endpoint: utenti ──────────────────────────────────────────────────────────
 app.MapGet("/utenti", async (AppDbContext db) =>
     await db.Utenti.Select(u => new { u.Id, u.Nome, u.Cognome, u.Email, u.Ruolo }).ToListAsync())
@@ -280,8 +338,9 @@ app.MapPost("/registrati", async (RegistrazioneRequest req, AppDbContext db) =>
     db.Utenti.Add(utente);
     await db.SaveChangesAsync();
 
-    // Seed pezzi classici al nuovo utente
+    // Seed pezzi classici e materiali al nuovo utente
     SeedPezziClassici(db, utente.Id);
+    SeedMaterialiDefault(db, utente.Id);
     await db.SaveChangesAsync();
 
     var token = GeneraToken(utente, key);
@@ -321,6 +380,18 @@ string GeneraToken(Utente utente, SymmetricSecurityKey key)
     return new JwtSecurityTokenHandler().WriteToken(jwt);
 }
 
+// ── Helper: seed materiali default per un utente ──────────────────────────────
+void SeedMaterialiDefault(AppDbContext db, int utenteId)
+{
+    var defaults = new[]
+    {
+        new MaterialeUtente { UtenteId = utenteId, Tipo = "legna",  Categoria = "materiale", Quantita = 100 },
+        new MaterialeUtente { UtenteId = utenteId, Tipo = "quarzo", Categoria = "gemma",     Quantita = 100 },
+        new MaterialeUtente { UtenteId = utenteId, Tipo = "resina", Categoria = "reagente",  Quantita = 100 },
+    };
+    db.MaterialiUtente.AddRange(defaults);
+}
+
 // ── Helper: seed 6 pezzi classici per un utente ───────────────────────────────
 void SeedPezziClassici(AppDbContext db, int utenteId)
 {
@@ -339,9 +410,10 @@ void SeedPezziClassici(AppDbContext db, int utenteId)
 // ── Modelli ───────────────────────────────────────────────────────────────────
 class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
-    public DbSet<Utente>      Utenti      => Set<Utente>();
-    public DbSet<PezzoUtente> PezziUtente => Set<PezzoUtente>();
-    public DbSet<Formazione>  Formazioni  => Set<Formazione>();
+    public DbSet<Utente>          Utenti          => Set<Utente>();
+    public DbSet<PezzoUtente>     PezziUtente     => Set<PezzoUtente>();
+    public DbSet<Formazione>      Formazioni      => Set<Formazione>();
+    public DbSet<MaterialeUtente> MaterialiUtente => Set<MaterialeUtente>();
 }
 
 class Utente
@@ -374,6 +446,15 @@ class Formazione
     public int    Id       { get; set; }
     public int    UtenteId { get; set; }
     public string Data     { get; set; } = "[]"; // JSON: [{id,row,col,isRe}]
+}
+
+class MaterialeUtente
+{
+    public int    Id        { get; set; }
+    public int    UtenteId  { get; set; }
+    public string Tipo      { get; set; } = "";
+    public string Categoria { get; set; } = "materiale"; // "materiale" | "gemma" | "reagente"
+    public int    Quantita  { get; set; }
 }
 
 record LoginRequest(string Email, string Password);
