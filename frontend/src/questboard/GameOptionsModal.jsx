@@ -1,33 +1,29 @@
 import { useState } from "react";
-import "./GameOptionsModal.css";
+import GameModal from "./GameModal";
 
 export default function GameOptionsModal({ onClose, onRestart, onRetire }) {
   const [confirm, setConfirm] = useState(false);
 
   if (confirm) {
     return (
-      <div className="gom-overlay">
-        <div className="gom-box">
-          <h2 className="gom-title">⚠ SEI SICURO DI RITIRARTI?</h2>
-          <div className="gom-btns">
-            <button className="qbg-btn qbg-btn-gold" onClick={onRetire}>Sì, ritirati</button>
-            <button className="qbg-btn qbg-btn-dark"  onClick={() => setConfirm(false)}>No, continua</button>
-          </div>
-        </div>
-      </div>
+      <GameModal
+        title="⚠ SEI SICURO DI RITIRARTI?"
+        buttons={[
+          { label: "Sì, ritirati", onClick: onRetire },
+          { label: "No, continua", onClick: () => setConfirm(false), variant: "dark" },
+        ]}
+      />
     );
   }
 
   return (
-    <div className="gom-overlay">
-      <div className="gom-box">
-        <h2 className="gom-title">⚙ Opzioni</h2>
-        <div className="gom-btns">
-          <button className="qbg-btn qbg-btn-gold" onClick={onRestart}>↺ Ricomincia</button>
-          <button className="qbg-btn qbg-btn-dark"  onClick={() => setConfirm(true)}>⚑ Ritirati</button>
-        </div>
-        <button className="gom-close" onClick={onClose}>✕</button>
-      </div>
-    </div>
+    <GameModal
+      title="⚙ Opzioni"
+      onClose={onClose}
+      buttons={[
+        { label: "↺ Ricomincia", onClick: onRestart },
+        { label: "⚑ Ritirati",   onClick: () => setConfirm(true), variant: "dark" },
+      ]}
+    />
   );
 }

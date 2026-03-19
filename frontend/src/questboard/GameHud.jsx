@@ -25,7 +25,7 @@ export default function GameHud({ game, utente, onOptions, onFineTurno, pieceJus
         {/* Centro VS */}
         <div className="qbg-hud-center">
           <span className="qbg-hud-vs">VS</span>
-          <span className="qbg-hud-round">Round {game.round}</span>
+          <span className="qbg-hud-round">R{game.playerRound} / R{game.aiRound}</span>
         </div>
 
         {/* Lato AI */}

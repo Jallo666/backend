@@ -1,0 +1,582 @@
+/* Formazione.css — schermata formazione — allineata a QuestBoard */
+
+/* ── CSS Variables ── */
+.form-root {
+  --hs-gold:      #f0c040;
+  --hs-gold-dim:  #c8900a;
+  --hs-wood-dark: #190e04;
+  --hs-wood-mid:  #2e1808;
+  --hs-wood-rim:  #5a3510;
+  --hs-cream:     #f5e0b0;
+  --hs-muted:     #c8a060;
+
+  height: 100dvh;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(10, 4, 0, 0.42), rgba(10, 4, 0, 0.42)),
+    url('../assets/background_taverna_questboard.png') center / cover no-repeat fixed;
+  color: var(--hs-cream);
+  font-family: 'Crimson Text', serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Loading ── */
+.form-loading {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100dvh; gap: 1rem;
+  font-family: 'Cinzel', serif;
+  font-size: 14px; color: var(--hs-gold);
+}
+.form-spin { font-size: 2.5rem; animation: rpgSpinF 1s steps(8,end) infinite; }
+@keyframes rpgSpinF { from { transform: rotate(0) } to { transform: rotate(360deg) } }
+
+/* ── Header ── */
+.form-header {
+  padding: 10px 20px;
+  background: rgba(10, 5, 1, 0.97);
+  border-bottom: 2px solid var(--hs-wood-rim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.6);
+  min-height: 64px;
+}
+
+.form-back-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: transparent;
+  border: 1px solid var(--hs-wood-rim);
+  color: var(--hs-gold);
+  padding: 7px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.form-back-btn:hover {
+  background: #2a1408;
+  border-color: var(--hs-gold);
+}
+.form-back-icon {
+  width: 18px; height: 18px;
+  filter: invert(80%) sepia(60%) saturate(300%) hue-rotate(10deg);
+}
+.form-back-btn span {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+
+.form-header-center {
+  text-align: center;
+  flex: 1;
+}
+.form-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 22px;
+  color: var(--hs-gold);
+  margin: 0;
+  text-shadow: 0 0 16px rgba(240,192,64,0.35);
+  line-height: 1.2;
+}
+.form-subtitle {
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+  font-size: 14px;
+  color: var(--hs-muted);
+  margin: 2px 0 0;
+}
+
+.form-header-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+}
+.form-status-ok   { color: #40cc60; }
+.form-status-warn { color: #a07020; }
+
+/* ── Body ── */
+.form-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Board area ── */
+.form-board-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 24px;
+  gap: 4px;
+  /* forza il contenuto a usare tutta l'altezza disponibile */
+  min-height: 0;
+}
+
+/* La larghezza del board = il minore tra altezza disponibile e larghezza disponibile */
+.form-col-labels-row {
+  display: flex;
+  width: min(calc(100dvh - 130px), calc(67vw - 80px));
+}
+.form-row-labels-spacer {
+  width: 22px;
+  flex-shrink: 0;
+}
+.form-col-labels {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.form-col-label {
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: var(--hs-muted);
+  line-height: 1.4;
+}
+
+.form-board-row {
+  display: flex;
+  gap: 4px;
+  width: min(calc(100dvh - 130px), calc(67vw - 80px));
+  flex: 1; /* occupa l'altezza rimanente */
+  min-height: 0;
+}
+.form-row-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 22px;
+  flex-shrink: 0;
+}
+.form-row-label {
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: var(--hs-muted);
+  line-height: 1;
+}
+
+.form-board {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  gap: 4px;
+  aspect-ratio: 1;
+  /* il board usa l'altezza disponibile come dimensione guida */
+  max-height: 100%;
+}
+
+.form-cell {
+  border: 1px solid #2e1a08;
+  border-radius: 2px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s, border-color 0.15s;
+  min-height: 0;
+}
+.form-cell-enemy {
+  background-color: #140a04;
+  background-image: url('../assets/casella_board.png');
+  background-size: cover;
+  background-blend-mode: overlay;
+}
+.form-cell-player {
+  background-color: #0a1020;
+  background-image: url('../assets/casella_board.png');
+  background-size: cover;
+  background-blend-mode: overlay;
+  box-shadow: inset 0 0 0 1px rgba(50,130,230,0.2);
+}
+.form-cell-target {
+  background: rgba(240,192,64,0.08);
+  border-color: rgba(240,192,64,0.6);
+  animation: formTargetPulse 1.2s ease-in-out infinite;
+}
+@keyframes formTargetPulse {
+  0%, 100% { border-color: rgba(240,192,64,0.45); box-shadow: none; }
+  50%       { border-color: rgba(240,192,64,0.9);  box-shadow: inset 0 0 8px rgba(240,192,64,0.15); }
+}
+.form-cell-selected {
+  border-color: var(--hs-gold);
+  box-shadow: 0 0 10px rgba(240,192,64,0.5);
+}
+
+/* ── Pezzi sul board ── */
+.form-piece {
+  width: 85%; height: 85%;
+  border: 2px solid var(--piece-border, var(--hs-wood-rim));
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  background: #0e0804;
+  position: relative;
+  box-shadow: 0 0 6px var(--piece-glow, var(--hs-wood-rim));
+  transition: box-shadow 0.15s;
+}
+.form-piece-re {
+  box-shadow: 0 0 14px var(--hs-gold), 0 0 4px var(--hs-gold);
+  border-color: var(--hs-gold);
+}
+.form-piece-crown {
+  position: absolute;
+  top: -11px;
+  font-size: 12px;
+  color: var(--hs-gold);
+  text-shadow: 0 0 6px rgba(240,192,64,0.7);
+}
+
+.form-msg {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: var(--hs-gold);
+  text-align: center;
+  margin: 4px 0 0;
+}
+
+/* ── Side panel ── */
+.form-side {
+  width: 33vw;
+  min-width: 280px;
+  max-width: 460px;
+  flex-shrink: 0;
+  background: rgba(10, 5, 1, 0.97);
+  border-left: 2px solid var(--hs-wood-rim);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.form-section { display: flex; flex-direction: column; gap: 8px; }
+.form-section-title {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--hs-gold);
+  border-bottom: 1px solid #3a1e08;
+  padding-bottom: 6px;
+  margin: 0;
+}
+
+/* ── Nome + salva ── */
+.form-nome-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.form-nome-input {
+  flex: 1;
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  background: rgba(10,5,1,0.95);
+  border: 1px solid var(--hs-wood-rim);
+  color: var(--hs-cream);
+  padding: 8px 10px;
+  border-radius: 3px;
+  outline: none;
+  transition: border-color 0.15s;
+  min-width: 0;
+}
+.form-nome-input:focus { border-color: rgba(240,192,64,0.6); }
+.form-nome-input::placeholder { color: #5a3510; }
+
+/* ── Bottoni unificati ── */
+.form-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 9px 14px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+}
+.form-btn:hover:not(:disabled) { filter: brightness(1.2); transform: translateY(-1px); }
+.form-btn:disabled { opacity: 0.38; cursor: not-allowed; filter: none; transform: none; }
+
+.form-btn-save   { background: #0a1620; border: 1px solid #2060a0; color: #80c0f0; white-space: nowrap; padding: 8px 12px; font-size: 12px; }
+.form-btn-re     { background: #1a1200; border: 1px solid var(--hs-gold); color: var(--hs-gold); }
+.form-btn-remove { background: #1a0808; border: 1px solid #cc3333; color: #cc3333; }
+.form-btn-cancel { background: rgba(20,10,2,0.8); border: 1px solid #3a1e08; color: var(--hs-muted); }
+.form-btn-danger { background: #2a0808; border: 1px solid #cc3333; color: #f08080; }
+.form-btn-avvia  {
+  background: linear-gradient(135deg, #1a0808, #4a1414);
+  border: 1px solid #993333;
+  color: var(--hs-gold);
+  width: 100%;
+  font-size: 14px;
+  padding: 11px 14px;
+  letter-spacing: 0.06em;
+}
+.form-btn-avvia:not(:disabled):hover { filter: brightness(1.2); background: linear-gradient(135deg, #2a0808, #5a1818); }
+
+/* ── Sezione header con + ── */
+.form-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.form-btn-icon {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  background: rgba(20,10,2,0.8);
+  border: 1px solid var(--hs-wood-rim);
+  color: var(--hs-gold);
+  width: 26px; height: 26px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s;
+}
+.form-btn-icon:hover { background: rgba(240,192,64,0.15); }
+
+/* ── Formazioni salvate ── */
+.form-formazioni-lista {
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.form-formazioni-lista::-webkit-scrollbar { width: 3px; }
+.form-formazioni-lista::-webkit-scrollbar-thumb { background: var(--hs-wood-rim); border-radius: 2px; }
+.form-empty-hint {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: var(--hs-wood-rim);
+  text-align: center;
+  padding: 6px 0;
+}
+
+.form-formazione-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  background: rgba(20,10,2,0.7);
+  border: 1px solid #3a1e08;
+  transition: background 0.15s, border-color 0.15s;
+}
+.form-formazione-item:hover         { background: rgba(240,192,64,0.06); border-color: var(--hs-wood-rim); }
+.form-formazione-item-active        { background: rgba(240,192,64,0.1) !important; border-color: rgba(240,192,64,0.5) !important; }
+.form-formazione-nome   { font-family: 'Cinzel', serif; font-size: 12px; color: var(--hs-gold); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.form-formazione-slots  { font-family: 'Crimson Text', serif; font-size: 14px; color: var(--hs-muted); flex-shrink: 0; }
+.form-formazione-del    { background: transparent; border: none; color: #664433; font-size: 13px; cursor: pointer; padding: 0 4px; line-height: 1; transition: color 0.15s; flex-shrink: 0; }
+.form-formazione-del:hover { color: #ee4444; }
+
+/* ── Azioni cella selezionata ── */
+.form-cell-actions {
+  background: rgba(20,10,2,0.85);
+  padding: 10px 12px;
+  border-radius: 4px;
+  border: 1px solid #3a1e08;
+}
+.form-stats-row {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: var(--hs-muted);
+}
+.form-cell-action-btns {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+
+/* ── Inventario — occupa spazio rimanente ── */
+.form-section-inv {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+.form-section-inv::-webkit-scrollbar { width: 4px; }
+.form-section-inv::-webkit-scrollbar-thumb { background: var(--hs-wood-rim); border-radius: 2px; }
+
+.form-inv { display: flex; flex-direction: column; gap: 6px; }
+.form-inv-piece {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--piece-border, #3a1e08);
+  border-radius: 4px;
+  cursor: pointer;
+  background: rgba(20, 10, 2, 0.8);
+  transition: background 0.15s, border-color 0.15s;
+}
+.form-inv-piece:hover:not(.form-inv-placed) {
+  background: rgba(240,192,64,0.08);
+  border-color: rgba(240,192,64,0.5);
+}
+.form-inv-selected {
+  background: rgba(240,192,64,0.12) !important;
+  border-color: var(--hs-gold) !important;
+  box-shadow: 0 0 8px rgba(240,192,64,0.3);
+}
+.form-inv-placed { opacity: 0.5; cursor: not-allowed; }
+.form-inv-info { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+.form-inv-nome  { font-family: 'Cinzel', serif; font-size: 13px; color: var(--hs-gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.form-inv-stats { font-family: 'Crimson Text', serif; font-size: 13px; color: var(--hs-muted); }
+.form-inv-badge { font-size: 16px; color: #40cc60; flex-shrink: 0; }
+/* badge ♛ ha colore oro */
+.form-inv-badge:not(:empty)[aria-label="re"] { color: var(--hs-gold); }
+
+/* ── Footer sticky ── */
+.form-panel-footer {
+  flex-shrink: 0;
+  border-top: 1px solid #3a1e08;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.form-progress {
+  font-family: 'Crimson Text', serif;
+  font-size: 14px;
+  color: var(--hs-muted);
+}
+.form-reset-link {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: #a05030;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-align: left;
+  padding: 0;
+  transition: color 0.15s;
+}
+.form-reset-link:hover:not(:disabled) { color: #cc6644; }
+.form-reset-link:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Abilità nell'inventario (chip compact) ── */
+.form-inv-abilita {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px;
+}
+.form-inv-abilita-chip {
+  font-family: 'Crimson Text', serif;
+  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  border: 1px solid;
+  cursor: default;
+  white-space: nowrap;
+}
+.form-inv-chip-ardore { background: rgba(40,80,200,0.15); border-color: rgba(80,120,220,0.5); color: #80aaff; }
+.form-inv-chip-gesta  { background: rgba(200,80,20,0.12);  border-color: rgba(220,120,40,0.5); color: #ffaa60; }
+.form-inv-chip-aura   { background: rgba(80,160,80,0.12);  border-color: rgba(80,180,80,0.5);  color: #80e080; }
+
+/* ── Abilità nel pannello cella selezionata ── */
+.form-abilita-list {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.form-abilita-card {
+  display: flex; gap: 8px; align-items: flex-start;
+  padding: 7px 10px;
+  border-radius: 4px;
+  border-left: 3px solid;
+}
+.form-abilita-ardore { background: rgba(40,80,200,0.12); border-color: #5080e0; }
+.form-abilita-gesta  { background: rgba(200,80,20,0.12);  border-color: #e06030; }
+.form-abilita-aura   { background: rgba(80,160,80,0.12);  border-color: #50c050; }
+.form-abilita-icon { font-size: 18px; flex-shrink: 0; line-height: 1.3; }
+.form-abilita-info { display: flex; flex-direction: column; gap: 2px; }
+.form-abilita-nome {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  color: var(--hs-cream);
+}
+.form-abilita-tag {
+  font-family: 'Crimson Text', serif;
+  font-size: 11px;
+  opacity: 0.6;
+  margin-left: 4px;
+  font-style: italic;
+}
+.form-abilita-desc {
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: var(--hs-muted);
+  line-height: 1.4;
+}
+
+/* ── Confirm overlay ── */
+.form-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.78);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.form-confirm-box {
+  background:
+    linear-gradient(rgba(20, 10, 2, 0.97), rgba(20, 10, 2, 0.97)),
+    url('../assets/background_taverna_questboard.png') center / cover;
+  border: 2px solid var(--hs-wood-rim);
+  border-radius: 6px;
+  padding: 28px 32px;
+  max-width: 380px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+}
+.form-confirm-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 16px;
+  color: var(--hs-gold);
+  margin: 0;
+  text-align: center;
+}
+.form-confirm-text {
+  font-family: 'Crimson Text', serif;
+  font-size: 15px;
+  color: var(--hs-cream);
+  margin: 0;
+  text-align: center;
+  line-height: 1.5;
+}
+.form-confirm-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* ── Responsive — portrait mobile ── */
+@media (max-width: 700px) and (orientation: portrait) {
+  .form-root { height: auto; min-height: 100dvh; overflow: auto; }
+  .form-body { flex-direction: column; overflow: visible; min-height: unset; }
+  .form-board-wrap { padding: 12px; }
+  .form-col-labels-row,
+  .form-board-row { width: min(calc(100dvw - 24px), 96vw); }
+  .form-side { width: 100%; min-width: unset; max-width: unset; border-left: none; border-top: 2px solid var(--hs-wood-rim); }
+  .form-section-inv { overflow-y: visible; flex: unset; }
+}
+
+/* ── Responsive — landscape piccolo ── */
+@media (max-height: 650px) and (orientation: landscape) {
+  .form-side { width: 30vw; min-width: 240px; gap: 8px; padding: 10px 12px; }
+  .form-section-title { font-size: 10px; padding-bottom: 4px; }
+  .form-formazioni-lista { max-height: 80px; }
+  .form-inv-piece { padding: 5px 8px; gap: 7px; }
+  .form-inv-nome { font-size: 11px; }
+  .form-inv-stats { font-size: 11px; }
+  .form-btn { font-size: 11px; padding: 7px 10px; }
+  .form-btn-avvia { font-size: 12px; padding: 9px 10px; }
+  .form-nome-input { font-size: 10px; padding: 6px 8px; }
+  .form-title { font-size: 16px; }
+  .form-header { min-height: unset; padding: 8px 14px; }
+}

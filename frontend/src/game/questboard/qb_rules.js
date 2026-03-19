@@ -83,10 +83,9 @@ export function resolveCombat(attacker, defender) {
 
 // ── Cura a fine round ─────────────────────────────────────────────────────────
 export function getHealAmount(round) {
-  if (round <= 3) return 5;
-  if (round <= 6) return 3;
-  if (round <= 9) return 1;
-  return -2; // round 10+: danno a tutti i sopravvissuti
+  return Math.max(-20, 10 - 2 * round);
+  // Round 1: +8, Round 2: +6, Round 3: +4, Round 4: +2,
+  // Round 5: 0, Round 6: -2, Round 7: -4 ... (indipendente per giocatore)
 }
 
 // Applica cura (o danno) a fine round ai pezzi sopravvissuti

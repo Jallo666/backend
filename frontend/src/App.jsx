@@ -4,7 +4,7 @@ import Registrazione from "./Registrazione";
 import Gioco from "./Gioco";
 import MainMenu from "./mainmenu/MainMenu";
 import CittaPage from "./CittaPage";
-import Formazione from "./Formazione";
+import Formazione from "./formazione/Formazione";
 import QuestBoardGame from "./questboard/QuestBoardGame";
 import useMusic from "./music/useMusic";
 import { unlockAudio } from "./music/unlockAudio";
@@ -43,8 +43,24 @@ function App() {
   const [qbFormazione,  setQbFormazione]  = useState([]);
 
   useEffect(() => {
-  unlockAudio();
-}, []);
+    unlockAudio();
+  }, []);
+
+  useEffect(() => {
+    const DESIGN_WIDTH = 2560;
+    const update = () => {
+      const scale = window.innerWidth / DESIGN_WIDTH;
+      const root  = document.getElementById('root');
+      if (!root) return;
+      root.style.transform       = `scale(${scale})`;
+      root.style.transformOrigin = 'top left';
+      root.style.width           = `${DESIGN_WIDTH}px`;
+      root.style.minHeight       = `${Math.ceil(window.innerHeight / scale)}px`;
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   // ── Ripristina sessione ──
   useEffect(() => {

@@ -15,6 +15,7 @@
   box-shadow: 0 6px 40px rgba(0,0,0,0.7), inset 0 -1px 0 rgba(240,192,64,0.08);
   padding: 24px 28px; max-width: 480px; width: 94%;
   display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center;
+  font-family: 'Cinzel', serif;
 }
 .gp-title {
   font-family: 'Cinzel Decorative', serif;

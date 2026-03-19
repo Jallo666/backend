@@ -68,7 +68,7 @@
 
 /* Bottoni */
 .qbg-btn {
-  font-family: 'Press Start 2P', monospace; font-size: 11px;
+  font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 0.04em;
   padding: 0.7rem 1.2rem; border-radius: 4px; border: none; cursor: pointer;
   transition: filter 0.15s, transform 0.1s;
 }
@@ -436,6 +436,25 @@
   from { box-shadow: inset 0 0 0 2px #40e0ff; }
   to   { box-shadow: inset 0 0 0 3px #40e0ff, 0 0 10px rgba(40,200,255,0.5); }
 }
+/* ── Celle di riposizionamento post-attacco ── */
+.qbg-cell-placement {
+  box-shadow: inset 0 0 0 3px #40c8ff;
+  background-color: rgba(40, 160, 255, 0.18) !important;
+  cursor: pointer;
+  animation: placementPulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes placementPulse {
+  from { box-shadow: inset 0 0 0 2px #40c8ff; }
+  to   { box-shadow: inset 0 0 0 3px #40c8ff, 0 0 10px rgba(40,160,255,0.5); }
+}
+.qbg-placement-dot {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px; height: 14px; border-radius: 50%;
+  background: rgba(40, 160, 255, 0.7);
+  pointer-events: none;
+}
+
 .qbg-cell-scagliare-dest {
   box-shadow: inset 0 0 0 3px #c0ff40;
   background-color: rgba(160, 255, 40, 0.15) !important;
@@ -534,10 +553,37 @@
   from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
-.qbg-turn-toast .qbg-btn {
+.qbg-turn-countdown {
+  width: 100%;
+  height: 4px;
+  background: var(--hs-gold, #f0c040);
+  border-radius: 2px;
   margin-top: 4px;
-  font-size: 11px;
-  padding: 6px 20px;
+  animation: qbg-countdown-shrink 5s linear forwards;
+}
+@keyframes qbg-countdown-shrink {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
+/* ── Toast messaggio info ── */
+.qbg-game-msg-toast {
+  position: fixed;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 160;
+  background: rgba(15, 8, 2, 0.94);
+  border: 2px solid #aa3322;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  color: #f08060;
+  text-align: center;
+  cursor: pointer;
+  animation: qbg-toast-in 0.2s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.7);
 }
 
 /* ── Popup Fine Turno ── */

@@ -1,34 +1,35 @@
 import { useState } from "react";
-import "./QuestBoardGame.css";
+import GameModal from "./GameModal";
 
 export default function CoinFlip({ onChoice }) {
   const [result, setResult] = useState(null);
 
   const flip = () => setResult(Math.random() < 0.5 ? "heads" : "tails");
 
+  if (!result) {
+    return (
+      <GameModal
+        title="⚜ Tiro di Moneta"
+        buttons={[{ label: "🪙 Lancia la moneta", onClick: flip }]}
+      >
+        <p>Chi va per primo?</p>
+      </GameModal>
+    );
+  }
+
   return (
-    <div className="qbg-overlay">
-      <div className="qbg-dialog">
-        <h2 className="qbg-dialog-title">⚜ Tiro di Moneta</h2>
-        {!result ? (
-          <>
-            <p className="qbg-dialog-sub">Chi va per primo?</p>
-            <button className="qbg-btn qbg-btn-gold" onClick={flip}>🪙 Lancia la moneta</button>
-          </>
-        ) : (
-          <>
-            <div className="qbg-coin-result">
-              <span className={`qbg-coin ${result}`}>{result === "heads" ? "👑" : "🗡"}</span>
-              <p>{result === "heads" ? "Testa — hai vinto!" : "Croce"}</p>
-            </div>
-            <p className="qbg-dialog-sub">Vuoi andare per primo?</p>
-            <div className="qbg-dialog-row">
-              <button className="qbg-btn qbg-btn-gold" onClick={() => onChoice(true)}>Sì, primo</button>
-              <button className="qbg-btn qbg-btn-dark"  onClick={() => onChoice(false)}>No, secondo</button>
-            </div>
-          </>
-        )}
+    <GameModal
+      title="⚜ Tiro di Moneta"
+      buttons={[
+        { label: "Sì, primo",  onClick: () => onChoice(true) },
+        { label: "No, secondo", onClick: () => onChoice(false), variant: "dark" },
+      ]}
+    >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem" }}>
+        <span style={{ fontSize: "3.5rem" }}>{result === "heads" ? "👑" : "🗡"}</span>
+        <p>{result === "heads" ? "Testa — hai vinto!" : "Croce"}</p>
+        <p style={{ color: "#c8a060" }}>Vuoi andare per primo?</p>
       </div>
-    </div>
+    </GameModal>
   );
 }

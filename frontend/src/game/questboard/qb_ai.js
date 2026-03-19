@@ -90,7 +90,15 @@ function scoreGesta(piece, gesta, target) {
 
 // Valuta un ardore contro un target
 function scoreArdore(piece, ardore, target) {
-  const hpDopo   = Math.max(0, target.hp - ardore.danno);
+  // Ardore di tipo movimento (es. Carica): punteggio basato sull'avvicinamento
+  if (ardore.tipo === "movimento") {
+    const currentDist = Math.max(Math.abs(target.row - piece.row), Math.abs(target.col - piece.col));
+    const afterDist   = Math.max(currentDist - (ardore.celle ?? 1), 0);
+    if (afterDist <= piece.mov + 1) return 80 + (target.isRe ? 200 : 0) + Math.random() * 5;
+    return 20 + Math.random() * 5;
+  }
+  // Ardore danno
+  const hpDopo   = Math.max(0, target.hp - (ardore.danno ?? 0));
   const eliminato = hpDopo <= 0;
   let score = 0;
   if (eliminato && target.isRe) score += 10000;

@@ -11,6 +11,7 @@ export default function GameBoard({
   ardoreMode, ardoreHitAnim, ardoreImpegnato,
   onCellClick, pendingAttack, onConfirmAttack,
   scagliareTargetUids, scagliareDests,
+  placementCells,
 }) {
   const allPieces    = [...game.playerPieces, ...game.aiPieces];
   const pieceAt      = (r, c) => allPieces.find(p => p.row === r && p.col === c);
@@ -72,6 +73,7 @@ export default function GameBoard({
                 const isArdoreHit    = ardoreHitAnim?.row === r && ardoreHitAnim?.col === c;
                 const isArdoreImpeg  = ardoreImpegnato && p?.uid === ardoreImpegnato.pieceUid;
                 const isPendingTarget = pendingAttack && p?.uid === pendingAttack.defender?.uid;
+                const isPlacementCell = placementCells?.some(pc => pc.row === r && pc.col === c);
                 const pieceSideClass = p
                   ? (p.side === "player" ? "qbg-cell-player-piece" : "qbg-cell-ai-piece")
                   : "";
@@ -98,10 +100,12 @@ export default function GameBoard({
                       isCaricaCell     ? "qbg-cell-carica-target" : "",
                       isArdoreHit      ? "qbg-cell-ardore-hit"    : "",
                       isArdoreImpeg    ? "qbg-cell-ardore-impeg"  : "",
+                      isPlacementCell  ? "qbg-cell-placement"    : "",
                     ].join(" ")}
                     onClick={() => onCellClick(r, c)}
                   >
                     {valid && !attack && !p && <div className="qbg-dot" />}
+                    {isPlacementCell && <div className="qbg-placement-dot" />}
 
                     {p && (
                       <BoardPiece

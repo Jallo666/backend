@@ -106,8 +106,9 @@ export function createGame(inventario, formazioneSalvata) {
   return {
     playerPieces,
     aiPieces,
-    turn:   "player",          // "player" | "ai"
-    round:  1,
+    turn:        "player",     // "player" | "ai"
+    playerRound: 1,            // round indipendente del giocatore
+    aiRound:     1,            // round indipendente dell'AI
     status: "coinflip",        // "coinflip" | "playing" | "over"
     winner: null,              // null | "player" | "ai" | "draw"
     playerRotation:      createRotationTracker(playerPieces),
@@ -190,7 +191,7 @@ export function endPlayerPieceTurn(state, uid) {
     : state.playerPieces;
   let newState = { ...state, playerPieces: newPieces };
   if (newState.pendingCycleEnd) {
-    newState = _applyCycleEnd(newState);
+    newState = _applyCycleEnd(newState, "player");
   }
   return _endTurn(newState, "player");
 }
@@ -262,8 +263,8 @@ function _applyMove(state, piece, move, side, skipAutoEndTurn = false) {
     const result = resolveCombat(piece, target);
     newLog.push(
       result.defenderHp <= 0
-        ? `${piece.nome} attacca ${target.nome}! (-${result.dmg} HP) → eliminato!`
-        : `${piece.nome} attacca ${target.nome}! (-${result.dmg} HP) → ${result.defenderHp} HP rimasti`
+        ? `${_tag(piece)} ${piece.nome} attacca ${_tag(target)} ${target.nome}! (-${result.dmg} HP) → eliminato!`
+        : `${_tag(piece)} ${piece.nome} attacca ${_tag(target)} ${target.nome}! (-${result.dmg} HP) → ${result.defenderHp} HP rimasti`
     );
 
     combatAnim = {
@@ -369,7 +370,7 @@ function _applyMove(state, piece, move, side, skipAutoEndTurn = false) {
     }
     newState = _endTurn(newState, side);
     // Fine ciclo immediato (AI o altri casi automatici)
-    if (newTracker.cycleComplete) { newState = _applyCycleEnd(newState); }
+    if (newTracker.cycleComplete) { newState = _applyCycleEnd(newState, side); }
   } else {
     // Player con Fine Turno esplicito: posponi ciclo
     if (newTracker.cycleComplete) { newState = { ...newState, pendingCycleEnd: true }; }
@@ -378,21 +379,22 @@ function _applyMove(state, piece, move, side, skipAutoEndTurn = false) {
   return newState;
 }
 
-function _applyCycleEnd(state) {
-  const round = state.round;
+function _applyCycleEnd(state, side) {
+  const roundKey   = side === "player" ? "playerRound" : "aiRound";
+  const piecesKey  = side === "player" ? "playerPieces" : "aiPieces";
+  const trackerKey = side === "player" ? "playerArdoreTracker" : "aiArdoreTracker";
+  const round      = state[roundKey];
   const healAmount = getHealAmount(round);
   let s = {
     ...state,
-    round:               round + 1,
-    playerPieces:        applyEndRoundHeal(state.playerPieces, round).map(p => ({ ...p, canAct: true })),
-    aiPieces:            applyEndRoundHeal(state.aiPieces, round).map(p => ({ ...p, canAct: true })),
-    playerArdoreTracker: createArdoreTracker(),
-    aiArdoreTracker:     createArdoreTracker(),
-    cycleEndEvent:       { round, healAmount },
-    pendingCycleEnd:     false,
+    [roundKey]:   round + 1,
+    [piecesKey]:  applyEndRoundHeal(state[piecesKey], round).map(p => ({ ...p, canAct: true })),
+    [trackerKey]: createArdoreTracker(),
+    cycleEndEvent:   { round, healAmount, side, nextHealAmount: getHealAmount(round + 1) },
+    pendingCycleEnd: false,
   };
-  const heal = _getHealText(round);
-  if (heal) s.log = [...s.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
+  const heal = _getHealText(round, side);
+  if (heal) s.log = [...s.log, `Fine ciclo ${round} (${side === "player" ? "giocatore" : "AI"}): ${heal}`].slice(-40);
   return s;
 }
 
@@ -400,11 +402,17 @@ function _endTurn(state, currentSide) {
   return { ...state, turn: currentSide === "player" ? "ai" : "player" };
 }
 
-function _getHealText(round) {
-  if (round <= 3) return "+5 HP a tutti i sopravvissuti";
-  if (round <= 6) return "+3 HP a tutti i sopravvissuti";
-  if (round <= 9) return "+1 HP a tutti i sopravvissuti";
-  return "-2 HP a tutti (pericolo!)";
+// Prefisso per il diario: indica di chi è il pezzo
+function _tag(piece) {
+  return piece.side === "player" ? "[TUO]" : "[AI]";
+}
+
+function _getHealText(round, side) {
+  const heal = getHealAmount(round);
+  const chi  = side === "player" ? "tuoi pezzi" : "pezzi nemici";
+  if (heal > 0) return `+${heal} HP ai ${chi}`;
+  if (heal < 0) return `${heal} HP ai ${chi} (pericolo!)`;
+  return null;
 }
 
 // ── Gesta ─────────────────────────────────────────────────────────────────────
@@ -440,7 +448,7 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
   const auraTag = dannoEffettivo < gesta.danno ? " [Difesa Possente]" : "";
   const fdpTag  = reAuraEvent ? ` 👑 ${reAuraEvent.re.nome}: ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP` : "";
   const logMsg =
-    `${caster.nome} usa ${gesta.nome} su ${target.nome}! (-${dannoEffettivo} HP${auraTag})` +
+    `${_tag(caster)} ${caster.nome} usa ${gesta.nome} su ${_tag(target)} ${target.nome}! (-${dannoEffettivo} HP${auraTag})` +
     (targetMorto ? ` → ${target.nome} eliminato!${fdpTag}` : ` → ${nuovoHp} HP rimasti`);
 
   // Setta canAct: false sul caster (la gesta conclude il turno)
@@ -478,7 +486,7 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
   // Per il player il turno NON cambia automaticamente — aspetta il click Fine Turno
   if (side === "ai") {
     newState = _endTurn(newState, side);
-    if (newTracker.cycleComplete) { newState = _applyCycleEnd(newState); }
+    if (newTracker.cycleComplete) { newState = _applyCycleEnd(newState, side); }
   } else {
     if (newTracker.cycleComplete) { newState = { ...newState, pendingCycleEnd: true }; }
   }
@@ -525,11 +533,11 @@ export function applyScagliare(state, side, casterUid, targetUid, destRow, destC
   const fdpTag  = reAuraEvent ? ` 👑 ${reAuraEvent.re.nome}: ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP` : "";
   let logMsg;
   if (!isEnemy) {
-    logMsg = `${caster.nome} scaglia ${target.nome} in (${destRow + 1},${destCol + 1})!`;
+    logMsg = `${_tag(caster)} ${caster.nome} scaglia ${_tag(target)} ${target.nome} in (${destRow + 1},${destCol + 1})!`;
   } else if (targetMorto) {
-    logMsg = `${caster.nome} scaglia ${target.nome}! (-${dannoEffettivo} HP${auraTag}) → eliminato!${fdpTag}`;
+    logMsg = `${_tag(caster)} ${caster.nome} scaglia ${_tag(target)} ${target.nome}! (-${dannoEffettivo} HP${auraTag}) → eliminato!${fdpTag}`;
   } else {
-    logMsg = `${caster.nome} scaglia ${target.nome}! (-${dannoEffettivo} HP${auraTag}) → ${nuovoHp} HP rimasti`;
+    logMsg = `${_tag(caster)} ${caster.nome} scaglia ${_tag(target)} ${target.nome}! (-${dannoEffettivo} HP${auraTag}) → ${nuovoHp} HP rimasti`;
   }
 
   // Setta canAct: false sul caster (Scagliare è una gesta e conclude il turno)
@@ -567,7 +575,7 @@ export function applyScagliare(state, side, casterUid, targetUid, destRow, destC
   // Per il player il turno NON cambia automaticamente — aspetta il click Fine Turno
   if (side === "ai") {
     newState = _endTurn(newState, side);
-    if (newTracker.cycleComplete) { newState = _applyCycleEnd(newState); }
+    if (newTracker.cycleComplete) { newState = _applyCycleEnd(newState, side); }
   } else {
     if (newTracker.cycleComplete) { newState = { ...newState, pendingCycleEnd: true }; }
   }
@@ -608,7 +616,7 @@ export function applyArdore(state, side, casterUid, ardoreId, targetUid) {
   const auraTag = dannoEffettivo < ardore.danno ? " [Difesa Possente]" : "";
   const fdpTag  = reAuraEvent ? ` 👑 ${reAuraEvent.re.nome}: ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP` : "";
   const logMsg =
-    `${caster.nome} usa ${ardore.nome} su ${target.nome}! (-${dannoEffettivo} HP${auraTag})` +
+    `${_tag(caster)} ${caster.nome} usa ${ardore.nome} su ${_tag(target)} ${target.nome}! (-${dannoEffettivo} HP${auraTag})` +
     (targetMorto ? ` → ${target.nome} eliminato!${fdpTag}` : ` → ${nuovoHp} HP rimasti`);
 
   // Registra ardore (non la rotazione — il pezzo può ancora muoversi)
@@ -655,19 +663,7 @@ export function skipPieceTurn(state, uid) {
   };
   newState = _endTurn(newState, "player");
   if (newTracker.cycleComplete) {
-    const round = state.round;
-    const heal = _getHealText(round);
-    const healAmount = getHealAmount(round);
-    newState = {
-      ...newState,
-      round:               round + 1,
-      playerPieces:        applyEndRoundHeal(newState.playerPieces, round).map(p => ({ ...p, canAct: true })),
-      aiPieces:            applyEndRoundHeal(newState.aiPieces, round).map(p => ({ ...p, canAct: true })),
-      playerArdoreTracker: createArdoreTracker(),
-      aiArdoreTracker:     createArdoreTracker(),
-      cycleEndEvent:       { round, healAmount },
-    };
-    if (heal) newState.log = [...newState.log, `Fine ciclo ${round}: ${heal}`].slice(-40);
+    newState = _applyCycleEnd(newState, "player");
   }
   return newState;
 }
@@ -686,7 +682,7 @@ export function applyArdoreCarica(state, side, casterUid, toRow, toCol) {
   const ardoreTracker = side === "player" ? state.playerArdoreTracker : state.aiArdoreTracker;
   const newArdoreTracker = registerArdore(casterUid, ardoreTracker ?? createArdoreTracker(), updatedPieces);
 
-  const logMsg = `${caster.nome} scatta in avanti! (Carica)`;
+  const logMsg = `${_tag(caster)} ${caster.nome} scatta in avanti! (Carica)`;
   return {
     ...state,
     playerPieces: side === "player" ? updatedPieces : state.playerPieces,
@@ -731,8 +727,8 @@ export function applyArdoreCaricaAttack(state, side, casterUid, targetUid) {
   }
 
   const logMsg = targetMorto
-    ? `${caster.nome} carica ${target.nome}! (-${result.dmg} HP) → eliminato!`
-    : `${caster.nome} carica ${target.nome}! (-${result.dmg} HP) → ${result.defenderHp} HP rimasti`;
+    ? `${_tag(caster)} ${caster.nome} carica ${_tag(target)} ${target.nome}! (-${result.dmg} HP) → eliminato!`
+    : `${_tag(caster)} ${caster.nome} carica ${_tag(target)} ${target.nome}! (-${result.dmg} HP) → ${result.defenderHp} HP rimasti`;
 
   // Registra ardore (non la rotazione — il pezzo può ancora muoversi)
   const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
@@ -759,6 +755,14 @@ export function applyArdoreCaricaAttack(state, side, casterUid, targetUid) {
   }
 
   return newState;
+}
+
+// ── Riposiziona l'attaccante dopo un attacco (scelta giocatore) ───────────────
+export function applyAttackerRelocation(state, uid, row, col) {
+  return {
+    ...state,
+    playerPieces: state.playerPieces.map(p => p.uid === uid ? { ...p, row, col } : p),
+  };
 }
 
 // ── Gestione pezzo bloccato ───────────────────────────────────────────────────

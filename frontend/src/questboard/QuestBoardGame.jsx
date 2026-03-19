@@ -4,6 +4,7 @@ import {
   applyPlayerMove, applyAiTurn, applyAiMoveOnly, applyAiMoveForPiece, skipBlockedPiece, skipPieceTurn,
   peekAiMove, applyAiChoice, applyGesta, applyArdore,
   endPlayerPieceTurn, applyArdoreCarica, applyArdoreCaricaAttack, applyScagliare,
+  applyAttackerRelocation,
 } from "../game/questboard/qb_state.js";
 import { isBlocked, canMoveInRotation, canUseArdore, BOARD_SIZE, getScagliareTargets, getScagliareDest, calcScagliareDanno } from "../game/questboard/qb_rules.js";
 import { chooseBestMove } from "../game/questboard/qb_ai.js";
@@ -20,11 +21,12 @@ import GameOptionsModal from "./GameOptionsModal.jsx";
 import ReAuraNotification from "./ReAuraNotification.jsx";
 import RoundEndNotification from "./RoundEndNotification.jsx";
 import CoinFlip from "./CoinFlip.jsx";
+import FineTurnoPopup from "./FineTurnoPopup.jsx";
 import "./QuestBoardGame.css";
 
 const AI_DELAY_MS = 1200;
 
-function calcStatusHint(game, gestaMode, ardoreMode, pieceCard, pendingAttack) {
+function calcStatusHint(game, gestaMode, ardoreMode, pieceCard) {
   if (ardoreMode) {
     if (ardoreMode.tipo === "movimento") return "Scegli una cella adiacente (Carica)";
     const caster = game.playerPieces.find(p => p.uid === ardoreMode.casterUid);
@@ -42,14 +44,13 @@ function calcStatusHint(game, gestaMode, ardoreMode, pieceCard, pendingAttack) {
     }
     return `Su chi vuoi usare ${gesta?.nome ?? 'Gesta'}?`;
   }
-  if (pendingAttack) {
-    return `Clicca ancora per attaccare ${pendingAttack.defender?.nome ?? 'il nemico'}`;
-  }
   if (pieceCard?.side === 'player' && !canMoveInRotation(pieceCard.uid, game.playerRotation)) {
     return 'Ha già effettuato il suo turno';
   }
   if (game.selected) {
     if (game.validMoves.length === 0) return 'Nessun movimento disponibile';
+    const hasAttacks = game.validMoves.some(m => m.isAttack);
+    if (hasAttacks) return '⚔ Clicca su un nemico per attaccare, o scegli una cella';
     return 'Scegli la cella in cui spostarlo';
   }
   return null;
@@ -83,6 +84,9 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const [ardoreImpegnato, setArdoreImpegnato] = useState(null); // null | { pieceUid }
   const [caricaAttackPreview, setCaricaAttackPreview] = useState(null); // null | { caster, target }
   const [pendingAiMove,   setPendingAiMove]   = useState(null); // null | casterUid string
+  const [gameMsg,        setGameMsg]         = useState(null); // null | string — toast breve
+  const gameMsgTimer = useRef(null);
+  const [pendingPlacement, setPendingPlacement] = useState(null); // null | { uid, defRow, defCol, validCells? }
   const [pendingAttack,   setPendingAttack]   = useState(null); // null | { attacker, defender, move }
   const [pieceCard,     setPieceCard]     = useState(null);
   const [cellSize,      setCellSize]      = useState(calcCellSize);
@@ -122,7 +126,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   // ── Turno AI ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (game.status !== "playing" || game.turn !== "ai") return;
-    if (turnPopup || roundEndNotif) return; // aspetta OK o chiusura notifica
+    if (turnPopup || roundEndNotif || reAuraNotif) return; // aspetta OK o chiusura notifica
     clearTimeout(aiTimerRef.current);
     aiTimerRef.current = setTimeout(() => {
       setGame(s => {
@@ -171,7 +175,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       });
     }, AI_DELAY_MS);
     return () => clearTimeout(aiTimerRef.current);
-  }, [game.status, game.turn, game.round, turnPopup, roundEndNotif]);
+  }, [game.status, game.turn, game.playerRound, game.aiRound, turnPopup, roundEndNotif]);
 
   // ── Mossa AI dopo ardore (pendingAiMove = uid del pezzo che deve muoversi) ─
   useEffect(() => {
@@ -226,12 +230,26 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     return () => clearTimeout(logTimer.current);
   }, [game.log]);
 
+  // ── Mostra messaggio temporaneo (2s) ─────────────────────────────────────
+  const showGameMsg = useCallback((msg) => {
+    clearTimeout(gameMsgTimer.current);
+    setGameMsg(msg);
+    gameMsgTimer.current = setTimeout(() => setGameMsg(null), 2500);
+  }, []);
+
   // ── Apri tab scheda pezzo ─────────────────────────────────────────────────
   const openPieceTab = useCallback((p) => {
     setPieceCard(p);
     setActiveTab('pezzo');
     setShowLog(true);
   }, []);
+
+  // ── Dopo attacco/ardore: mantieni la card sul pezzo attaccante ───────────────
+  useEffect(() => {
+    if (!ardoreImpegnato?.pieceUid) return;
+    const piece = game.playerPieces.find(p => p.uid === ardoreImpegnato.pieceUid);
+    if (piece) { setPieceCard(piece); setActiveTab('pezzo'); }
+  }, [ardoreImpegnato, game.playerPieces]);
 
   // ── Forza del Popolo — popup notifica ────────────────────────────────────────
   useEffect(() => {
@@ -266,7 +284,13 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     const hasArdore       = (piece?.ardore?.length ?? 0) > 0;
     const ardoreAvail     = hasArdore && canUseArdore(piece?.uid, ardoreTracker);
     const hasGesta        = (piece?.gesta?.length ?? 0) > 0;
-    const gestaAvail      = hasGesta && piece?.canAct !== false;
+    const allPiecesForGesta = [...game.playerPieces, ...game.aiPieces];
+    const gestaHasTargets = !hasGesta || (
+      piece?.gesta?.some(g => g.id === "scagliare")
+        ? getScagliareTargets(piece, allPiecesForGesta).filter(p => p.side === "ai").length > 0
+        : true
+    );
+    const gestaAvail      = hasGesta && piece?.canAct !== false && gestaHasTargets;
     const movedWithNothingLeft = pendingFineTurnoUid === activeUid && !ardoreAvail && !gestaAvail;
     if (gestaUsed || selectedNoMoves || ardoreAndMoved || movedWithNothingLeft) setShowEndTurnPopup(true);
   }, [pendingFineTurnoUid, ardoreImpegnato, ardoreUsedUid, game]);
@@ -281,7 +305,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       turnPopupTimer.current = setTimeout(() => setTurnPopup(null), 2500);
     } else {
       setTurnPopup({ msg: "Turno dell'avversario", requiresAck: true });
-      // nessun auto-dismiss: l'AI aspetta che il giocatore prema OK
+      turnPopupTimer.current = setTimeout(() => setTurnPopup(null), 5000);
     }
     return () => clearTimeout(turnPopupTimer.current);
   }, [game.turn, game.status]);
@@ -309,7 +333,36 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
     setArdoreImpegnato({ pieceUid: movingUid });
     setPendingFineTurnoUid(movingUid);
     setGame(s => applyPlayerMove(s, move.row, move.col));
+    // Avvia valutazione celle di riposizionamento (se difensore sopravvive)
+    setPendingPlacement({ uid: movingUid, defRow: move.row, defCol: move.col });
   }, [combatPreview, game, triggerMoveAnim]);
+
+  // ── Calcola celle di riposizionamento dopo attacco ──────────────────────────
+  useEffect(() => {
+    if (!pendingPlacement || pendingPlacement.validCells) return;
+    const { uid, defRow, defCol } = pendingPlacement;
+    const attacker = game.playerPieces.find(p => p.uid === uid);
+    if (!attacker) { setPendingPlacement(null); return; }
+    // Difensore ancora vivo? Controlla se la sua cella è occupata
+    const defenderAlive = game.aiPieces.some(p => p.row === defRow && p.col === defCol);
+    if (!defenderAlive) { setPendingPlacement(null); return; } // difensore morto, nessuna scelta
+    const allPieces = [...game.playerPieces, ...game.aiPieces];
+    const occupied = new Set(allPieces.map(p => `${p.row},${p.col}`));
+    const adjacentFree = [];
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const r = defRow + dr, c = defCol + dc;
+        if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) continue;
+        // Includi la cella corrente dell'attaccante + celle libere
+        if (!occupied.has(`${r},${c}`) || (r === attacker.row && c === attacker.col)) {
+          adjacentFree.push({ row: r, col: c });
+        }
+      }
+    }
+    if (adjacentFree.length <= 1) { setPendingPlacement(null); return; }
+    setPendingPlacement(prev => ({ ...prev, validCells: adjacentFree }));
+  }, [pendingPlacement, game.playerPieces, game.aiPieces]);
 
   // ── Conferma Carica attacco dopo preview (giocatore) ─────────────────────
   const confirmCaricaAttack = useCallback(() => {
@@ -374,6 +427,16 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
   const handleCellClick = useCallback((row, col) => {
     if (game.status !== "playing") return;
 
+    // ── Riposizionamento attaccante dopo attacco ───────────────────────────
+    if (pendingPlacement?.validCells) {
+      const isValid = pendingPlacement.validCells.some(c => c.row === row && c.col === col);
+      if (isValid) {
+        setGame(s => applyAttackerRelocation(s, pendingPlacement.uid, row, col));
+        setPendingPlacement(null);
+      }
+      return;
+    }
+
     const allPiecesNow = [...game.playerPieces, ...game.aiPieces];
     const clickedPiece = allPiecesNow.find(p => p.row === row && p.col === col);
 
@@ -413,6 +476,15 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
 
       // Ardore danno: clicca target → mostra conferma
       if (clickedPiece && caster && ardore) {
+        // Tiro di Precisione: vietato su pedine adiacenti (distanza Chebyshev ≤ 1)
+        if (ardore.id === "tiro_precisione") {
+          const dist = Math.max(Math.abs(clickedPiece.row - caster.row), Math.abs(clickedPiece.col - caster.col));
+          if (dist <= 1) {
+            showGameMsg("Tiro di Precisione non può colpire pedine adiacenti!");
+            setArdoreMode(null);
+            return;
+          }
+        }
         setArdorePreview({ caster, target: clickedPiece, ardore });
         setArdoreMode(null);
       } else {
@@ -488,14 +560,9 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       if (move.isAttack && move.target) {
         const attacker = game.playerPieces.find(p => p.uid === game.selected);
         if (attacker) {
-          if (pendingAttack?.defender?.uid === clickedPiece?.uid) {
-            // Secondo click sullo stesso nemico → conferma attacco
-            setCombatPreview({ attacker, defender: move.target, move });
-            setPendingAttack(null);
-          } else {
-            // Primo click → mostra hint, aspetta conferma
-            setPendingAttack({ attacker, defender: clickedPiece, move });
-          }
+          // Click diretto su nemico → apre subito CombatPreview (senza doppio-click)
+          setCombatPreview({ attacker, defender: move.target, move });
+          setPendingAttack(null);
           return;
         }
       }
@@ -538,7 +605,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       setPieceCard(null); setActiveTab('diario');
       setGame(s => ({ ...s, selected: null, validMoves: [] }));
     }
-  }, [game, gestaMode, ardoreMode, ardoreImpegnato, pendingFineTurnoUid, pendingAttack, triggerMoveAnim, openPieceTab]);
+  }, [game, gestaMode, ardoreMode, ardoreImpegnato, pendingFineTurnoUid, pendingAttack, pendingPlacement, triggerMoveAnim, openPieceTab]);
 
 
   // ── Dati per UI Scagliare ──────────────────────────────────────────────────
@@ -624,7 +691,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       )}
 
       {/* ── Anteprima attacco AI ── */}
-      {aiAttackPreview && (
+      {aiAttackPreview && !reAuraNotif && (
         <CombatPreview
           attacker={aiAttackPreview.piece}
           defender={aiAttackPreview.defender}
@@ -635,7 +702,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       )}
 
       {/* ── Ardore AI ── */}
-      {aiArdorePreview && (
+      {aiArdorePreview && !reAuraNotif && (
         <ArdorePreview
           caster={aiArdorePreview.caster}
           target={aiArdorePreview.target}
@@ -682,7 +749,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       )}
 
       {/* ── Scagliare AI ── */}
-      {aiScagliarePreview && (
+      {aiScagliarePreview && !reAuraNotif && (
         <GestPreview
           caster={aiScagliarePreview.caster}
           target={aiScagliarePreview.target}
@@ -694,7 +761,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
       )}
 
       {/* ── Notifica gesta AI ── */}
-      {aiGestaPreview && (
+      {aiGestaPreview && !reAuraNotif && (
         <GestPreview
           caster={aiGestaPreview.caster}
           target={aiGestaPreview.target}
@@ -745,6 +812,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
             setArdoreMode(null);
             setGestaMode(null);
             setPendingAttack(null);
+            setPendingPlacement(null);
             setCombatPreview(null);
             setGestaPreview(null);
             setArdorePreview(null);
@@ -776,12 +844,9 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         combatFlash={combatFlash} gestaMode={gestaMode} gestaHitAnim={gestaHitAnim}
         ardoreMode={ardoreMode} ardoreHitAnim={ardoreHitAnim} ardoreImpegnato={ardoreImpegnato}
         onCellClick={handleCellClick}
-        pendingAttack={pendingAttack}
-        onConfirmAttack={() => {
-          const { attacker, defender, move } = pendingAttack;
-          setCombatPreview({ attacker, defender, move });
-          setPendingAttack(null);
-        }}
+        pendingAttack={null}
+        onConfirmAttack={null}
+        placementCells={pendingPlacement?.validCells ?? null}
         scagliareTargetUids={scagliareTargetUids}
         scagliareDests={scagliareDests}
       />
@@ -801,6 +866,14 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
           (!gestaMode || gestaMode.casterUid === pieceCard?.uid) &&
           (!ardoreMode || ardoreMode.casterUid === pieceCard?.uid)
             ? (gestaId) => {
+                if (gestaId === "scagliare") {
+                  const allPieces = [...game.playerPieces, ...game.aiPieces];
+                  const targets = getScagliareTargets(game.playerPieces.find(p => p.uid === pieceCard.uid), allPieces);
+                  if (targets.length === 0) {
+                    showGameMsg(`${pieceCard.nome} non ha nemici adiacenti da scagliare!`);
+                    return;
+                  }
+                }
                 const phase = gestaId === "scagliare" ? "selectTarget" : undefined;
                 setGestaMode({ gestaId, casterUid: pieceCard.uid, phase });
                 setActiveTab('diario');
@@ -836,7 +909,11 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
 
       {/* ── Info pezzo selezionato ── */}
 
-      <StatusHint hint={calcStatusHint(game, gestaMode, ardoreMode, pieceCard, pendingAttack)} />
+      <StatusHint hint={
+        pendingPlacement?.validCells
+          ? "↖ Scegli dove posizionare la tua pedina dopo l'attacco"
+          : calcStatusHint(game, gestaMode, ardoreMode, pieceCard)
+      } />
 
       <RotazioneTracker game={game} openPieceTab={openPieceTab} selectedUid={pieceCard?.uid ?? null} />
 
@@ -848,29 +925,24 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         >
           {turnPopup.msg.split('\n').map((line, i) => <span key={i}>{line}</span>)}
           {turnPopup.requiresAck && (
-            <button className="qbg-btn qbg-btn-gold" onClick={(e) => { e.stopPropagation(); clearTimeout(turnPopupTimer.current); setTurnPopup(null); }}>
-              OK
-            </button>
+            <div className="qbg-turn-countdown" />
           )}
         </div>
       )}
 
-      {/* ── Popup Fine Turno ── */}
-      {showEndTurnPopup && (
-        <div className="qbg-popup-overlay">
-          <div className="qbg-popup">
-            <p className="qbg-popup-msg">Azioni esaurite per questo pezzo.</p>
-            <div className="qbg-popup-btns">
-              <button className="qbg-btn qbg-btn-gold" onClick={() => {
-                setShowEndTurnPopup(false);
-                onFineTurnoHud?.();
-              }}>Fine Turno</button>
-              <button className="qbg-btn qbg-btn-dark" onClick={() => setShowEndTurnPopup(false)}>
-                Aspetta
-              </button>
-            </div>
-          </div>
+      {/* ── Toast messaggio info ── */}
+      {gameMsg && (
+        <div className="qbg-game-msg-toast" onClick={() => setGameMsg(null)}>
+          {gameMsg}
         </div>
+      )}
+
+      {/* ── Popup Fine Turno ── */}
+      {showEndTurnPopup && !reAuraNotif && (
+        <FineTurnoPopup
+          onConfirm={() => { setShowEndTurnPopup(false); onFineTurnoHud?.(); }}
+          onAspetta={() => setShowEndTurnPopup(false)}
+        />
       )}
 
     </div>
