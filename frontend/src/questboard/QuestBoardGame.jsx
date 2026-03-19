@@ -64,7 +64,6 @@ function calcCellSize() {
   const maxByH = (window.innerHeight - 10) / BOARD_SIZE / 0.7;
   return Math.max(60, Math.min(maxByW, maxByH, 144));
 }
-
 // ── Componente principale ─────────────────────────────────────────────────────
 export default function QuestBoardGame({ inventario, formazione, sfidante, utente, onBack }) {
   const [game,          setGame]          = useState(() => createGame(inventario, formazione, sfidante));

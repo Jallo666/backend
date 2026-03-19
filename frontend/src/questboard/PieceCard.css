@@ -35,6 +35,16 @@
   border: 1px solid; padding: 1px 6px; border-radius: 3px;
   background: rgba(0,0,0,0.3);
 }
+.qbg-card-tags {
+  display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;
+}
+.qbg-card-tag {
+  font-size: 8px; font-weight: 400;
+  border: 1px solid rgba(200,160,96,0.30);
+  color: rgba(200,160,96,0.70);
+  background: rgba(200,160,96,0.06);
+  padding: 1px 6px; border-radius: 3px;
+}
 .qbg-card-team  { font-size: 9px; padding: 3px 8px; border-radius: 3px; }
 .qbg-card-team-player { background: rgba(50,130,230,0.2); color: #66bbff; border: 1px solid #335599; }
 .qbg-card-team-ai     { background: rgba(200,40,40,0.2);  color: #ff7777; border: 1px solid #992222; }

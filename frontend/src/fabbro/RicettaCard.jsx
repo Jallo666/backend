@@ -52,6 +52,10 @@ export default function RicettaCard({ ricetta, selected, giaForgiato, onClick })
         <div className="fab-rc-header">
           <span className="fab-rc-nome">{ricetta.nome}</span>
           <span className="fab-rc-natura" style={{ color: natColore }}>{ricetta.natura}</span>
+          <div className="fab-rc-tags">
+            <span className="fab-tag fab-tag-razza">👤 {ricetta.razza}</span>
+            <span className="fab-tag fab-tag-materiale">🪵 {ricetta.materiale}</span>
+          </div>
         </div>
       </div>
 

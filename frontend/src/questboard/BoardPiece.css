@@ -122,3 +122,12 @@
 }
 .bp-name-player { color: #c0e4ff; }
 .bp-name-ai     { color: #ffcccc; }
+
+.bp-tags {
+  display: flex; justify-content: center; gap: 2px;
+  margin-top: 1px; flex-wrap: wrap;
+}
+.bp-tag {
+  font-size: clamp(4px, 0.55vw, 7px); font-weight: 400;
+  opacity: 0.70; letter-spacing: 0;
+}

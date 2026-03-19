@@ -112,6 +112,16 @@ using (var scope = app.Services.CreateScope())
     }
     catch { }
 
+    // Migrazione: Razza, Materiale, NomeCustom, RicettaId su PezziUtente
+    try { db.Database.ExecuteSqlRaw("ALTER TABLE \"PezziUtente\" ADD COLUMN \"Razza\" TEXT NOT NULL DEFAULT 'Umanoide'"); }
+    catch { }
+    try { db.Database.ExecuteSqlRaw("ALTER TABLE \"PezziUtente\" ADD COLUMN \"Materiale\" TEXT NOT NULL DEFAULT 'Legno'"); }
+    catch { }
+    try { db.Database.ExecuteSqlRaw("ALTER TABLE \"PezziUtente\" ADD COLUMN \"NomeCustom\" TEXT"); }
+    catch { }
+    try { db.Database.ExecuteSqlRaw("ALTER TABLE \"PezziUtente\" ADD COLUMN \"RicettaId\" TEXT"); }
+    catch { }
+
     // Migrazione: tabella Formazioni
     try
     {
@@ -212,7 +222,8 @@ app.MapGet("/api/inventario", async (ClaimsPrincipal user, AppDbContext db) =>
         .Select(p => new {
             p.Id, p.Nome, p.Icona,
             p.Hp, p.HpMax, p.Atk, p.Def, p.Mov,
-            p.IsClassico, p.Materiali
+            p.IsClassico, p.Materiali,
+            p.Razza, p.Materiale, p.NomeCustom, p.RicettaId
         })
         .ToListAsync();
     return Results.Ok(pezzi);
@@ -268,6 +279,18 @@ app.MapPut("/api/formazione", async (ClaimsPrincipal user, FormazioneRequest req
 app.MapPost("/api/inventario/crafta", async (ClaimsPrincipal user, CraftaRequest req, AppDbContext db) =>
 {
     var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+    // Deduzione materiali
+    var costoForgia = new[] { ("legna", 2), ("quarzo", 2), ("resina", 2) };
+    foreach (var (tipo, qty) in costoForgia)
+    {
+        var mat = await db.MaterialiUtente
+            .FirstOrDefaultAsync(m => m.UtenteId == utenteId && m.Tipo == tipo);
+        if (mat is null || mat.Quantita < qty)
+            return Results.BadRequest($"Materiali insufficienti: {tipo}");
+        mat.Quantita -= qty;
+    }
+
     var pezzo = new PezzoUtente
     {
         UtenteId   = utenteId,
@@ -280,21 +303,62 @@ app.MapPost("/api/inventario/crafta", async (ClaimsPrincipal user, CraftaRequest
         Mov        = req.Mov,
         IsClassico = false,
         Materiali  = req.Materiali,
+        Razza      = req.Razza,
+        Materiale  = req.Materiale,
+        NomeCustom = req.NomeCustom,
+        RicettaId  = req.RicettaId,
     };
     db.PezziUtente.Add(pezzo);
     await db.SaveChangesAsync();
-    return Results.Ok(new { pezzo.Id, pezzo.Nome, pezzo.Icona, pezzo.Hp, pezzo.HpMax, pezzo.Atk, pezzo.Def, pezzo.Mov, pezzo.IsClassico, pezzo.Materiali });
+    return Results.Ok(new {
+        pezzo.Id, pezzo.Nome, pezzo.Icona,
+        pezzo.Hp, pezzo.HpMax, pezzo.Atk, pezzo.Def, pezzo.Mov,
+        pezzo.IsClassico, pezzo.Materiali,
+        pezzo.Razza, pezzo.Materiale, pezzo.NomeCustom, pezzo.RicettaId
+    });
 }).RequireAuthorization();
 
-// ── Endpoint: elimina pezzo inventario ───────────────────────────────────────
+// ── Mappa costi per ricetta (usata per rimborso) ─────────────────────────────
+Dictionary<string, (string tipo, int qty)[]> CostiRicette = new()
+{
+    ["cavaliere"] = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["ranger"]    = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["scudiero"]  = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["assassino"] = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["mago"]      = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["campione"]  = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+};
+(string tipo, int qty)[] CostoDefault = [("legna", 2), ("quarzo", 2), ("resina", 2)];
+
+// ── Endpoint: elimina/distruggi pezzo inventario ─────────────────────────────
 app.MapDelete("/api/inventario/{id}", async (int id, ClaimsPrincipal user, AppDbContext db) =>
 {
     var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
     var pezzo = await db.PezziUtente.FindAsync(id);
     if (pezzo is null || pezzo.UtenteId != utenteId) return Results.NotFound();
+
+    List<object>? rimborso = null;
+    if (!pezzo.IsClassico)
+    {
+        var costo = pezzo.RicettaId is not null && CostiRicette.TryGetValue(pezzo.RicettaId, out var c)
+            ? c : CostoDefault;
+        var rimborsoList = new List<object>();
+        foreach (var (tipo, qty) in costo)
+        {
+            var mat = await db.MaterialiUtente
+                .FirstOrDefaultAsync(m => m.UtenteId == utenteId && m.Tipo == tipo);
+            if (mat is not null)
+            {
+                mat.Quantita += qty / 2;
+                rimborsoList.Add(new { tipo, quantita = qty / 2 });
+            }
+        }
+        rimborso = rimborsoList;
+    }
+
     db.PezziUtente.Remove(pezzo);
     await db.SaveChangesAsync();
-    return Results.Ok();
+    return Results.Ok(new { rimborso });
 }).RequireAuthorization();
 
 // ── Endpoint: materiali utente ────────────────────────────────────────────────
@@ -397,12 +461,12 @@ void SeedPezziClassici(AppDbContext db, int utenteId)
 {
     var classici = new[]
     {
-        new PezzoUtente { UtenteId=utenteId, Nome="Cavaliere",   Icona="⚔",  Hp=14, HpMax=14, Atk=4, Def=3, Mov=2 },
-        new PezzoUtente { UtenteId=utenteId, Nome="Ranger",      Icona="🏹", Hp=8,  HpMax=8,  Atk=6, Def=1, Mov=3 },
-        new PezzoUtente { UtenteId=utenteId, Nome="Scudiero",    Icona="🛡", Hp=18, HpMax=18, Atk=2, Def=5, Mov=1 },
-        new PezzoUtente { UtenteId=utenteId, Nome="Assassino",   Icona="🗡", Hp=9,  HpMax=9,  Atk=3, Def=2, Mov=4 },
-        new PezzoUtente { UtenteId=utenteId, Nome="Mago",        Icona="✨", Hp=7,  HpMax=7,  Atk=7, Def=1, Mov=2 },
-        new PezzoUtente { UtenteId=utenteId, Nome="Campione",    Icona="🏆", Hp=15, HpMax=15, Atk=5, Def=4, Mov=2 },
+        new PezzoUtente { UtenteId=utenteId, Nome="Cavaliere", Icona="⚔",  Hp=14, HpMax=14, Atk=4, Def=3, Mov=2, Razza="Umanoide", Materiale="Legno" },
+        new PezzoUtente { UtenteId=utenteId, Nome="Ranger",    Icona="🏹", Hp=8,  HpMax=8,  Atk=6, Def=1, Mov=3, Razza="Umanoide", Materiale="Legno" },
+        new PezzoUtente { UtenteId=utenteId, Nome="Scudiero",  Icona="🛡", Hp=18, HpMax=18, Atk=2, Def=5, Mov=1, Razza="Umanoide", Materiale="Legno" },
+        new PezzoUtente { UtenteId=utenteId, Nome="Assassino", Icona="🗡", Hp=9,  HpMax=9,  Atk=3, Def=2, Mov=4, Razza="Umanoide", Materiale="Legno" },
+        new PezzoUtente { UtenteId=utenteId, Nome="Mago",      Icona="✨", Hp=7,  HpMax=7,  Atk=7, Def=1, Mov=2, Razza="Umanoide", Materiale="Legno" },
+        new PezzoUtente { UtenteId=utenteId, Nome="Campione",  Icona="🏆", Hp=15, HpMax=15, Atk=5, Def=4, Mov=2, Razza="Umanoide", Materiale="Legno" },
     };
     db.PezziUtente.AddRange(classici);
 }
@@ -430,7 +494,7 @@ class PezzoUtente
 {
     public int     Id         { get; set; }
     public int     UtenteId   { get; set; }
-    public string  Nome       { get; set; } = "";
+    public string  Nome       { get; set; } = "";       // tipo (Cavaliere, Ranger…)
     public string  Icona      { get; set; } = "⚔";
     public int     Hp         { get; set; }
     public int     HpMax      { get; set; }
@@ -438,7 +502,11 @@ class PezzoUtente
     public int     Def        { get; set; }
     public int     Mov        { get; set; }
     public bool    IsClassico { get; set; } = true;
-    public string? Materiali  { get; set; } // JSON per pezzi craftati futuri
+    public string? Materiali  { get; set; }             // natura (Guerriero, Arciere…)
+    public string  Razza      { get; set; } = "Umanoide";
+    public string  Materiale  { get; set; } = "Legno";
+    public string? NomeCustom { get; set; }             // null = usa Nome
+    public string? RicettaId  { get; set; }             // null per classici
 }
 
 class Formazione
@@ -460,4 +528,14 @@ class MaterialeUtente
 record LoginRequest(string Email, string Password);
 record RegistrazioneRequest(string Nome, string Cognome, string Email, string Password);
 record FormazioneRequest(string Data);
-record CraftaRequest(string Nome, string Icona, int Hp, int HpMax, int Atk, int Def, int Mov, string? Materiali = null);
+record CraftaRequest(
+    string  Nome,
+    string  Icona,
+    int     Hp, int HpMax,
+    int     Atk, int Def, int Mov,
+    string? Materiali  = null,
+    string? NomeCustom = null,
+    string  Razza      = "Umanoide",
+    string  Materiale  = "Legno",
+    string? RicettaId  = null
+);

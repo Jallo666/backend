@@ -37,8 +37,19 @@ export default function InventarioCard({ pezzo, aperto, onToggle, onElimina }) {
             <SilhouettePiece natura={natura} size={200} />
           </div>
           <div className="fab-rc-header">
-            <span className="fab-rc-nome">{pezzo.nome}</span>
+            <span className="fab-rc-nome">
+              {pezzo.nomeCustom ?? pezzo.nome}
+              {pezzo.nomeCustom && (
+                <span className="inv-nome-base"> ({pezzo.nome})</span>
+              )}
+            </span>
             {natura && <span className="fab-rc-natura" style={{ color: natColore }}>{natura}</span>}
+            {(pezzo.razza || pezzo.materiale) && (
+              <div className="fab-rc-tags">
+                {pezzo.razza     && <span className="fab-tag fab-tag-razza">👤 {pezzo.razza}</span>}
+                {pezzo.materiale && <span className="fab-tag fab-tag-materiale">🪵 {pezzo.materiale}</span>}
+              </div>
+            )}
           </div>
         </div>
         {!aperto && (

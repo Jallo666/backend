@@ -50,8 +50,14 @@ export default function BoardPiece({
       {hasMoved && <div className="bp-sleep-overlay" />}
       {hasMoved && <div className="bp-sleep-badge">💤</div>}
 
-      {/* Nome — barra in fondo, troncato se lungo */}
-      <div className={`bp-name bp-name-${p.side}`}>{p.nome}</div>
+      {/* Nome + tag razza/materiale — barra in fondo */}
+      <div className={`bp-name bp-name-${p.side}`}>
+        {p.nome}
+        <div className="bp-tags">
+          {p.razza     && <span className="bp-tag">{p.razza}</span>}
+          {p.materiale && <span className="bp-tag">{p.materiale}</span>}
+        </div>
+      </div>
     </div>
   );
 }

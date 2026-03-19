@@ -570,17 +570,47 @@
   width: 100%;
   flex: 1;
   background: rgba(4, 2, 1, 0.7);
-  border: 1px solid rgba(90, 53, 16, 0.35);
+  border: 1px solid rgba(90, 53, 16, 0.55);
   border-radius: 8px;
   padding: 12px 16px;
   font-family: 'Crimson Text', serif;
   font-size: 18px;
-  color: rgba(245, 224, 176, 0.3);
+  color: #f5e0b0;
   outline: none;
-  cursor: not-allowed;
+  cursor: text;
   box-sizing: border-box;
+  transition: border-color 0.15s;
 }
-.fab-forgia-nome-input::placeholder { color: rgba(200, 160, 96, 0.2); }
+.fab-forgia-nome-input:focus { border-color: rgba(200, 160, 96, 0.7); }
+.fab-forgia-nome-input::placeholder { color: rgba(200, 160, 96, 0.25); }
+
+/* ── Tag razza/materiale ── */
+.fab-forgia-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.fab-tag {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(200, 160, 96, 0.30);
+  color: rgba(200, 160, 96, 0.75);
+  background: rgba(200, 160, 96, 0.06);
+  letter-spacing: 0.04em;
+}
+.fab-rc-tags {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.inv-nome-base {
+  font-size: 0.8em;
+  opacity: 0.55;
+  font-style: italic;
+}
 
 .fab-btn-forgia {
   position: relative;

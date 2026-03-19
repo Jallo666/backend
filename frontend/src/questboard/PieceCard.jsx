@@ -23,6 +23,12 @@ export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick,
               {piece.natura}
             </span>
           )}
+          {(piece.razza || piece.materiale) && (
+            <div className="qbg-card-tags">
+              {piece.razza     && <span className="qbg-card-tag">👤 {piece.razza}</span>}
+              {piece.materiale && <span className="qbg-card-tag">🪵 {piece.materiale}</span>}
+            </div>
+          )}
         </span>
         <span className={`qbg-card-team ${isPlayer ? "qbg-card-team-player" : "qbg-card-team-ai"}`}>
           {isPlayer ? "TUO" : "NEMICO"}

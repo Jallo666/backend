@@ -150,10 +150,11 @@ export function fromApi(apiPiece) {
   const colors = PIECE_COLORS[id] ?? PIECE_COLORS["guerriero"];
   const natura = apiPiece.materiali ?? NATURA_DA_NOME[apiPiece.nome] ?? null;
   return {
-    uid:   apiPiece.id,          // id univoco del pezzo dell'utente
+    uid:      apiPiece.id,
     id,
-    nome:  apiPiece.nome,
-    icona: CHESS_ICONS[id] ?? apiPiece.icona,   // usa simbolo scacchistico se disponibile
+    nome:     apiPiece.nomeCustom ?? apiPiece.nome,   // display: custom se presente
+    nomeBase: apiPiece.nome,                           // tipo originale (per colori, icone…)
+    icona:    CHESS_ICONS[id] ?? apiPiece.icona,
     hp:    apiPiece.hp,
     hpMax: apiPiece.hpMax,
     atk:   apiPiece.atk,
@@ -161,6 +162,9 @@ export function fromApi(apiPiece) {
     mov:   apiPiece.mov,
     isClassico: apiPiece.isClassico,
     natura,
+    razza:     apiPiece.razza     ?? "Umanoide",
+    materiale: apiPiece.materiale ?? "Legno",
+    ricettaId: apiPiece.ricettaId ?? null,
     gesta:  gesteDiNatura(natura),
     ardore: ardoreDiNatura(natura),
     aura:   auraDiNatura(natura),
