@@ -10,13 +10,13 @@
   --hs-player-bg: rgba(50, 130, 230, 0.28);
   --hs-enemy-bg:  rgba(200, 40, 40, 0.30);
 
-  min-height: 100dvh;
+  min-height: 100%;
   background:
     linear-gradient(rgba(10, 4, 0, 0.40), rgba(10, 4, 0, 0.40)),
     url('../assets/background_taverna_questboard.png') center / cover no-repeat fixed;
   display: flex; flex-direction: column;
   overflow: hidden; position: relative;
-  font-family: 'Press Start 2P', monospace;
+  /*font-family: 'Press Start 2P', monospace;*/
   color: var(--hs-cream);
   position: relative;
 }
@@ -59,11 +59,12 @@
 
 /* Coin */
 .qbg-coin-result { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-.qbg-coin { font-size: 3.5rem; animation: coinSpin 0.4s ease-out; }
+.qbg-coin { display: inline-block; animation: coinSpin 0.6s ease-out; }
 @keyframes coinSpin {
-  0%   { transform: rotateY(0); }
-  50%  { transform: rotateY(180deg) scale(1.3); }
-  100% { transform: rotateY(360deg); }
+  0%   { transform: rotateY(0deg) scale(1); }
+  30%  { transform: rotateY(90deg) scale(1.2); }
+  60%  { transform: rotateY(270deg) scale(1.2); }
+  100% { transform: rotateY(360deg) scale(1); }
 }
 
 /* Bottoni */
@@ -126,7 +127,7 @@
 /* Lato combattente (giocatore o AI) */
 .qbg-hud-fighter {
   display: flex; align-items: center; gap: 10px;
-  width: 200px; padding: 8px 16px;
+  flex: 1; min-width: 0; max-width: 200px; padding: 8px 16px;
   position: relative; overflow: hidden;
   opacity: 0.38;
   transition: opacity 0.3s;
@@ -181,6 +182,7 @@
   font-family: 'Cinzel', serif;
   font-size: 20px; color: #f0c040; white-space: nowrap;
   letter-spacing: 0.06em;
+  overflow: hidden; text-overflow: ellipsis; max-width: 100%;
 }
 .qbg-hud-fighter-pieces { font-family: 'Cinzel', serif; font-size: 12px; color: #c8a060; }
 
@@ -265,11 +267,11 @@
 
 /* ── Scene 3D ── */
 .qbg-scene {
-  flex: 1; display: flex; align-items: flex-start; justify-content: center;
+  flex: 1; display: flex; align-items: center; justify-content: center;
   padding: 0.5rem; perspective: 700px; perspective-origin: 50% 0%;
 }
 .qbg-board-wrap {
-  transform: rotateX(22deg); transform-style: preserve-3d;
+  /*transform: rotateX(22deg) translateY(-50px); transform-style: preserve-3d;*/
   filter: drop-shadow(0 24px 36px rgba(0,0,0,0.7));
 }
 .qbg-board { display: flex; flex-direction: column; gap: 0; }
@@ -488,7 +490,9 @@
 /* ── Responsive mobile landscape ── */
 @media (max-height: 500px) and (orientation: landscape) {
   .qbg-scene { perspective: 520px; perspective-origin: 50% 10%; padding: 0.2rem; }
-  .qbg-board-wrap { transform: rotateX(30deg) translateY(-8%); }
+  .qbg-board-wrap { 
+    /*transform: rotateX(30deg) translateY(-8%); */
+  }
 
   /* HUD: overlay trasparente in cima, non sottrae altezza alla board */
   .qbg-hud {
@@ -496,7 +500,7 @@
     background: transparent; box-shadow: none;
     min-height: 0; height: auto; padding: 3px 6px;
     z-index: 10; pointer-events: none;
-    justify-content: flex-start; align-items: center;
+    justify-content: center; align-items: center;
   }
   .qbg-hud-matchup {
     pointer-events: auto;
@@ -507,10 +511,10 @@
   }
   .qbg-hud-fighter { width: auto; padding: 2px 6px; gap: 4px; }
   .qbg-hud-center { padding: 0 6px; }
-  .qbg-hud-avatar { width: 20px; height: 20px; font-size: 7px; }
-  .qbg-hud-avatar-ai { font-size: 10px; }
-  .qbg-hud-fighter-name { font-size: 8px; }
-  .qbg-hud-fighter-pieces { font-size: 7px; }
+  .qbg-hud-avatar { width: 28px; height: 28px; font-size: 10px; }
+  .qbg-hud-avatar-ai { font-size: 13px; }
+  .qbg-hud-fighter-name { font-size: 10px; }
+  .qbg-hud-fighter-pieces { font-size: 8px; }
   .qbg-hud-vs { font-size: 12px; }
   .qbg-hud-round { font-size: 7px; }
   .qbg-back-btn { pointer-events: auto; position: absolute; top: 50%; right: 6px; transform: translateY(-50%); }
@@ -519,7 +523,7 @@
     order: -1; pointer-events: auto;
     font-size: 9px; padding: 0 8px; white-space: nowrap; align-self: stretch;
   }
-  .qbg-settings-icon { width: 32px; height: 32px; }
+  .qbg-settings-icon { width: 38px; height: 38px; }
 }
 
 /* ── Toast annuncio turno ── */

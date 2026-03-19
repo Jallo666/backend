@@ -37,7 +37,7 @@ function PieceRow({ p, rotation, ardoreTracker, isAi, collapsed, onClick, select
   );
 }
 
-export default function RotazioneTracker({ game, openPieceTab, selectedUid }) {
+export default function RotazioneTracker({ game, openPieceTab, selectedUid, opponentNome }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -54,7 +54,7 @@ export default function RotazioneTracker({ game, openPieceTab, selectedUid }) {
 
         {!collapsed && <>
           <div className="qbg-rot-divider" />
-          <div className="qbg-rot-section-label qbg-rot-section-ai">🤖 AI</div>
+          <div className="qbg-rot-section-label qbg-rot-section-ai">⚔ {opponentNome ?? "AI"}</div>
         </>}
         {game.aiPieces.map(p => (
           <PieceRow key={p.uid} p={p} rotation={game.aiRotation} ardoreTracker={game.aiArdoreTracker} isAi={true} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} />

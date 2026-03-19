@@ -9,7 +9,7 @@
   border-bottom: 2px solid var(--hs-wood-rim);
   border-radius: 14px 0 0 14px;
   box-shadow: 0 6px 24px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(240,192,64,0.08);
-  max-height: calc(100vh - 64px);
+  max-height: calc(100% - 64px);
   overflow: hidden;
   transition: width 0.25s ease;
   width: 300px; z-index: 50;

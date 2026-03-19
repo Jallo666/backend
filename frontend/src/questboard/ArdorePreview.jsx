@@ -4,7 +4,7 @@ import ardoreIcon from '../assets/icon/ardore.svg';
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 import { applyAuraEffects } from '../game/questboard/qb_rules.js';
 
-export default function ArdorePreview({ caster, target, ardore, onConfirm, onCancel, mode }) {
+export default function ArdorePreview({ caster, target, ardore, onConfirm, onCancel, mode, opponentNome = "AI" }) {
   const dannoEffettivo = applyAuraEffects(target, ardore.danno);
   const auraActive = dannoEffettivo < ardore.danno;
   const hpDopo    = Math.max(0, target.hp - dannoEffettivo);
@@ -16,7 +16,7 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
     <div className="ap-overlay">
       <div className={`ap-box${isAi ? " ap-box-ai" : ""}`}>
         <h2 className={`ap-title${isAi ? " ap-title-ai" : ""}`}>
-          {isAi ? "🤖 L'AI usa Ardore!" : <><img src={ardoreIcon} alt="" className="ap-ardore-icon" /> {ardore.nome}</>}
+          {isAi ? `⚔ ${opponentNome} usa Ardore!` : <><img src={ardoreIcon} alt="" className="ap-ardore-icon" /> {ardore.nome}</>}
         </h2>
 
         <div className="ap-matchup">

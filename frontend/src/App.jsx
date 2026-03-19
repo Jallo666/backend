@@ -3,7 +3,7 @@ import Login from "./Login";
 import Registrazione from "./Registrazione";
 import Gioco from "./Gioco";
 import MainMenu from "./mainmenu/MainMenu";
-import CittaPage from "./CittaPage";
+import LocandaPage from "./LocandaPage";
 import Formazione from "./formazione/Formazione";
 import QuestBoardGame from "./questboard/QuestBoardGame";
 import useMusic from "./music/useMusic";
@@ -35,12 +35,10 @@ function App() {
   const [startFloor, setStartFloor] = useState(1);
   const [saveData,   setSaveData]   = useState(null);
 
-  // Città
-  const [cittaSub, setCittaSub] = useState(null);
-
   // Quest Board — dati passati da Formazione a QuestBoardGame
   const [qbInventario,  setQbInventario]  = useState([]);
   const [qbFormazione,  setQbFormazione]  = useState([]);
+  const [qbSfidante,    setQbSfidante]    = useState(null);
 
   useEffect(() => {
     unlockAudio();
@@ -49,13 +47,15 @@ function App() {
   useEffect(() => {
     const DESIGN_WIDTH = 2560;
     const update = () => {
-      const scale = window.innerWidth / DESIGN_WIDTH;
+      const scale       = window.innerWidth / DESIGN_WIDTH;
+      const designHeight = Math.ceil(window.innerHeight / scale);
       const root  = document.getElementById('root');
       if (!root) return;
       root.style.transform       = `scale(${scale})`;
       root.style.transformOrigin = 'top left';
       root.style.width           = `${DESIGN_WIDTH}px`;
-      root.style.minHeight       = `${Math.ceil(window.innerHeight / scale)}px`;
+      root.style.height          = `${designHeight}px`;
+      root.style.minHeight       = `${designHeight}px`;
     };
     update();
     window.addEventListener('resize', update);
@@ -123,13 +123,11 @@ function App() {
   const enterDungeon = (floor = 1, player = null) => {
     setStartFloor(floor); setSaveData(player); setPagina("dungeon");
   };
-  const enterCitta = (sub = null) => {
-    setCittaSub(sub); setPagina("citta");
+  const enterLocanda = () => setPagina("locanda");
+  const enterFormazione = (sfidante = null) => {
+    setQbSfidante(sfidante);
+    setPagina("formazione");
   };
-  const enterLocanda = () => {
-    setCittaSub("locanda"); setPagina("citta");
-  };
-  const enterFormazione = () => setPagina("formazione");
   const avviaPartita = (inv, form) => {
     setQbInventario(inv);
     setQbFormazione(form);
@@ -164,7 +162,7 @@ function App() {
       <MainMenu
         utente={utente}
         onEnterDungeon={enterDungeon}
-        onEnterCitta={enterCitta}
+        onEnterLocanda={enterLocanda}
         onGilda={() => setPagina("gilda")}
         onLogout={handleLogout}
       />
@@ -181,14 +179,10 @@ function App() {
     );
   }
 
-  if (pagina === "citta") {
+  if (pagina === "locanda") {
     return (
-      <CittaPage
-        subPage={cittaSub}
-        token={token}
-        onNavigate={sub => setCittaSub(sub)}
-        onBackToMenu={() => setPagina("mainmenu")}
-        onEntraLocanda={enterLocanda}
+      <LocandaPage
+        onBack={() => setPagina("mainmenu")}
         onApriFormazione={enterFormazione}
       />
     );
@@ -198,8 +192,9 @@ function App() {
     return (
       <Formazione
         token={token}
+        sfidante={qbSfidante}
         onAvvia={avviaPartita}
-        onBack={() => { setCittaSub("locanda"); setPagina("citta"); }}
+        onBack={() => setPagina("locanda")}
       />
     );
   }
@@ -209,8 +204,9 @@ function App() {
       <QuestBoardGame
         inventario={qbInventario}
         formazione={qbFormazione}
+        sfidante={qbSfidante}
         utente={utente}
-        onBack={() => { setCittaSub("locanda"); setPagina("citta"); }}
+        onBack={() => setPagina("locanda")}
       />
     );
   }

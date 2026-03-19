@@ -1,14 +1,14 @@
 import Fabbro from "./Fabbro";
+import { SFIDANTI } from "./sfidanti.js";
 import "./CittaPage.css";
 
 const SUBPAGES = {
   locanda: {
     icon: "🍺",
     title: "Locanda — Il Drago Addormentato",
-    desc: "Un fuoco crepitante illumina la sala. Il locandiere ti fa un cenno. Qui puoi riposare, raccogliere le ultime voci del dungeon e sfidare avversari alla Quest Board.",
+    desc: "Un fuoco crepitante illumina la sala. Il locandiere ti fa un cenno. Qui puoi riposare e sfidare avversari alla Quest Board.",
     color: "#c9a84c",
     bg:    "#0e1a0a",
-    soon: ["🛌 Riposa (recupera HP)", "💬 Notizie dal dungeon"],
   },
   fabbro: {
     icon: "⚒️",
@@ -28,17 +28,64 @@ const SUBPAGES = {
   },
 };
 
+function StarRating({ value, max = 5 }) {
+  return (
+    <div className="locanda-stars">
+      {Array.from({ length: max }, (_, i) => (
+        <span key={i} className={i < value ? "locanda-star-on" : "locanda-star-off"}>★</span>
+      ))}
+    </div>
+  );
+}
+
 // ── Sub-pagina ────────────────────────────────────────────────────────────────
 function SubPage({ pageKey, token, onBack, onBackToMenu, onApriFormazione }) {
   const p = SUBPAGES[pageKey];
   if (!p) return null;
 
-  // Fabbro ha il proprio componente completo
   if (pageKey === "fabbro") {
     return <Fabbro token={token} onBack={onBack} onBackToMenu={onBackToMenu} />;
   }
 
-  const isLocanda = pageKey === "locanda";
+  if (pageKey === "locanda") {
+    return (
+      <div className="citta-sub" style={{ "--accent": p.color, "--bg": p.bg }}>
+        <nav className="citta-nav">
+          <button className="citta-nav-btn" onClick={onBack}>← Città</button>
+          <button className="citta-nav-btn citta-nav-menu" onClick={onBackToMenu}>⌂ Menu</button>
+        </nav>
+        <div className="locanda-content">
+          <div className="locanda-header">
+            <span className="locanda-header-icon">🍺</span>
+            <h1 className="locanda-header-title">Il Drago Addormentato</h1>
+            <p className="locanda-header-sub">{p.desc}</p>
+          </div>
+          <h2 className="locanda-sfidanti-title">⚔ Sfidanti</h2>
+          <div className="locanda-sfidanti-list">
+            {SFIDANTI.map(sf => (
+              <div key={sf.id} className="locanda-sfidante-card">
+                <div className="locanda-sfidante-portrait">
+                  <img src={sf.img} alt={sf.nome} className="locanda-sfidante-img" />
+                </div>
+                <div className="locanda-sfidante-info">
+                  <div className="locanda-sfidante-nome">{sf.nome}</div>
+                  <div className="locanda-sfidante-titolo">{sf.titolo}</div>
+                  <StarRating value={sf.difficolta} />
+                  <p className="locanda-sfidante-desc">{sf.descrizione}</p>
+                  <button
+                    className="locanda-sfida-btn"
+                    onClick={() => onApriFormazione(sf)}
+                  >
+                    ⚔ Sfida
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="citta-sub" style={{ "--accent": p.color, "--bg": p.bg }}>
@@ -52,13 +99,7 @@ function SubPage({ pageKey, token, onBack, onBackToMenu, onApriFormazione }) {
         <h1 className="citta-sub-title">{p.title}</h1>
         <p className="citta-sub-desc">{p.desc}</p>
 
-        {isLocanda && (
-          <button className="citta-qb-btn" onClick={onApriFormazione}>
-            ⚔ Sfida alla Quest Board
-          </button>
-        )}
-
-        {p.soon.length > 0 && (
+        {p.soon?.length > 0 && (
           <>
             <div className="citta-soon-label">Prossimamente:</div>
             <ul className="citta-soon-list">
@@ -69,7 +110,7 @@ function SubPage({ pageKey, token, onBack, onBackToMenu, onApriFormazione }) {
           </>
         )}
 
-        {!isLocanda && <div className="citta-wip-badge">🚧 In costruzione 🚧</div>}
+        <div className="citta-wip-badge">🚧 In costruzione 🚧</div>
       </div>
     </div>
   );

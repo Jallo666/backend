@@ -4,7 +4,7 @@ import gestaIcon from '../assets/icon/gesta.svg';
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 import { applyAuraEffects } from '../game/questboard/qb_rules.js';
 
-export default function GestPreview({ caster, target, gesta, onConfirm, onCancel, mode }) {
+export default function GestPreview({ caster, target, gesta, onConfirm, onCancel, mode, opponentNome = "AI" }) {
   const dannoEffettivo = applyAuraEffects(target, gesta.danno);
   const auraActive = dannoEffettivo < gesta.danno;
   const hpDopo    = Math.max(0, target.hp - dannoEffettivo);
@@ -16,7 +16,7 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
     <div className="gp-overlay">
       <div className={`gp-box${isAi ? " gp-box-ai" : ""}`}>
         <h2 className={`gp-title${isAi ? " gp-title-ai" : ""}`}>
-          {isAi ? "🤖 L'AI usa una gesta!" : <><img src={gestaIcon} alt="" className="gp-gesta-icon" /> {gesta.nome}</>}
+          {isAi ? `⚔ ${opponentNome} usa una Gesta!` : <><img src={gestaIcon} alt="" className="gp-gesta-icon" /> {gesta.nome}</>}
         </h2>
 
         <div className="gp-matchup">

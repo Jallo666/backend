@@ -31,11 +31,15 @@ export default function GameHud({ game, utente, onOptions, onFineTurno, pieceJus
         {/* Lato AI */}
         <div className={`qbg-hud-fighter qbg-hud-ai-side ${game.turn === "ai" ? "qbg-hud-active" : ""}`}>
           <div className="qbg-hud-fighter-info qbg-hud-fighter-info-right">
-            <span className="qbg-hud-fighter-name">AI</span>
+            <span className="qbg-hud-fighter-name">{game.opponentTag ?? game.opponentNome ?? "AI"}</span>
             <span className="qbg-hud-fighter-pieces">♟ {game.aiPieces.length} pedine</span>
           </div>
           <div className="qbg-hud-avatar qbg-hud-avatar-ai">
-            <span className="qbg-hud-avatar-initials">🤖</span>
+            {game.opponentAvatarImg
+              ? <img src={game.opponentAvatarImg} alt={game.opponentNome} className="qbg-hud-avatar-img"
+                     style={{ objectPosition: game.opponentAvatarPos ?? 'center' }} />
+              : <span className="qbg-hud-avatar-initials">🤖</span>
+            }
           </div>
         </div>
       </div>

@@ -78,7 +78,7 @@ function _applyForzaDelPopolo(pieces, deadPieceName) {
 // ── Crea stato iniziale ───────────────────────────────────────────────────────
 // formazioneSalvata: [{id (uid pezzo), row, col, isRe}] dal backend
 // inventario: pezzi dal backend
-export function createGame(inventario, formazioneSalvata) {
+export function createGame(inventario, formazioneSalvata, sfidante = null) {
   // inventario è già convertito via fromApi in Formazione.jsx
   // ogni pezzo ha: { uid: numericDbId, id: "guerriero", ... }
   const pezziMap = Object.fromEntries(inventario.map(p => [p.uid, p]));
@@ -106,6 +106,11 @@ export function createGame(inventario, formazioneSalvata) {
   return {
     playerPieces,
     aiPieces,
+    opponentNome:      sfidante?.nome      ?? "AI",
+    opponentTag:       sfidante?.tag       ?? sfidante?.nome ?? "AI",
+    opponentImg:       sfidante?.img       ?? null,
+    opponentAvatarImg: sfidante?.avatarImg ?? sfidante?.img ?? null,
+    opponentAvatarPos: sfidante?.avatarPos ?? 'center',
     turn:        "player",     // "player" | "ai"
     playerRound: 1,            // round indipendente del giocatore
     aiRound:     1,            // round indipendente dell'AI
@@ -329,6 +334,7 @@ function _applyMove(state, piece, move, side, skipAutoEndTurn = false) {
     const list = side === "player" ? newPlayerPieces : newAiPieces;
     const idx  = list.findIndex(p => p.uid === piece.uid);
     if (idx !== -1) list[idx] = { ...list[idx], row: move.row, col: move.col };
+    newLog.push(`${_tag(piece)} ${piece.nome} si sposta da ${_toCoord(piece.row, piece.col)} a ${_toCoord(move.row, move.col)}`);
   }
 
   // Aggiorna tracker rotazione
@@ -403,6 +409,10 @@ function _endTurn(state, currentSide) {
 }
 
 // Prefisso per il diario: indica di chi è il pezzo
+function _toCoord(row, col) {
+  return String.fromCharCode(97 + col) + (6 - row);
+}
+
 function _tag(piece) {
   return piece.side === "player" ? "[TUO]" : "[AI]";
 }
@@ -591,6 +601,11 @@ export function applyArdore(state, side, casterUid, ardoreId, targetUid) {
   if (!caster || !target) return state;
   const ardore = caster.ardore?.find(a => a.id === ardoreId);
   if (!ardore) return state;
+
+  // Carica (tipo movimento) usa resolveCombat, non il campo danno (che è undefined)
+  if (ardore.tipo === "movimento") {
+    return applyArdoreCaricaAttack(state, side, casterUid, targetUid);
+  }
 
   const dannoEffettivo = applyAuraEffects(target, ardore.danno);
   const nuovoHp    = Math.max(0, target.hp - dannoEffettivo);

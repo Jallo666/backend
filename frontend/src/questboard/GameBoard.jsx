@@ -9,7 +9,7 @@ export default function GameBoard({
   game, cellSize, moveAnim, animCell,
   combatFlash, gestaMode, gestaHitAnim,
   ardoreMode, ardoreHitAnim, ardoreImpegnato,
-  onCellClick, pendingAttack, onConfirmAttack,
+  onCellClick,
   scagliareTargetUids, scagliareDests,
   placementCells,
 }) {
@@ -72,7 +72,7 @@ export default function GameBoard({
                   && (r !== caricaCaster.row || c !== caricaCaster.col);
                 const isArdoreHit    = ardoreHitAnim?.row === r && ardoreHitAnim?.col === c;
                 const isArdoreImpeg  = ardoreImpegnato && p?.uid === ardoreImpegnato.pieceUid;
-                const isPendingTarget = pendingAttack && p?.uid === pendingAttack.defender?.uid;
+                const isAttackTarget = attack && p?.side === "ai" && game.selected != null;
                 const isPlacementCell = placementCells?.some(pc => pc.row === r && pc.col === c);
                 const pieceSideClass = p
                   ? (p.side === "player" ? "qbg-cell-player-piece" : "qbg-cell-ai-piece")
@@ -119,10 +119,10 @@ export default function GameBoard({
                         ardoreAvail={ardoreAvail} gestaAvail={gestaAvail}
                       />
                     )}
-                    {isPendingTarget && (
+                    {isAttackTarget && (
                       <button
                         className="qbg-confirm-attack-btn"
-                        onClick={e => { e.stopPropagation(); onConfirmAttack(); }}
+                        onClick={e => { e.stopPropagation(); onCellClick(r, c); }}
                       ><img src={attackIcon} alt="attacca" /></button>
                     )}
                     {isArdoreTarget && !isPendingTarget && (

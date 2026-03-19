@@ -10,7 +10,7 @@
   --hs-cream:     #f5e0b0;
   --hs-muted:     #c8a060;
 
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
   background:
     linear-gradient(rgba(10, 4, 0, 0.42), rgba(10, 4, 0, 0.42)),
@@ -35,41 +35,28 @@
 /* ── Header ── */
 .form-header {
   padding: 10px 20px;
-  background: rgba(10, 5, 1, 0.97);
-  border-bottom: 2px solid var(--hs-wood-rim);
+  background: transparent;
+  border-bottom: 1px solid rgba(90, 53, 16, 0.4);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-shrink: 0;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.6);
+  position: relative;
   min-height: 64px;
 }
 
-.form-back-btn {
-  display: flex; align-items: center; gap: 6px;
-  background: transparent;
-  border: 1px solid var(--hs-wood-rim);
-  color: var(--hs-gold);
-  padding: 7px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+.form-back-locanda-btn {
+  background: none; border: none;
+  padding: 4px; cursor: pointer;
   flex-shrink: 0;
 }
-.form-back-btn:hover {
-  background: #2a1408;
-  border-color: var(--hs-gold);
+.form-locanda-icon {
+  width: 56px; height: 56px;
+  display: block; opacity: 0.75;
+  transition: opacity 0.15s;
 }
-.form-back-icon {
-  width: 18px; height: 18px;
-  filter: invert(80%) sepia(60%) saturate(300%) hue-rotate(10deg);
-}
-.form-back-btn span {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-}
+.form-back-locanda-btn:hover .form-locanda-icon { opacity: 1; }
 
 .form-header-center {
   text-align: center;
@@ -127,7 +114,7 @@
 /* La larghezza del board = il minore tra altezza disponibile e larghezza disponibile */
 .form-col-labels-row {
   display: flex;
-  width: min(calc(100dvh - 130px), calc(67vw - 80px));
+  width: min(calc(100dvh - 130px), calc(100% - 44px), calc(67vw - 80px));
 }
 .form-row-labels-spacer {
   width: 22px;
@@ -150,7 +137,7 @@
 .form-board-row {
   display: flex;
   gap: 4px;
-  width: min(calc(100dvh - 130px), calc(67vw - 80px));
+  width: min(calc(100dvh - 130px), calc(100% - 44px), calc(67vw - 80px));
   flex: 1; /* occupa l'altezza rimanente */
   min-height: 0;
 }
@@ -224,8 +211,14 @@
   display: flex; align-items: center; justify-content: center;
   background: #0e0804;
   position: relative;
+  overflow: hidden;
   box-shadow: 0 0 6px var(--piece-glow, var(--hs-wood-rim));
   transition: box-shadow 0.15s;
+}
+/* Silhouette occupa tutto il contorno del pezzo */
+.form-piece-sil {
+  width: 100% !important;
+  height: 100% !important;
 }
 .form-piece-re {
   box-shadow: 0 0 14px var(--hs-gold), 0 0 4px var(--hs-gold);

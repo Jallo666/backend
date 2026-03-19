@@ -58,15 +58,16 @@ function calcStatusHint(game, gestaMode, ardoreMode, pieceCard) {
 
 function calcCellSize() {
   const mobileLandscape = window.innerHeight < 500 && window.matchMedia('(orientation: landscape)').matches;
-  if (!mobileLandscape) return 144;
-  const maxByW = (window.innerWidth  - 60) / BOARD_SIZE;
-  const maxByH = (window.innerHeight - 20) / BOARD_SIZE;
-  return Math.max(46, Math.min(maxByW, maxByH, 144));
+  if (!mobileLandscape) return 168;
+  const maxByW = (window.innerWidth  - 20) / BOARD_SIZE;
+  // rotateX(30deg) compresses visual height ~0.7x, so we can afford bigger cells
+  const maxByH = (window.innerHeight - 10) / BOARD_SIZE / 0.7;
+  return Math.max(60, Math.min(maxByW, maxByH, 144));
 }
 
 // ── Componente principale ─────────────────────────────────────────────────────
-export default function QuestBoardGame({ inventario, formazione, utente, onBack }) {
-  const [game,          setGame]          = useState(() => createGame(inventario, formazione));
+export default function QuestBoardGame({ inventario, formazione, sfidante, utente, onBack }) {
+  const [game,          setGame]          = useState(() => createGame(inventario, formazione, sfidante));
   const [animCell,      setAnimCell]      = useState(null);
   const [moveAnim,      setMoveAnim]      = useState(null);
   const [combatFlash,   setCombatFlash]   = useState(null);
@@ -291,8 +292,8 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         : true
     );
     const gestaAvail      = hasGesta && piece?.canAct !== false && gestaHasTargets;
-    const movedWithNothingLeft = pendingFineTurnoUid === activeUid && !ardoreAvail && !gestaAvail;
-    if (gestaUsed || selectedNoMoves || ardoreAndMoved || movedWithNothingLeft) setShowEndTurnPopup(true);
+    const movedPiece = pendingFineTurnoUid === activeUid && !ardoreAvail;
+    if (!pendingPlacement && (gestaUsed || selectedNoMoves || ardoreAndMoved || movedPiece)) setShowEndTurnPopup(true);
   }, [pendingFineTurnoUid, ardoreImpegnato, ardoreUsedUid, game]);
 
   // ── Popup annuncio turno ───────────────────────────────────────────────────
@@ -354,6 +355,9 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         if (dr === 0 && dc === 0) continue;
         const r = defRow + dr, c = defCol + dc;
         if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) continue;
+        // Intersezione: deve essere raggiungibile dall'attaccante (distanza Chebyshev ≤ mov)
+        const distFromAttacker = Math.max(Math.abs(r - attacker.row), Math.abs(c - attacker.col));
+        if (distFromAttacker > attacker.mov) continue;
         // Includi la cella corrente dell'attaccante + celle libere
         if (!occupied.has(`${r},${c}`) || (r === attacker.row && c === attacker.col)) {
           adjacentFree.push({ row: r, col: c });
@@ -429,6 +433,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
 
     // ── Riposizionamento attaccante dopo attacco ───────────────────────────
     if (pendingPlacement?.validCells) {
+      if (game.turn !== "player") return;
       const isValid = pendingPlacement.validCells.some(c => c.row === row && c.col === col);
       if (isValid) {
         setGame(s => applyAttackerRelocation(s, pendingPlacement.uid, row, col));
@@ -633,6 +638,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         const uidToEnd = hudFineTurnoUid;
         setPendingFineTurnoUid(null);
         setArdoreImpegnato(null);
+        setPendingPlacement(null);
         if (moved) { setGame(s => endPlayerPieceTurn(s, uidToEnd)); }
         else { setGame(s => skipPieceTurn(s, uidToEnd)); }
       }
@@ -710,6 +716,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
           onConfirm={confirmAiArdore}
           onCancel={confirmAiArdore}
           mode="ai"
+          opponentNome={game.opponentNome}
         />
       )}
 
@@ -757,6 +764,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
           onConfirm={confirmAiScagliare}
           onCancel={confirmAiScagliare}
           mode="ai"
+          opponentNome={game.opponentNome}
         />
       )}
 
@@ -769,6 +777,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
           onConfirm={confirmAiGesta}
           onCancel={confirmAiGesta}
           mode="ai"
+          opponentNome={game.opponentNome}
         />
       )}
 
@@ -831,7 +840,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
             setAnimCell(null);
             setGestaHitAnim(null);
             setArdoreHitAnim(null);
-            setGame(() => createGame(inventario, formazione));
+            setGame(() => createGame(inventario, formazione, sfidante));
           }}
           onRetire={() => { setShowOptions(false); onBack(); }}
         />
@@ -844,8 +853,6 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         combatFlash={combatFlash} gestaMode={gestaMode} gestaHitAnim={gestaHitAnim}
         ardoreMode={ardoreMode} ardoreHitAnim={ardoreHitAnim} ardoreImpegnato={ardoreImpegnato}
         onCellClick={handleCellClick}
-        pendingAttack={null}
-        onConfirmAttack={null}
         placementCells={pendingPlacement?.validCells ?? null}
         scagliareTargetUids={scagliareTargetUids}
         scagliareDests={scagliareDests}
@@ -855,6 +862,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
         showLog={showLog} setShowLog={setShowLog}
         activeTab={activeTab} setActiveTab={setActiveTab}
         displayLog={displayLog}
+        opponentNome={game.opponentNome ?? "AI"}
         pieceCard={[...game.playerPieces, ...game.aiPieces].find(p => p.uid === pieceCard?.uid) ?? pieceCard}
         setPieceCard={setPieceCard}
         selectedUid={pieceCard?.side === 'player' ? pieceCard?.uid : null}
@@ -915,7 +923,7 @@ export default function QuestBoardGame({ inventario, formazione, utente, onBack 
           : calcStatusHint(game, gestaMode, ardoreMode, pieceCard)
       } />
 
-      <RotazioneTracker game={game} openPieceTab={openPieceTab} selectedUid={pieceCard?.uid ?? null} />
+      <RotazioneTracker game={game} openPieceTab={openPieceTab} selectedUid={pieceCard?.uid ?? null} opponentNome={game.opponentNome} />
 
       {/* ── Toast annuncio turno ── */}
       {turnPopup && (

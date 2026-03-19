@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { fromApi } from "../game/questboard/qb_pieces.js";
 import SilhouettePiece from "../SilhouettePiece.jsx";
-import backIcon from "../assets/icon/back.svg";
+import locandaIcon from "../assets/icon/locanda_button.svg";
 import "./Formazione.css";
 
 const API_URL  = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
@@ -36,6 +36,7 @@ export default function Formazione({ token, onAvvia, onBack }) {
   const [loading,           setLoading]           = useState(true);
   const [msg,               setMsg]               = useState("");
   const [confirmReset,      setConfirmReset]      = useState(false);
+  const [confirmBack,       setConfirmBack]       = useState(false);
 
   // Carica inventario + formazioni
   useEffect(() => {
@@ -231,6 +232,26 @@ export default function Formazione({ token, onAvvia, onBack }) {
   return (
     <div className="form-root">
 
+      {/* ── Confirm overlay torna alla locanda ── */}
+      {confirmBack && (
+        <div className="form-confirm-overlay">
+          <div className="form-confirm-box">
+            <h3 className="form-confirm-title">↩ Torna alla locanda?</h3>
+            <p className="form-confirm-text">
+              Vuoi abbandonare la formazione e tornare alla locanda?
+            </p>
+            <div className="form-confirm-btns">
+              <button className="form-btn form-btn-danger" onClick={onBack}>
+                Torna alla Locanda
+              </button>
+              <button className="form-btn form-btn-cancel" onClick={() => setConfirmBack(false)}>
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Confirm overlay ripristina ── */}
       {confirmReset && (
         <div className="form-confirm-overlay">
@@ -257,10 +278,6 @@ export default function Formazione({ token, onAvvia, onBack }) {
 
       {/* ── Header ── */}
       <header className="form-header">
-        <button className="form-back-btn" onClick={onBack}>
-          <img src={backIcon} alt="" className="form-back-icon" />
-          <span>Locanda</span>
-        </button>
         <div className="form-header-center">
           <h1 className="form-title">Formazione</h1>
           <p className="form-subtitle">Piazza i pezzi nelle ultime 2 righe · Designa il Re</p>
@@ -273,6 +290,9 @@ export default function Formazione({ token, onAvvia, onBack }) {
             {reUid ? "♛ Re ✓" : "♛ Re ✗"}
           </span>
         </div>
+        <button className="form-back-locanda-btn" onClick={() => setConfirmBack(true)} title="Torna alla locanda">
+          <img src={locandaIcon} alt="locanda" className="form-locanda-icon" />
+        </button>
       </header>
 
       <div className="form-body">
@@ -317,7 +337,7 @@ export default function Formazione({ token, onAvvia, onBack }) {
                           className={`form-piece ${slot?.isRe ? "form-piece-re" : ""}`}
                           style={{ "--piece-border": p.border, "--piece-glow": p.glow }}
                         >
-                          <SilhouettePiece natura={p.natura} size={54} />
+                          <SilhouettePiece natura={p.natura} size={72} className="form-piece-sil" />
                           {slot?.isRe && <span className="form-piece-crown">♛</span>}
                         </div>
                       )}
@@ -450,7 +470,7 @@ export default function Formazione({ token, onAvvia, onBack }) {
                     style={{ "--piece-border": p.border, "--piece-glow": p.glow }}
                     onClick={() => !placed && handleInvClick(p.uid)}
                   >
-                    <SilhouettePiece natura={p.natura} size={44} />
+                    <SilhouettePiece natura={p.natura} size={54} />
                     <div className="form-inv-info">
                       <span className="form-inv-nome">{p.nome}</span>
                       <span className="form-inv-stats">❤{p.hp} ⚔{p.atk} 🛡{p.def} 👟{p.mov}</span>
