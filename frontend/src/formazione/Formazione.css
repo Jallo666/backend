@@ -118,9 +118,9 @@
 
 /* ── Side panel ── */
 .form-side {
-  width: 33vw;
-  min-width: 280px;
-  max-width: 460px;
+  width: 38vw;
+  min-width: 320px;
+  max-width: 680px;
   flex-shrink: 0;
   background: rgba(10, 5, 1, 0.97);
   border-left: 2px solid var(--hs-wood-rim);
@@ -152,8 +152,8 @@
   flex: 1;
   text-align: center;
   white-space: nowrap;
-  padding: 8px 6px;
-  font-size: 11px;
+  padding: 14px 20px;
+  font-size: 20px;
 }
 .form-nome-input {
   flex: 1;
@@ -189,7 +189,7 @@
 .form-btn-nuova  { background: #0a1a0a; border: 1px solid #306030; color: #70c070; }
 .form-btn-re     { background: #1a1200; border: 1px solid var(--hs-gold); color: var(--hs-gold); }
 .form-btn-remove { background: #1a0808; border: 1px solid #cc3333; color: #cc3333; }
-.form-btn-cancel { background: rgba(20,10,2,0.8); border: 1px solid #3a1e08; color: var(--hs-muted); }
+.form-btn-cancel { background: rgba(30,15,3,0.9); border: 1px solid #7a4a1a; color: #d4a870; letter-spacing: 0.08em; }
 .form-btn-danger { background: #2a0808; border: 1px solid #cc3333; color: #f08080; }
 .form-btn-avvia  {
   background: linear-gradient(135deg, #1a0808, #4a1414);
@@ -210,14 +210,17 @@
 }
 .form-btn-icon {
   font-family: 'Cinzel', serif;
-  font-size: 14px;
+  font-size: 18px;
   background: rgba(20,10,2,0.8);
   border: 1px solid var(--hs-wood-rim);
   color: var(--hs-gold);
-  width: 26px; height: 26px;
+  height: 36px;
+  padding: 0 14px;
   border-radius: 3px;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
   transition: background 0.15s;
 }
 .form-btn-icon:hover { background: rgba(240,192,64,0.15); }
@@ -290,20 +293,23 @@
 }
 
 /* ── Inventario — occupa spazio rimanente ── */
-.form-section-inv {
+.form-section-inv,
+.form-inv-panel {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
 }
-.form-section-inv::-webkit-scrollbar { width: 4px; }
-.form-section-inv::-webkit-scrollbar-thumb { background: var(--hs-wood-rim); border-radius: 2px; }
+.form-section-inv::-webkit-scrollbar,
+.form-inv-panel::-webkit-scrollbar { width: 4px; }
+.form-section-inv::-webkit-scrollbar-thumb,
+.form-inv-panel::-webkit-scrollbar-thumb { background: var(--hs-wood-rim); border-radius: 2px; }
 
-.form-inv { display: flex; flex-direction: column; gap: 6px; }
+.form-inv { display: flex; flex-direction: column; gap: 8px; }
 .form-inv-piece {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px;
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px;
   border: 1px solid var(--piece-border, #3a1e08);
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   background: rgba(20, 10, 2, 0.8);
   transition: background 0.15s, border-color 0.15s;
@@ -319,7 +325,7 @@
 }
 .form-inv-placed { opacity: 0.5; cursor: not-allowed; }
 .form-inv-info { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
-.form-inv-nome  { font-family: 'Cinzel', serif; font-size: 13px; color: var(--hs-gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.form-inv-nome  { font-family: 'Cinzel', serif; font-size: 18px; color: var(--hs-gold); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .form-inv-stats { font-family: 'Crimson Text', serif; font-size: 13px; color: var(--hs-muted); }
 .form-inv-badge { font-size: 16px; color: #40cc60; flex-shrink: 0; }
 /* badge ♛ ha colore oro */
@@ -386,26 +392,26 @@
   background:
     linear-gradient(rgba(20, 10, 2, 0.97), rgba(20, 10, 2, 0.97)),
     url('../assets/background_taverna_questboard.png') center / cover;
-  border: 2px solid var(--hs-wood-rim);
-  border-radius: 6px;
-  padding: 28px 32px;
-  max-width: 380px;
+  border: 3px solid var(--hs-wood-rim);
+  border-radius: 12px;
+  padding: 56px 72px;
+  max-width: 900px;
   width: 90%;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.8);
+  gap: 32px;
+  box-shadow: 0 16px 80px rgba(0,0,0,0.8);
 }
 .form-confirm-title {
   font-family: 'Cinzel Decorative', serif;
-  font-size: 16px;
+  font-size: 48px;
   color: var(--hs-gold);
   margin: 0;
   text-align: center;
 }
 .form-confirm-text {
   font-family: 'Crimson Text', serif;
-  font-size: 15px;
+  font-size: 32px;
   color: var(--hs-cream);
   margin: 0;
   text-align: center;
@@ -413,8 +419,29 @@
 }
 .form-confirm-btns {
   display: flex;
-  gap: 10px;
+  gap: 20px;
   justify-content: center;
+}
+.form-confirm-btns .form-btn {
+  font-size: 28px;
+  padding: 18px 36px;
+}
+
+.form-confirm-sostituisci {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.form-confirm-sostituisci > * {
+  flex: 1;
+}
+
+.form-confirm-sostituisci-arrow {
+  font-size: 40px;
+  color: var(--hs-gold);
+  align-self: center;
+  flex: 0 !important;
 }
 
 /* ── Responsive — portrait mobile ── */
@@ -427,7 +454,7 @@
 
 /* ── Responsive — landscape piccolo ── */
 @media (max-height: 650px) and (orientation: landscape) {
-  .form-side { width: 30vw; min-width: 240px; gap: 8px; padding: 10px 12px; }
+  .form-side { width: 80vw; min-width: 320px; max-width: none; gap: 8px; padding: 10px 12px; }
   .form-section-title { font-size: 10px; padding-bottom: 4px; }
   .form-formazioni-lista { max-height: 80px; }
   .form-inv-piece { padding: 5px 8px; gap: 7px; }

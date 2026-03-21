@@ -18,7 +18,7 @@ export default function RicettaCard({ ricetta, selected, giaForgiato, onClick })
       {/* sempre visibile: silhouette + nome/natura */}
       <div className="fab-rc-always">
         <div className="fab-rc-silhouette">
-          <SilhouettePiece natura={ricetta.natura} size={200} />
+          <SilhouettePiece natura={ricetta.natura} materiale={ricetta.materiale} size={200} />
         </div>
         <div className="fab-rc-header">
           <span className="fab-rc-nome">{ricetta.nome}</span>

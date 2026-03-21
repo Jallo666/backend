@@ -16,23 +16,22 @@ const NATURA_IMG = {
   generica:   genericaImg,
 };
 
-/**
- * Mostra la silhouette di un pezzo in base alla sua natura.
- *
- * @param {string}  natura    - Una delle 6 nature
- * @param {number}  size      - Larghezza/altezza dell'immagine (px)
- * @param {string}  className - Classi CSS aggiuntive
- */
-export default function SilhouettePiece({ natura, size = 48, className = "" }) {
+// CSS filter per materiale — aggiungere nuovi materiali qui
+const MATERIALE_FILTER = {
+  Legno: undefined,
+};
+
+export default function SilhouettePiece({ natura, materiale, size = 48, className = "" }) {
   const src = NATURA_IMG[natura];
   if (!src) return null;
+  const filter = materiale ? MATERIALE_FILTER[materiale] : undefined;
   return (
     <img
       src={src}
       width={size}
       height={size}
       className={className || undefined}
-      style={{ imageRendering: "pixelated", objectFit: "contain", flexShrink: 0, display: "block" }}
+      style={{ imageRendering: "pixelated", objectFit: "contain", flexShrink: 0, display: "block", filter }}
       alt={natura}
     />
   );

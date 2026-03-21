@@ -1,4 +1,5 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
+import { TagRe } from "../components/PieceTag.jsx";
 import FormazioneMsgPanel from "./FormazioneMsgPanel.jsx";
 import "./FormazioneBoard.css";
 
@@ -6,7 +7,7 @@ const ROWS = 6, COLS = 6;
 const PLAYER_ROWS = [4, 5];
 const AI_ROWS     = [0, 1];
 
-export default function FormazioneBoard({ formazione, inventario, selectedCell, selectedInv, msg, onCellClick, selectedCellPiece, isRe, onDesignaRe, onRemove, onAnnulla, nomeInput, onNomeChange, onSovrascrivi, onSalvaNuova, saving }) {
+export default function FormazioneBoard({ formazione, inventario, selectedCell, selectedInv, msg, onCellClick, selectedCellPiece, isRe, onDesignaRe, onRemove, onAnnulla, nomeInput, onNomeChange, onSovrascrivi, onSalvaNuova, saving, pezziCount, hasRe, onAvvia, canAvvia, selectedInvPiece, onAnnullaInv, formazioneId }) {
   const pieceAt = (row, col) => {
     const slot = formazione.find(f => f.row === row && f.col === col);
     if (!slot) return null;
@@ -33,7 +34,7 @@ export default function FormazioneBoard({ formazione, inventario, selectedCell, 
         </div>
         {/* [2,2] board */}
         <div className="form-board">
-          <FormazioneMsgPanel msg={msg} selectedCellPiece={selectedCellPiece} isRe={isRe} onDesignaRe={onDesignaRe} onRemove={onRemove} onAnnulla={onAnnulla} nomeInput={nomeInput} onNomeChange={onNomeChange} onSovrascrivi={onSovrascrivi} onSalvaNuova={onSalvaNuova} saving={saving} />
+          <FormazioneMsgPanel msg={msg} selectedCellPiece={selectedCellPiece} isRe={isRe} onDesignaRe={onDesignaRe} onRemove={onRemove} onAnnulla={onAnnulla} nomeInput={nomeInput} onNomeChange={onNomeChange} onSovrascrivi={onSovrascrivi} onSalvaNuova={onSalvaNuova} saving={saving} pezziCount={pezziCount} hasRe={hasRe} onAvvia={onAvvia} canAvvia={canAvvia} selectedInvPiece={selectedInvPiece} onAnnullaInv={onAnnullaInv} formazioneId={formazioneId} />
           {Array.from({ length: ROWS }, (_, r) =>
             Array.from({ length: COLS }, (_, c) => {
               const isPlayerZone   = PLAYER_ROWS.includes(r);
@@ -41,7 +42,9 @@ export default function FormazioneBoard({ formazione, inventario, selectedCell, 
               const p              = pieceAt(r, c);
               const slot           = slotAt(r, c);
               const isSelCell      = selectedCell?.row === r && selectedCell?.col === c;
-              const isSelInvTarget = selectedInv && isPlayerZone && !p;
+              const isSelInvTarget = selectedInv && isPlayerZone;
+              const isSelCellTarget = selectedCell && isPlayerZone && !isSelCell;
+              const isAnyTarget = isSelInvTarget || isSelCellTarget;
               return (
                 <div
                   key={`${r}-${c}`}
@@ -50,7 +53,7 @@ export default function FormazioneBoard({ formazione, inventario, selectedCell, 
                     isPlayerZone   ? "form-cell-player"   : "form-cell-enemy",
                     isAiZone       ? "form-cell-ai-zone"  : "",
                     isSelCell      ? "form-cell-selected" : "",
-                    isSelInvTarget ? "form-cell-target"   : "",
+                    isAnyTarget    ? "form-cell-inv-target" : "",
                   ].join(" ")}
                   onClick={() => onCellClick(r, c)}
                 >
@@ -66,9 +69,17 @@ export default function FormazioneBoard({ formazione, inventario, selectedCell, 
                       className={`form-piece ${slot?.isRe ? "form-piece-re" : ""}`}
                       style={{ "--piece-border": p.border, "--piece-glow": p.glow }}
                     >
-                      <SilhouettePiece natura={p.natura} size={72} className="form-piece-sil" />
-                      {slot?.isRe && <span className="form-piece-crown">♛</span>}
+                      <SilhouettePiece natura={p.natura} materiale={p.materiale} size={72} className="form-piece-sil" />
                     </div>
+                  )}
+                  {slot?.isRe && <span className="form-piece-crown"><TagRe /></span>}
+                  {isAnyTarget && (
+                    <button
+                      className="form-cell-posiziona"
+                      onClick={e => { e.stopPropagation(); onCellClick(r, c); }}
+                    >
+                      Posiziona qui
+                    </button>
                   )}
                 </div>
               );

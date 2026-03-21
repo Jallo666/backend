@@ -430,7 +430,7 @@
   box-shadow: 0 4px 20px rgba(240, 192, 64, 0.2);
 }
 .fab-btn-forgia-icon { font-size: 28px; flex-shrink: 0; }
-.fab-btn-forgia-testo { flex: 1; text-align: center; }
+.fab-btn-forgia-testo { flex: 1; text-align: center; font-size: 44px; }
 .fab-btn-forgia:hover:not(:disabled) {
   filter: brightness(1.25);
   transform: translateY(-2px);

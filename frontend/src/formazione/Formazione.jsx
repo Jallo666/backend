@@ -3,6 +3,8 @@ import { fromApi } from "../game/questboard/qb_pieces.js";
 import SilhouettePiece from "../SilhouettePiece.jsx";
 import GameHeader from "../components/GameHeader.jsx";
 import PannelloLista from "../components/PannelloLista.jsx";
+import PieceStats from "../components/PieceStats.jsx";
+import AbilitaList from "../components/AbilitaList.jsx";
 import FormazionePezzo from "./FormazionePezzo.jsx";
 import FormazioneBoard from "./FormazioneBoard.jsx";
 import "./Formazione.css";
@@ -69,6 +71,7 @@ export default function Formazione({ token, onAvvia, onBack }) {
   const [confirmBack,       setConfirmBack]       = useState(false);
   const [confirmCarica,     setConfirmCarica]     = useState(null);
   const [confirmElimina,    setConfirmElimina]    = useState(null);
+  const [confirmSostituisci, setConfirmSostituisci] = useState(null);
   const [isDirty,           setIsDirty]           = useState(false);
   const dirtySkip = useRef(true);
 
@@ -237,13 +240,23 @@ export default function Formazione({ token, onAvvia, onBack }) {
     const isPlayerRow = PLAYER_ROWS.includes(row);
     const existing = slotAt(row, col);
 
+    // ── Piazza da inventario ─────────────────────────────────────────────────
     if (selectedInv && isPlayerRow) {
       if (placedUids.includes(selectedInv) && !existing) {
         setMsg("Questo pezzo è già piazzato altrove.");
         return;
       }
       if (!placedUids.includes(selectedInv) && !existing && formazione.length >= 6) {
-        setMsg("La formazione è piena. Massimo 6 pezzi.");
+        setMsg("Massimo 6 pedine — rimuovi una pedina o sostituiscila cliccando su una cella occupata.");
+        return;
+      }
+      if (existing && existing.uid !== selectedInv) {
+        setConfirmSostituisci({
+          uid: selectedInv,
+          row, col,
+          invPezzo:   inventario.find(p => p.uid === selectedInv),
+          boardPezzo: inventario.find(p => p.uid === existing.uid),
+        });
         return;
       }
       setFormazione(prev => {
@@ -254,9 +267,25 @@ export default function Formazione({ token, onAvvia, onBack }) {
       setSelectedInv(null);
       return;
     }
-    if (existing) { setSelectedCell({ row, col }); setSelectedInv(null); return; }
+
+    // ── Sposta da cella selezionata ──────────────────────────────────────────
     if (selectedCell && isPlayerRow) {
+      const isSelf = selectedCell.row === row && selectedCell.col === col;
+      if (isSelf) { setSelectedCell(null); return; }
       const moving = slotAt(selectedCell.row, selectedCell.col);
+      if (existing && existing.uid !== moving?.uid) {
+        // Cella occupata → chiedi conferma (scambio)
+        setConfirmSostituisci({
+          uid: moving?.uid,
+          row, col,
+          isMove: true,
+          fromRow: selectedCell.row,
+          fromCol: selectedCell.col,
+          invPezzo:   inventario.find(p => p.uid === moving?.uid),
+          boardPezzo: inventario.find(p => p.uid === existing.uid),
+        });
+        return;
+      }
       if (moving) {
         setFormazione(prev => [
           ...prev.filter(f => !(f.row === selectedCell.row && f.col === selectedCell.col)),
@@ -264,7 +293,11 @@ export default function Formazione({ token, onAvvia, onBack }) {
         ]);
       }
       setSelectedCell(null);
+      return;
     }
+
+    // ── Seleziona cella ──────────────────────────────────────────────────────
+    if (existing) { setSelectedCell({ row, col }); setSelectedInv(null); return; }
   };
 
   const handleRemove = (uid) => {
@@ -360,6 +393,56 @@ export default function Formazione({ token, onAvvia, onBack }) {
         </div>
       )}
 
+      {/* ── Confirm overlay sostituisci pedina ── */}
+      {confirmSostituisci && (
+        <div className="form-confirm-overlay">
+          <div className="form-confirm-box">
+            <h3 className="form-confirm-title">⇄ Sostituire pedina?</h3>
+            <div className="form-confirm-sostituisci">
+              <FormazionePezzo pezzo={confirmSostituisci.invPezzo}   attiva={true} hideSilhouette />
+              <span className="form-confirm-sostituisci-arrow">⇄</span>
+              <FormazionePezzo pezzo={confirmSostituisci.boardPezzo} attiva={true} hideSilhouette />
+            </div>
+            <div className="form-confirm-btns">
+              <button className="form-btn form-btn-save" onClick={() => {
+                const { uid, row, col, boardPezzo, isMove, fromRow, fromCol } = confirmSostituisci;
+                if (isMove) {
+                  // Scambio tra due celle del board
+                  setFormazione(prev => {
+                    const movingSlot   = prev.find(f => f.row === fromRow && f.col === fromCol);
+                    const existingSlot = prev.find(f => f.row === row    && f.col === col);
+                    const rest = prev.filter(f =>
+                      !(f.row === fromRow && f.col === fromCol) &&
+                      !(f.row === row     && f.col === col)
+                    );
+                    return [
+                      ...rest,
+                      { ...movingSlot,   row, col },
+                      { ...existingSlot, row: fromRow, col: fromCol },
+                    ];
+                  });
+                  setSelectedCell(null);
+                } else {
+                  if (boardPezzo?.uid === reUid) setReUid(null);
+                  setFormazione(prev => {
+                    const f1 = prev.filter(f => !(f.row === row && f.col === col));
+                    const f2 = f1.filter(f => f.uid !== uid);
+                    return [...f2, { uid, row, col, isRe: uid === reUid }];
+                  });
+                  setSelectedInv(null);
+                }
+                setConfirmSostituisci(null);
+              }}>
+                Sostituisci
+              </button>
+              <button className="form-btn form-btn-cancel" onClick={() => setConfirmSostituisci(null)}>
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Confirm overlay ripristina ── */}
       {confirmReset && (
         <div className="form-confirm-overlay">
@@ -390,16 +473,6 @@ export default function Formazione({ token, onAvvia, onBack }) {
         subtitle="Piazza i pezzi nelle ultime 2 righe · Designa il Re"
         onBack={() => setConfirmBack(true)}
         backTitle="Torna alla locanda"
-        rightSlot={
-          <div className="form-header-status">
-            <span className={formazione.length === 6 ? "form-status-ok" : "form-status-warn"}>
-              {formazione.length}/6 pezzi
-            </span>
-            <span className={reUid ? "form-status-ok" : "form-status-warn"}>
-              {reUid ? "♛ Re ✓" : "♛ Re ✗"}
-            </span>
-          </div>
-        }
       />
 
       <div className="form-body">
@@ -407,11 +480,11 @@ export default function Formazione({ token, onAvvia, onBack }) {
         {/* ── Pannello schemi salvati (sinistra) ── */}
         <PannelloLista
           className="form-formazioni-panel"
-          titolo="Schemi"
+          titolo="Formazioni"
           items={formazioniSalvate}
           filterFn={(f, q) => f.nome.toLowerCase().includes(q.toLowerCase())}
           headerAction={
-            <button className="form-btn-icon" onClick={handleNuova} title="Nuova formazione">＋</button>
+            <button className="form-btn-icon" onClick={handleNuova} title="Nuova formazione">＋ Aggiungi Nuova</button>
           }
           renderItem={f => (
             <FormazioneCard
@@ -443,75 +516,54 @@ export default function Formazione({ token, onAvvia, onBack }) {
           onSovrascrivi={handleSovrascrivi}
           onSalvaNuova={handleSalvaNuova}
           saving={saving}
+          pezziCount={formazione.length}
+          hasRe={!!reUid}
+          onAvvia={handleAvvia}
+          canAvvia={canAvvia}
+          selectedInvPiece={inventario.find(p => p.uid === selectedInv) ?? null}
+          onAnnullaInv={() => setSelectedInv(null)}
+          formazioneId={formazioneId}
         />
 
         {/* ── Pannello destra ── */}
         <div className="form-side">
 
           {/* Inventario — occupa lo spazio rimanente */}
-          <div className="form-section form-section-inv">
-            <h3 className="form-section-title">Inventario</h3>
-            <div className="form-inv">
-              {inventario.map(p => {
-                const placed = placedUids.includes(p.uid);
-                const isRePiece = reUid === p.uid;
-                return (
-                  <div
-                    key={p.uid}
-                    className={[
-                      "form-inv-piece",
-                      placed              ? "form-inv-placed"   : "",
-                      selectedInv===p.uid ? "form-inv-selected" : "",
-                    ].join(" ")}
-                    style={{ "--piece-border": p.border, "--piece-glow": p.glow }}
-                    onClick={() => !placed && handleInvClick(p.uid)}
-                  >
-                    <SilhouettePiece natura={p.natura} size={54} />
-                    <div className="form-inv-info">
-                      <span className="form-inv-nome">{p.nome}</span>
-                      <span className="form-inv-stats">❤{p.hp} ⚔{p.atk} 🛡{p.def} 👟{p.mov}</span>
-                      {(p.ardore?.length > 0 || p.gesta?.length > 0 || p.aura?.length > 0) && (
-                        <span className="form-inv-abilita">
-                          {p.ardore?.map(a => (
-                            <span key={a.id} className="form-inv-abilita-chip form-inv-chip-ardore" title={`Ardore: ${a.nome} — ${a.desc}`}>
-                              {a.icona} {a.nome}
-                            </span>
-                          ))}
-                          {p.gesta?.map(g => (
-                            <span key={g.id} className="form-inv-abilita-chip form-inv-chip-gesta" title={`Gesta: ${g.nome} — ${g.desc}`}>
-                              {g.icona} {g.nome}
-                            </span>
-                          ))}
-                          {p.aura?.map(au => (
-                            <span key={au.id} className="form-inv-abilita-chip form-inv-chip-aura" title={`Aura: ${au.nome} — ${au.desc}`}>
-                              {au.icona} {au.nome}
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                    </div>
-                    {placed && (
-                      <span className="form-inv-badge">{isRePiece ? "♛" : "✓"}</span>
-                    )}
+          <PannelloLista
+            className="form-inv-panel"
+            titolo="Inventario"
+            items={inventario}
+            filterFn={(p, q) => p.nome.toLowerCase().includes(q.toLowerCase())}
+            renderItem={p => {
+              const placed = placedUids.includes(p.uid);
+              const isRePiece = reUid === p.uid;
+              return (
+                <div
+                  key={p.uid}
+                  className={[
+                    "form-inv-piece",
+                    placed              ? "form-inv-placed"   : "",
+                    selectedInv===p.uid ? "form-inv-selected" : "",
+                  ].join(" ")}
+                  style={{ "--piece-border": p.border, "--piece-glow": p.glow }}
+                  onClick={() => !placed && handleInvClick(p.uid)}
+                >
+                  <SilhouettePiece natura={p.natura} materiale={p.materiale} size={80} />
+                  <div className="form-inv-info">
+                    <span className="form-inv-nome">{p.nome}</span>
+                    <PieceStats piece={p} compact />
+                    <AbilitaList ardore={p.ardore} gesta={p.gesta} aura={p.aura} collapsed />
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                  {placed && (
+                    <span className="form-inv-badge">{isRePiece ? "♛" : "✓"}</span>
+                  )}
+                </div>
+              );
+            }}
+          />
 
-          {/* Footer sticky — Avvia + reset */}
+          {/* Footer sticky — reset */}
           <div className="form-panel-footer">
-            <div className="form-progress">
-              {formazione.length}/6 pezzi{reUid ? " · Re ✓" : " · Nessun Re"}
-            </div>
-            <button
-              className="form-btn form-btn-avvia"
-              onClick={handleAvvia}
-              disabled={!canAvvia}
-              title={!canAvvia ? "Piazza tutti i pezzi e designa il Re" : ""}
-            >
-              ⚔ Avvia Partita
-            </button>
             <button
               className="form-reset-link"
               onClick={() => setConfirmReset(true)}

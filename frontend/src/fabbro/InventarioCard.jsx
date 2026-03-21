@@ -34,7 +34,7 @@ export default function InventarioCard({ pezzo, aperto, onToggle, onElimina }) {
       <div className="inv-card-top" onClick={onToggle}>
         <div className="fab-rc-always">
           <div className="fab-rc-silhouette">
-            <SilhouettePiece natura={natura} size={200} />
+            <SilhouettePiece natura={natura} materiale={pezzo.materiale} size={200} />
           </div>
           <div className="fab-rc-header">
             <span className="fab-rc-nome">

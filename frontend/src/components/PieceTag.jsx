@@ -1,4 +1,8 @@
 import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
+import coronaIcon from '../assets/icon/corona.svg';
+import ardoreIcon from '../assets/icon/ardore.svg';
+import gestaIcon  from '../assets/icon/gesta.svg';
+import auraIcon   from '../assets/icon/aura.svg';
 import './PieceTag.css';
 
 const RAZZA_COLORE = {
@@ -35,5 +39,17 @@ export function TagMateriale({ materiale }) {
 }
 
 export function TagRe() {
-  return <span className="piece-tag" style={{ '--tag-color': '#f0c040' }}>♛ Re</span>;
+  return <span className="piece-tag piece-tag-icon" style={{ '--tag-color': '#f0c040' }}><img src={coronaIcon} alt="" className="piece-tag-svg" />Re</span>;
+}
+
+export function TagArdore() {
+  return <span className="piece-tag" style={{ '--tag-color': '#5080e0' }}><img src={ardoreIcon} alt="" className="piece-tag-svg" />Ardore</span>;
+}
+
+export function TagGesta() {
+  return <span className="piece-tag" style={{ '--tag-color': '#e06030' }}><img src={gestaIcon} alt="" className="piece-tag-svg" />Gesta</span>;
+}
+
+export function TagAura() {
+  return <span className="piece-tag" style={{ '--tag-color': '#50c050' }}><img src={auraIcon} alt="" className="piece-tag-svg" />Aura</span>;
 }

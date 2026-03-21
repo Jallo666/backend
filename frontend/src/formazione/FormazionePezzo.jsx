@@ -1,16 +1,23 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
+
+const FORZA_DEL_POPOLO = {
+  id:    "forza_del_popolo",
+  nome:  "Forza del Popolo",
+  icona: "👑",
+  desc:  "Gli HP massimi aumentano di 2 per ogni alleato in vita. Se un alleato cade, il Re perde 2 HP massimi.",
+};
 import { TagRe, TagNatura, TagRazza, TagMateriale } from "../components/PieceTag.jsx";
 import AbilitaList from "../components/AbilitaList.jsx";
 import PieceStats from "../components/PieceStats.jsx";
 import "./FormazionePezzo.css";
 
-export default function FormazionePezzo({ pezzo, attiva }) {
+export default function FormazionePezzo({ pezzo, attiva, hideSilhouette, compactAbilita }) {
   return (
     <div
       className="form-saved-card-pezzo"
       style={{ '--piece-border': pezzo.border, '--piece-glow': pezzo.glow }}
     >
-      <SilhouettePiece natura={pezzo.natura} size={40} />
+      {!hideSilhouette && <SilhouettePiece natura={pezzo.natura} materiale={pezzo.materiale} size={40} />}
       {attiva && (
         <div className="form-saved-card-pezzo-info">
           <span className="form-saved-card-pezzo-nome">{pezzo.nome}</span>
@@ -21,7 +28,7 @@ export default function FormazionePezzo({ pezzo, attiva }) {
             {pezzo.materiale && <TagMateriale materiale={pezzo.materiale} />}
           </div>
           <PieceStats piece={pezzo} />
-          <AbilitaList ardore={pezzo.ardore} gesta={pezzo.gesta} aura={pezzo.aura} />
+          <AbilitaList ardore={pezzo.ardore} gesta={pezzo.gesta} aura={pezzo.isRe ? [...(pezzo.aura ?? []), FORZA_DEL_POPOLO] : pezzo.aura} collapsed={compactAbilita} />
         </div>
       )}
     </div>

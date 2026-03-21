@@ -1,37 +1,32 @@
+import { TagArdore, TagGesta, TagAura } from './PieceTag.jsx';
 import './AbilitaList.css';
 
-export default function AbilitaList({ ardore = [], gesta = [], aura = [] }) {
+const TIPO_TAG = {
+  Ardore: <TagArdore />,
+  Gesta:  <TagGesta />,
+  Aura:   <TagAura />,
+};
+
+function AbCard({ item, tipo, className, collapsed }) {
+  return (
+    <div className={`ab-card ${className}${collapsed ? " ab-card-collapsed" : ""}`}>
+      <span className="ab-icon">{item.icona}</span>
+      <div className="ab-info">
+        <span className="ab-nome">{item.nome} {TIPO_TAG[tipo]}</span>
+        {!collapsed && <span className="ab-desc">{item.desc}</span>}
+      </div>
+    </div>
+  );
+}
+
+export default function AbilitaList({ ardore = [], gesta = [], aura = [], collapsed = false }) {
   if (!ardore.length && !gesta.length && !aura.length) return null;
 
   return (
-    <div className="ab-list">
-      {ardore.map(a => (
-        <div key={a.id} className="ab-card ab-ardore">
-          <span className="ab-icon">{a.icona}</span>
-          <div className="ab-info">
-            <span className="ab-nome">{a.nome} <span className="ab-tipo">Ardore</span></span>
-            <span className="ab-desc">{a.desc}</span>
-          </div>
-        </div>
-      ))}
-      {gesta.map(g => (
-        <div key={g.id} className="ab-card ab-gesta">
-          <span className="ab-icon">{g.icona}</span>
-          <div className="ab-info">
-            <span className="ab-nome">{g.nome} <span className="ab-tipo">Gesta</span></span>
-            <span className="ab-desc">{g.desc}</span>
-          </div>
-        </div>
-      ))}
-      {aura.map(au => (
-        <div key={au.id} className="ab-card ab-aura">
-          <span className="ab-icon">{au.icona}</span>
-          <div className="ab-info">
-            <span className="ab-nome">{au.nome} <span className="ab-tipo">Aura</span></span>
-            <span className="ab-desc">{au.desc}</span>
-          </div>
-        </div>
-      ))}
+    <div className={`ab-list${collapsed ? " ab-list-collapsed" : ""}`}>
+      {ardore.map(a => <AbCard key={a.id} item={a} tipo="Ardore" className="ab-ardore" collapsed={collapsed} />)}
+      {gesta.map(g =>  <AbCard key={g.id} item={g} tipo="Gesta"  className="ab-gesta"  collapsed={collapsed} />)}
+      {aura.map(au =>  <AbCard key={au.id} item={au} tipo="Aura" className="ab-aura"   collapsed={collapsed} />)}
     </div>
   );
 }
