@@ -46,6 +46,11 @@
 .qbg-card-hp-bar { height: 6px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-top: 4px; }
 .qbg-card-hp-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #cc2222, #eeaa22, #22cc44); transition: width 0.3s; }
 .qbg-card-hp-text { font-size: 9px; color: var(--hs-cream); text-align: right; margin-top: 4px; }
+.qbg-card-debuff {
+  background: #3a1a1a; border: 1px solid #a03030; border-radius: 4px;
+  color: #e04040; font-size: 0.75rem; padding: 3px 8px;
+  margin: 6px 0 2px; text-align: center;
+}
 
 /* Silhouette stand-alone: nascosta nel floating card */
 .qbg-card-silhouette { display: none; }

@@ -1,4 +1,4 @@
-export default function FormazioneNome({ nomeInput, onNomeChange, onSovrascrivi, onSalvaNuova, saving }) {
+export default function FormazioneNome({ nomeInput, onNomeChange, onSovrascrivi, onSalvaNuova, onAnnulla, saving }) {
   return (
     <div className="form-section form-section-nome">
       <input
@@ -14,6 +14,9 @@ export default function FormazioneNome({ nomeInput, onNomeChange, onSovrascrivi,
         </button>
         <button className="form-btn form-btn-nuova" onClick={onSalvaNuova} disabled={saving}>
           {saving ? "..." : "＋ Salva nuova"}
+        </button>
+        <button className="form-btn form-btn-cancel" onClick={onAnnulla} disabled={saving}>
+          ✕ Annulla
         </button>
       </div>
     </div>

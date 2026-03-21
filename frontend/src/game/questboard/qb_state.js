@@ -75,6 +75,24 @@ function _applyForzaDelPopolo(pieces, deadPieceName) {
   };
 }
 
+// ── Sistema debuff generalizzato ──────────────────────────────────────────────
+// Struttura debuff: { type, effect, targetUid, sourceUid, expiresOn }
+// expiresOn: "target_acts" | "cycle_end" | "source_dies"
+
+function addDebuff(state, debuff) {
+  return { ...state, debuffs: [...(state.debuffs ?? []), debuff] };
+}
+
+function expireActDebuffs(state, uid) {
+  const d = state.debuffs;
+  if (!d?.length) return state;
+  return { ...state, debuffs: d.filter(db => !(db.targetUid === uid && db.expiresOn === "target_acts")) };
+}
+
+function hasDebuffEffect(state, uid, effect) {
+  return (state.debuffs ?? []).some(db => db.targetUid === uid && db.effect === effect);
+}
+
 // ── Crea stato iniziale ───────────────────────────────────────────────────────
 // formazioneSalvata: [{id (uid pezzo), row, col, isRe}] dal backend
 // inventario: pezzi dal backend
@@ -126,6 +144,7 @@ export function createGame(inventario, formazioneSalvata, sfidante = null) {
     validMoves: [],            // mosse valide per il pezzo selezionato
     pendingCycleEnd: false,    // ciclo completo in attesa di Fine Turno esplicito
     cycleEndEvent: null,       // { round, healAmount } — trigger notifica fine ciclo
+    debuffs: [],               // [{ type, effect, targetUid, sourceUid, expiresOn }]
   };
 }
 
@@ -155,6 +174,16 @@ export function selectPiece(state, uid) {
       selected: null,
       validMoves: [],
       log: [...state.log, `${piece.nome} ha già mosso in questo ciclo.`],
+    };
+  }
+
+  // Controlla immobilizzazione da debuff (Morso)
+  if (hasDebuffEffect(state, uid, "immobilize")) {
+    return {
+      ...state,
+      selected: uid,
+      validMoves: [],
+      log: [...state.log, `${piece.nome} è immobilizzato — non può muoversi!`].slice(-40),
     };
   }
 
@@ -194,7 +223,7 @@ export function endPlayerPieceTurn(state, uid) {
   const newPieces = uid
     ? state.playerPieces.map(p => p.uid === uid ? { ...p, canAct: false } : p)
     : state.playerPieces;
-  let newState = { ...state, playerPieces: newPieces };
+  let newState = expireActDebuffs({ ...state, playerPieces: newPieces }, uid);
   if (newState.pendingCycleEnd) {
     newState = _applyCycleEnd(newState, "player");
   }
@@ -210,6 +239,23 @@ export function applyAiTurn(state) {
 // ── Solo la fase di movimento AI (senza controllo ardore — già gestito dalla UI)
 export function applyAiMoveOnly(state) {
   if (state.turn !== "ai" || state.status !== "playing") return state;
+
+  // Gestione pezzo AI immobilizzato da debuff: ha 0 mosse ma deve registrare il turno
+  // altrimenti il ciclo di rotazione rimane bloccato per sempre.
+  const immobilizedPiece = state.aiPieces.find(p =>
+    hasDebuffEffect(state, p.uid, "immobilize") && canMoveInRotation(p.uid, state.aiRotation)
+  );
+  if (immobilizedPiece) {
+    const newTracker = registerMove(immobilizedPiece.uid, state.aiRotation, state.aiPieces);
+    let newState = expireActDebuffs({
+      ...state,
+      aiRotation: newTracker,
+      log: [...state.log, `${_tag(immobilizedPiece)} ${immobilizedPiece.nome} è immobilizzato — salta il turno.`].slice(-40),
+    }, immobilizedPiece.uid);
+    if (newTracker.cycleComplete) newState = _applyCycleEnd(newState, "ai");
+    return _endTurn(newState, "ai");
+  }
+
   const choice = chooseBestMove(state.aiPieces, state.playerPieces, state.aiRotation);
   if (!choice) return _endTurn(state, "ai");
   if (choice.gestaId) {
@@ -223,6 +269,17 @@ export function applyAiMoveForPiece(state, uid) {
   if (state.turn !== "ai" || state.status !== "playing") return state;
   const piece = state.aiPieces.find(p => p.uid === uid);
   if (!piece) return _endTurn(state, "ai");
+  // Se il pezzo è immobilizzato, registra il turno e clearr il debuff
+  if (hasDebuffEffect(state, uid, "immobilize")) {
+    const newTracker = registerMove(uid, state.aiRotation, state.aiPieces);
+    let newState = expireActDebuffs({
+      ...state,
+      aiRotation: newTracker,
+      log: [...state.log, `${_tag(piece)} ${piece.nome} è immobilizzato — salta il turno.`].slice(-40),
+    }, uid);
+    if (newTracker.cycleComplete) newState = _applyCycleEnd(newState, "ai");
+    return _endTurn(newState, "ai");
+  }
   // Considera solo quel pezzo per la scelta
   const choice = chooseBestMove([piece], state.playerPieces, state.aiRotation);
   if (!choice) return _endTurn(state, "ai");
@@ -342,7 +399,7 @@ function _applyMove(state, piece, move, side, skipAutoEndTurn = false) {
   const tracker = side === "player" ? state.playerRotation : state.aiRotation;
   const newTracker = registerMove(piece.uid, tracker, aliveSidePieces);
 
-  let newState = {
+  let newState = expireActDebuffs({
     ...state,
     playerPieces: newPlayerPieces,
     aiPieces:     newAiPieces,
@@ -354,7 +411,7 @@ function _applyMove(state, piece, move, side, skipAutoEndTurn = false) {
     ...(side === "player"
       ? { playerRotation: newTracker }
       : { aiRotation: newTracker }),
-  };
+  }, piece.uid);
 
   // Controlla vittoria
   const winner = checkWin(newPlayerPieces, newAiPieces);
@@ -434,6 +491,37 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
   const gesta = caster.gesta?.find(g => g.id === gestaId);
   if (!gesta) return state;
 
+  // Morso (effect: "immobilize") — nessun danno, applica debuff immobilizzante
+  if (gesta.effect === "immobilize") {
+    const newDebuff = { type: gesta.id, effect: "immobilize", targetUid, sourceUid: casterUid, expiresOn: "target_acts" };
+    let stateWithDebuff = addDebuff(state, newDebuff);
+    // Registra turno del caster
+    const sidePieces = side === "player" ? state.playerPieces : state.aiPieces;
+    const tracker    = side === "player" ? state.playerRotation : state.aiRotation;
+    const newTracker = registerMove(casterUid, tracker, sidePieces);
+    const newCasterPieces = sidePieces.map(p => p.uid === casterUid ? { ...p, canAct: false } : p);
+    const logMsg = `${_tag(caster)} ${caster.nome} usa ${gesta.nome} su ${_tag(target)} ${target.nome}! (${target.nome} è immobilizzato)`;
+    let newState = {
+      ...stateWithDebuff,
+      playerPieces: side === "player" ? newCasterPieces : state.playerPieces,
+      aiPieces:     side === "ai"     ? newCasterPieces : state.aiPieces,
+      log:        [...stateWithDebuff.log, logMsg].slice(-40),
+      selected:   null,
+      validMoves: [],
+      combatAnim: null,
+      ...(side === "player" ? { playerRotation: newTracker } : { aiRotation: newTracker }),
+    };
+    // Caster ha agito: scade suo eventuale debuff
+    newState = expireActDebuffs(newState, casterUid);
+    if (side === "ai") {
+      newState = _endTurn(newState, side);
+      if (newTracker.cycleComplete) newState = _applyCycleEnd(newState, side);
+    } else {
+      if (newTracker.cycleComplete) newState = { ...newState, pendingCycleEnd: true };
+    }
+    return newState;
+  }
+
   const dannoEffettivo = applyAuraEffects(target, gesta.danno);
   const nuovoHp    = Math.max(0, target.hp - dannoEffettivo);
   const targetMorto = nuovoHp <= 0;
@@ -472,7 +560,7 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
   const tracker = side === "player" ? state.playerRotation : state.aiRotation;
   const newTracker = registerMove(casterUid, tracker, aliveSidePieces);
 
-  let newState = {
+  let newState = expireActDebuffs({
     ...state,
     playerPieces: newPlayerPieces,
     aiPieces:     newAiPieces,
@@ -484,7 +572,7 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
     ...(side === "player"
       ? { playerRotation: newTracker }
       : { aiRotation: newTracker }),
-  };
+  }, casterUid);
 
   const winner = checkWin(newPlayerPieces, newAiPieces);
   if (winner) {
@@ -561,7 +649,7 @@ export function applyScagliare(state, side, casterUid, targetUid, destRow, destC
   const tracker = side === "player" ? state.playerRotation : state.aiRotation;
   const newTracker = registerMove(casterUid, tracker, aliveSidePieces);
 
-  let newState = {
+  let newState = expireActDebuffs({
     ...state,
     playerPieces: newPlayerPieces,
     aiPieces:     newAiPieces,
@@ -573,7 +661,7 @@ export function applyScagliare(state, side, casterUid, targetUid, destRow, destC
     ...(side === "player"
       ? { playerRotation: newTracker }
       : { aiRotation: newTracker }),
-  };
+  }, casterUid);
 
   const winner = checkWin(newPlayerPieces, newAiPieces);
   if (winner) {
@@ -605,6 +693,28 @@ export function applyArdore(state, side, casterUid, ardoreId, targetUid) {
   // Carica (tipo movimento) usa resolveCombat, non il campo danno (che è undefined)
   if (ardore.tipo === "movimento") {
     return applyArdoreCaricaAttack(state, side, casterUid, targetUid);
+  }
+
+  // Preghiera Curativa (tipo cura) — ripristina HP senza logica di morte
+  if (ardore.tipo === "cura") {
+    const nuovoHp = Math.min(target.hpMax, target.hp + ardore.cura);
+    const curato  = nuovoHp - target.hp;
+    const updatePiece = (p) => p.uid !== targetUid ? p : { ...p, hp: nuovoHp };
+    const newPlayerPieces = state.playerPieces.map(updatePiece);
+    const newAiPieces     = state.aiPieces.map(updatePiece);
+    const aliveSidePieces = side === "player" ? newPlayerPieces : newAiPieces;
+    const ardoreTracker   = side === "player" ? state.playerArdoreTracker : state.aiArdoreTracker;
+    const newArdoreTracker = registerArdore(casterUid, ardoreTracker ?? createArdoreTracker(), aliveSidePieces);
+    const logMsg = `${_tag(caster)} ${caster.nome} usa ${ardore.nome} su ${_tag(target)} ${target.nome}! (+${curato} HP → ${nuovoHp} HP)`;
+    return {
+      ...state,
+      playerPieces: newPlayerPieces,
+      aiPieces:     newAiPieces,
+      log:          [...state.log, logMsg].slice(-40),
+      ...(side === "player"
+        ? { playerArdoreTracker: newArdoreTracker }
+        : { aiArdoreTracker:     newArdoreTracker }),
+    };
   }
 
   const dannoEffettivo = applyAuraEffects(target, ardore.danno);
@@ -668,14 +778,14 @@ export function skipPieceTurn(state, uid) {
   if (!piece) return state;
   const newTracker = registerMove(uid, state.playerRotation, state.playerPieces);
   const newPlayerPieces = state.playerPieces.map(p => p.uid === uid ? { ...p, canAct: false } : p);
-  let newState = {
+  let newState = expireActDebuffs({
     ...state,
     playerPieces:   newPlayerPieces,
     playerRotation: newTracker,
     selected: null,
     validMoves: [],
     log: [...state.log, `${piece.nome} salta il turno.`].slice(-40),
-  };
+  }, uid);
   newState = _endTurn(newState, "player");
   if (newTracker.cycleComplete) {
     newState = _applyCycleEnd(newState, "player");
@@ -787,11 +897,11 @@ export function skipBlockedPiece(state, uid) {
   if (!piece) return state;
   const newTracker = registerMove(uid, state.playerRotation, state.playerPieces);
   const newPlayerPieces = state.playerPieces.map(p => p.uid === uid ? { ...p, canAct: false } : p);
-  return _endTurn({
+  return _endTurn(expireActDebuffs({
     ...state,
     playerPieces:   newPlayerPieces,
     playerRotation: newTracker,
     selected: null,
     validMoves: [],
-  }, "player");
+  }, uid), "player");
 }

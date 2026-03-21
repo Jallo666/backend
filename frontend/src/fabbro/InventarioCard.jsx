@@ -1,15 +1,8 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
 import { TagNatura, TagRazza, TagMateriale } from "../components/PieceTag.jsx";
-import { ardoreDiNatura, gesteDiNatura, auraDiNatura } from "../game/questboard/qb_pieces.js";
+import { abilitaPerPezzo, NATURA_DA_NOME } from "../game/questboard/qb_pieces.js";
 import AbilitaList from "../components/AbilitaList.jsx";
 import PieceStats from "../components/PieceStats.jsx";
-
-const NATURA_DA_NOME = {
-  "Cavaliere": "Guerriero", "Ranger":    "Arciere",
-  "Scudiero":  "Baluardo",  "Assassino": "Ombra",
-  "Mago":      "Arcano",    "Campione":  "Sentinella",
-  "Guerriero": "Guerriero", "Arciere":   "Arciere",
-};
 
 function getNatura(p) {
   if (p.materiali) return p.materiali;
@@ -18,9 +11,8 @@ function getNatura(p) {
 
 export default function InventarioCard({ pezzo, aperto, onToggle, onElimina }) {
   const natura  = getNatura(pezzo);
-  const ardore  = natura ? ardoreDiNatura(natura) : [];
-  const gesta   = natura ? gesteDiNatura(natura)  : [];
-  const aura    = natura ? auraDiNatura(natura)    : [];
+  const pieceId = pezzo.ricettaId ?? pezzo.nome?.toLowerCase();
+  const { ardore, gesta, aura } = abilitaPerPezzo(pieceId, natura);
 
   const elimina = e => {
     e.stopPropagation();
@@ -34,7 +26,7 @@ export default function InventarioCard({ pezzo, aperto, onToggle, onElimina }) {
       <div className="inv-card-top" onClick={onToggle}>
         <div className="fab-rc-always">
           <div className="fab-rc-silhouette">
-            <SilhouettePiece natura={natura} materiale={pezzo.materiale} size={200} />
+            <SilhouettePiece natura={natura} materiale={pezzo.materiale} pieceId={pieceId} size={200} />
           </div>
           <div className="fab-rc-header">
             <span className="fab-rc-nome">

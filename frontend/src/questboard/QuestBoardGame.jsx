@@ -912,6 +912,7 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
               )
             : false
         }
+        debuffs={game.debuffs ?? []}
       />
 
       {/* ── Info pezzo selezionato ── */}

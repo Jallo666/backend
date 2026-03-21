@@ -65,17 +65,20 @@ export function applyAuraEffects(target, rawDmg) {
 // Restituisce { attackerHp, defenderHp, dmg, auraActive, log }
 export function resolveCombat(attacker, defender) {
   const hasAttaccoFurtivo = attacker.aura?.some(a => a.id === "attacco_furtivo");
+  const hasIra            = attacker.aura?.some(a => a.id === "ira");
   const rawDmg = hasAttaccoFurtivo
     ? attacker.atk
     : Math.max(1, attacker.atk - defender.def);
-  const dmg = applyAuraEffects(defender, rawDmg);
+  const rawDmgWithIra = hasIra ? rawDmg * 2 : rawDmg;
+  const dmg = applyAuraEffects(defender, rawDmgWithIra);
   const defenderHp = Math.max(0, defender.hp - dmg);
   return {
     attackerHp: attacker.hp,
     defenderHp,
     dmg,
-    auraActive:   dmg < rawDmg,
+    auraActive:   dmg < rawDmgWithIra,
     furtivo:      hasAttaccoFurtivo,
+    ira:          hasIra,
     log: [{ round: 1, aDmg: dmg, dDmg: 0 }],
     attackerWins: true,
   };

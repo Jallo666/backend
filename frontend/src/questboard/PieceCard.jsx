@@ -6,14 +6,15 @@ import auraIcon from '../assets/icon/aura.svg';
 import coronaIcon from '../assets/icon/corona.svg';
 import { TagNatura, TagRazza, TagMateriale } from '../components/PieceTag.jsx';
 
-export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, pieceJustMoved, isSelected }) {
+export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, pieceJustMoved, isSelected, debuffs = [] }) {
   const isPlayer = piece.side === "player";
   const hpPct = Math.round((piece.hp / piece.hpMax) * 100);
+  const isImmobilized = debuffs.some(d => d.targetUid === piece.uid && d.effect === "immobilize");
   return (
     <div className={`qbg-piece-card${isSelected ? " qbg-card-selected" : ""}`}>
       <div className="qbg-card-header">
         <span className={`qbg-card-icon qbg-card-icon-${piece.side}`}>
-          <SilhouettePiece natura={piece.natura} size={80} />
+          <SilhouettePiece natura={piece.natura} pieceId={piece.id} size={80} />
         </span>
         <span className="qbg-card-title">
           {piece.nome}
@@ -32,14 +33,14 @@ export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick,
         <button className="qbg-card-close" onClick={onClose}>✕</button>
       </div>
       <div className={`qbg-card-silhouette qbg-card-icon-${piece.side}`}>
-        <SilhouettePiece natura={piece.natura} size={110} />
+        <SilhouettePiece natura={piece.natura} pieceId={piece.id} size={110} />
       </div>
       <div className="qbg-card-stats">
         {[
           { icon: "❤", val: `${piece.hp}/${piece.hpMax}`, lbl: "HP" },
           { icon: "⚔", val: piece.atk, lbl: "ATK" },
           { icon: "🛡", val: piece.def, lbl: "DEF" },
-          { icon: "👟", val: piece.mov, lbl: "MOV" },
+          { icon: "👟", val: isImmobilized ? <span style={{ color: "#e04040" }}>0</span> : piece.mov, lbl: "MOV" },
         ].map(s => (
           <div key={s.lbl} className="qbg-card-stat">
             <span className="qbg-card-stat-icon">{s.icon}</span>
@@ -52,6 +53,7 @@ export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick,
         <div className="qbg-card-hp-fill" style={{ width: `${hpPct}%` }} />
       </div>
       <div className="qbg-card-hp-text">{piece.hp} / {piece.hpMax} HP</div>
+      {isImmobilized && <div className="qbg-card-debuff">🔒 Immobilizzato</div>}
 
       {piece.gesta?.length > 0 && (
         <div className="qbg-card-gesta">

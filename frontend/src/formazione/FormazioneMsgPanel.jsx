@@ -39,6 +39,7 @@ export default function FormazioneMsgPanel({ msg, selectedCellPiece, isRe, onDes
               onNomeChange={onNomeChange}
               onSovrascrivi={() => { onSovrascrivi(); setRenaming(false); }}
               onSalvaNuova={() => { onSalvaNuova(); setRenaming(false); }}
+              onAnnulla={() => setRenaming(false)}
               saving={saving}
             />
           ) : (
@@ -59,7 +60,7 @@ export default function FormazioneMsgPanel({ msg, selectedCellPiece, isRe, onDes
                   ⚔ Avvia Partita
                 </button>
                 <button className="form-btn form-btn-cancel form-btn-rinomina" onClick={() => setRenaming(true)}>
-                  ✏ Rinomina
+                  ✏ Salva
                 </button>
               </div>
             </div>

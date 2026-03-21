@@ -17,7 +17,7 @@ export default function FormazionePezzo({ pezzo, attiva, hideSilhouette, compact
       className="form-saved-card-pezzo"
       style={{ '--piece-border': pezzo.border, '--piece-glow': pezzo.glow }}
     >
-      {!hideSilhouette && <SilhouettePiece natura={pezzo.natura} materiale={pezzo.materiale} size={40} />}
+      {!hideSilhouette && <SilhouettePiece natura={pezzo.natura} materiale={pezzo.materiale} pieceId={pezzo.id} size={40} />}
       {attiva && (
         <div className="form-saved-card-pezzo-info">
           <span className="form-saved-card-pezzo-nome">{pezzo.nome}</span>

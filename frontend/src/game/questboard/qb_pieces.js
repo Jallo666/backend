@@ -12,6 +12,12 @@ export const AURA_CATALOG = {
     icona: "🗡",
     desc:  "Gli attacchi fisici ignorano completamente la DEF del bersaglio.",
   },
+  ira: {
+    id:    "ira",
+    nome:  "Ira",
+    icona: "🔴",
+    desc:  "I danni inflitti negli attacchi fisici sono sempre raddoppiati.",
+  },
   forza_del_popolo: {
     id:    "forza_del_popolo",
     nome:  "Forza del Popolo",
@@ -21,8 +27,9 @@ export const AURA_CATALOG = {
 };
 
 const AURA_PER_NATURA = {
-  Baluardo: ["difesa_possente"],
-  Ombra:    ["attacco_furtivo"],
+  Baluardo:  ["difesa_possente"],
+  Ombra:     ["attacco_furtivo"],
+  Selvaggio: ["ira"],
 };
 
 export function auraDiNatura(natura) {
@@ -49,11 +56,21 @@ export const ARDORE_CATALOG = {
     isArdore: true,
     desc:    "Azione bonus: scatta di 1 cella verso il nemico senza consumare il turno.",
   },
+  preghiera_curativa: {
+    id:      "preghiera_curativa",
+    nome:    "Preghiera Curativa",
+    icona:   "✨",
+    tipo:    "cura",
+    cura:    3,
+    isArdore: true,
+    desc:    "Azione bonus: cura 3 HP a qualsiasi pedina (alleata o nemica).",
+  },
 };
 
 const ARDORE_PER_NATURA = {
-  Arciere:  ["tiro_precisione"],
+  Arciere:   ["tiro_precisione"],
   Guerriero: ["carica"],
+  Sacerdote: ["preghiera_curativa"],
 };
 
 export function ardoreDiNatura(natura) {
@@ -70,6 +87,14 @@ export const GESTA_CATALOG = {
     danno: 5,
     desc:  "Infligge 5 danni a un personaggio scelto nell'arena (amico o nemico).",
   },
+  morso: {
+    id:     "morso",
+    nome:   "Morso",
+    icona:  "🐺",
+    danno:  0,
+    effect: "immobilize",
+    desc:   "Azzanna il bersaglio: riduce il suo MOV a 0 finché non termina il prossimo turno.",
+  },
   scagliare: {
     id:    "scagliare",
     nome:  "Scagliare",
@@ -82,11 +107,35 @@ export const GESTA_CATALOG = {
 export const GESTA_PER_NATURA = {
   Arcano:    ["dardo_fuoco"],
   Sentinella: ["scagliare"],
+  Selvaggio: ["morso"],
 };
 
 export function gesteDiNatura(natura) {
   const ids = GESTA_PER_NATURA[natura] ?? [];
   return ids.map(id => GESTA_CATALOG[id]).filter(Boolean);
+}
+
+// ── Override abilità per ricetta id ──────────────────────────────────────────
+// Usato quando due pezzi con la stessa natura devono avere abilità diverse.
+const ABILITY_OVERRIDES = {
+  barbaro: { gesta: [],        ardore: [], aura: ["ira"]   },
+  lupo:    { gesta: ["morso"], ardore: [], aura: []        },
+};
+
+export function abilitaPerPezzo(id, natura) {
+  const ov = ABILITY_OVERRIDES[id];
+  if (ov) {
+    return {
+      gesta:  ov.gesta.map(x  => GESTA_CATALOG[x]).filter(Boolean),
+      ardore: ov.ardore.map(x => ARDORE_CATALOG[x]).filter(Boolean),
+      aura:   ov.aura.map(x   => AURA_CATALOG[x]).filter(Boolean),
+    };
+  }
+  return {
+    gesta:  gesteDiNatura(natura),
+    ardore: ardoreDiNatura(natura),
+    aura:   auraDiNatura(natura),
+  };
 }
 
 // ── Pezzi classici (template di riferimento) ─────────────────────────────────
@@ -101,6 +150,9 @@ export const CHESS_ICONS = {
   assassino:   "♟",   // pedone   — ombra letale
   mago:        "♛",   // regina   — potere magico devastante
   campione:    "♚",   // re-forma — campione dell'esercito
+  chierico:    "✚",   // croce    — guaritore devoto
+  barbaro:     "⚔",   // spade    — guerriero selvaggio
+  lupo:        "🐺",  // bestia   — lupo da caccia
 };
 
 export const CLASSIC_PIECES = [
@@ -133,6 +185,9 @@ export const NATURA_DA_NOME = {
   // backward compat per dati DB pre-rename
   "Guerriero":   "Guerriero",
   "Arciere":     "Arciere",
+  "Chierico":    "Sacerdote",
+  "Barbaro":     "Selvaggio",
+  "Lupo":        "Selvaggio",
 };
 
 export const NATURA_COLORE = {
@@ -142,6 +197,8 @@ export const NATURA_COLORE = {
   Ombra:     "#9040c0",
   Arcano:    "#40b0d0",
   Sentinella:"#c0a030",
+  Sacerdote: "#a0d0ff",
+  Selvaggio: "#e06020",
 };
 
 // Converte un pezzo dal formato backend al formato di gioco interno
@@ -165,9 +222,7 @@ export function fromApi(apiPiece) {
     razza:     apiPiece.razza     ?? "Umanoide",
     materiale: apiPiece.materiale ?? "Legno",
     ricettaId: apiPiece.ricettaId ?? null,
-    gesta:  gesteDiNatura(natura),
-    ardore: ardoreDiNatura(natura),
-    aura:   auraDiNatura(natura),
+    ...abilitaPerPezzo(id, natura),
     canAct: true,
     ...colors,
   };

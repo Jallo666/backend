@@ -39,7 +39,7 @@ export default function CombatPreview({ attacker, defender, onConfirm, onCancel,
 
         <div className="qbg-cp-matchup">
           <div className="qbg-cp-piece qbg-cp-piece-atk">
-            <SilhouettePiece natura={attacker.natura} size={56} />
+            <SilhouettePiece natura={attacker.natura} pieceId={attacker.id} size={56} />
             <span className="qbg-cp-piece-name">{attacker.nome}</span>
             {attacker.natura && <span className="qbg-cp-natura" style={{ color: NATURA_COLORE[attacker.natura] ?? "#888" }}>{attacker.natura}</span>}
             <span className="qbg-cp-piece-stats">❤{attacker.hp} ⚔{attacker.atk} 🛡{attacker.def}</span>
@@ -51,7 +51,7 @@ export default function CombatPreview({ attacker, defender, onConfirm, onCancel,
           <span className="qbg-cp-vs">VS</span>
 
           <div className="qbg-cp-piece qbg-cp-piece-def">
-            <SilhouettePiece natura={defender.natura} size={56} />
+            <SilhouettePiece natura={defender.natura} pieceId={defender.id} size={56} />
             <span className="qbg-cp-piece-name">{defender.nome}</span>
             {defender.natura && <span className="qbg-cp-natura" style={{ color: NATURA_COLORE[defender.natura] ?? "#888" }}>{defender.natura}</span>}
             <span className="qbg-cp-piece-stats">❤{defender.hp} ⚔{defender.atk} 🛡{defender.def}</span>

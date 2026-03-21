@@ -144,14 +144,15 @@
 
 /* ── Nome + salva ── */
 .form-salva-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
   margin-top: 6px;
 }
 .form-salva-row .form-btn {
-  flex: 1;
   text-align: center;
   white-space: nowrap;
+  min-width: 0;
   padding: 14px 20px;
   font-size: 20px;
 }

@@ -5,10 +5,11 @@ import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 import { applyAuraEffects } from '../game/questboard/qb_rules.js';
 
 export default function GestPreview({ caster, target, gesta, onConfirm, onCancel, mode, opponentNome = "AI" }) {
-  const dannoEffettivo = applyAuraEffects(target, gesta.danno);
-  const auraActive = dannoEffettivo < gesta.danno;
+  const isImmobilize = gesta.effect === "immobilize";
+  const dannoEffettivo = isImmobilize ? 0 : applyAuraEffects(target, gesta.danno);
+  const auraActive = !isImmobilize && dannoEffettivo < gesta.danno;
   const hpDopo    = Math.max(0, target.hp - dannoEffettivo);
-  const eliminato = hpDopo <= 0;
+  const eliminato = !isImmobilize && hpDopo <= 0;
   const hpPct     = Math.round((target.hp / target.hpMax) * 100);
   const isAi      = mode === "ai";
 
@@ -22,7 +23,7 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
         <div className="gp-matchup">
           {/* Caster */}
           <div className="gp-piece gp-piece-caster">
-            <SilhouettePiece natura={caster.natura} size={54} />
+            <SilhouettePiece natura={caster.natura} pieceId={caster.id} size={54} />
             <span className="gp-piece-name">{caster.nome}</span>
             {caster.natura && (
               <span className="gp-natura" style={{ color: NATURA_COLORE[caster.natura] ?? "#888" }}>
@@ -36,7 +37,7 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
 
           {/* Target */}
           <div className="gp-piece gp-piece-target">
-            <SilhouettePiece natura={target.natura} size={54} />
+            <SilhouettePiece natura={target.natura} pieceId={target.id} size={54} />
             <span className="gp-piece-name">{target.nome}</span>
             {target.natura && (
               <span className="gp-natura" style={{ color: NATURA_COLORE[target.natura] ?? "#888" }}>
@@ -57,10 +58,12 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
         )}
 
         {auraActive && <p className="gp-aura-note">🛡 Difesa Possente: danno dimezzato!</p>}
-        <p className={`gp-effect ${eliminato ? "gp-effect-kill" : ""}`}>
-          {eliminato
-            ? `${target.nome} verrà eliminato!`
-            : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${dannoEffettivo})`}
+        <p className={`gp-effect ${eliminato ? "gp-effect-kill" : ""}`} style={isImmobilize ? { color: "#e08030" } : undefined}>
+          {isImmobilize
+            ? `${target.nome} verrà immobilizzato per un turno!`
+            : eliminato
+              ? `${target.nome} verrà eliminato!`
+              : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${dannoEffettivo})`}
         </p>
 
         <div className="gp-btns">

@@ -69,7 +69,7 @@ export default function FormazioneBoard({ formazione, inventario, selectedCell, 
                       className={`form-piece ${slot?.isRe ? "form-piece-re" : ""}`}
                       style={{ "--piece-border": p.border, "--piece-glow": p.glow }}
                     >
-                      <SilhouettePiece natura={p.natura} materiale={p.materiale} size={72} className="form-piece-sil" />
+                      <SilhouettePiece natura={p.natura} materiale={p.materiale} pieceId={p.id} size={72} className="form-piece-sil" />
                     </div>
                   )}
                   {slot?.isRe && <span className="form-piece-crown"><TagRe /></span>}

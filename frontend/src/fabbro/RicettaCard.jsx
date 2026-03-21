@@ -1,13 +1,11 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
-import { ardoreDiNatura, gesteDiNatura, auraDiNatura } from "../game/questboard/qb_pieces.js";
+import { abilitaPerPezzo } from "../game/questboard/qb_pieces.js";
 import { TagNatura, TagRazza, TagMateriale } from "../components/PieceTag.jsx";
 import AbilitaList from "../components/AbilitaList.jsx";
 import PieceStats from "../components/PieceStats.jsx";
 
 export default function RicettaCard({ ricetta, selected, giaForgiato, onClick }) {
-  const ardore    = ardoreDiNatura(ricetta.natura);
-  const gesta     = gesteDiNatura(ricetta.natura);
-  const aura      = auraDiNatura(ricetta.natura);
+  const { ardore, gesta, aura } = abilitaPerPezzo(ricetta.id, ricetta.natura);
   const hasAb     = ardore.length > 0 || gesta.length > 0 || aura.length > 0;
 
   return (
@@ -18,7 +16,7 @@ export default function RicettaCard({ ricetta, selected, giaForgiato, onClick })
       {/* sempre visibile: silhouette + nome/natura */}
       <div className="fab-rc-always">
         <div className="fab-rc-silhouette">
-          <SilhouettePiece natura={ricetta.natura} materiale={ricetta.materiale} size={200} />
+          <SilhouettePiece natura={ricetta.natura} materiale={ricetta.materiale} pieceId={ricetta.id} size={200} />
         </div>
         <div className="fab-rc-header">
           <span className="fab-rc-nome">{ricetta.nome}</span>

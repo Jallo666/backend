@@ -28,7 +28,7 @@ export default function BoardPiece({
     >
       {/* Sprite silhouette */}
       <div className="bp-sprite">
-        <SilhouettePiece natura={p.natura} size={cellSize * 0.72} />
+        <SilhouettePiece natura={p.natura} pieceId={p.id} size={cellSize * 0.72} />
       </div>
 
       {/* HP — top-left */}

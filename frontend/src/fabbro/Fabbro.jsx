@@ -48,6 +48,24 @@ const RICETTE = [
     hp: 15, hpMax: 15, atk: 5, def: 4, mov: 2,
     desc: "Il guardiano della formazione. Statistiche equilibrate su tutti i fronti.",
   },
+  {
+    id: "chierico", nome: "Chierico", natura: "Sacerdote",
+    razza: "Umanoide", materiale: "Legno",
+    hp: 12, hpMax: 12, atk: 2, def: 3, mov: 2,
+    desc: "Un guaritore devoto. Non eccelle in combattimento, ma può rimettere in piedi chi stava per cadere.",
+  },
+  {
+    id: "barbaro", nome: "Barbaro", natura: "Selvaggio",
+    razza: "Umanoide", materiale: "Legno",
+    hp: 14, hpMax: 14, atk: 5, def: 1, mov: 3,
+    desc: "Un guerriero brutale che combatte in preda alla furia. I suoi colpi fanno il doppio del male.",
+  },
+  {
+    id: "lupo", nome: "Lupo", natura: "Selvaggio",
+    razza: "Bestiale", materiale: "Legno",
+    hp: 11, hpMax: 11, atk: 4, def: 1, mov: 4,
+    desc: "Una bestia da caccia. Veloce e letale, può bloccare la preda sul posto.",
+  },
 ];
 
 function leggiGemme() {

@@ -548,7 +548,7 @@ export default function Formazione({ token, onAvvia, onBack }) {
                   style={{ "--piece-border": p.border, "--piece-glow": p.glow }}
                   onClick={() => !placed && handleInvClick(p.uid)}
                 >
-                  <SilhouettePiece natura={p.natura} materiale={p.materiale} size={80} />
+                  <SilhouettePiece natura={p.natura} materiale={p.materiale} pieceId={p.id} size={80} />
                   <div className="form-inv-info">
                     <span className="form-inv-nome">{p.nome}</span>
                     <PieceStats piece={p} compact />

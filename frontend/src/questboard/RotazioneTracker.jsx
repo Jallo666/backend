@@ -16,7 +16,7 @@ function PieceRow({ p, rotation, ardoreTracker, isAi, collapsed, onClick, select
       className={`qbg-rot-row ${isAi ? "qbg-rot-row-ai" : ""} ${ready ? "qbg-rot-ready" : "qbg-rot-done"} ${selected ? "qbg-rot-selected" : ""}`}
       onClick={() => onClick(p)}
     >
-      <span className="qbg-rot-icon"><SilhouettePiece natura={p.natura} size={36} /></span>
+      <span className="qbg-rot-icon"><SilhouettePiece natura={p.natura} pieceId={p.id} size={36} /></span>
       {!collapsed && (
         <div className="qbg-rot-info">
           <span className="qbg-rot-nome">

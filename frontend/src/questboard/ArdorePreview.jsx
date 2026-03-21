@@ -5,10 +5,14 @@ import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 import { applyAuraEffects } from '../game/questboard/qb_rules.js';
 
 export default function ArdorePreview({ caster, target, ardore, onConfirm, onCancel, mode, opponentNome = "AI" }) {
-  const dannoEffettivo = applyAuraEffects(target, ardore.danno);
-  const auraActive = dannoEffettivo < ardore.danno;
-  const hpDopo    = Math.max(0, target.hp - dannoEffettivo);
-  const eliminato = hpDopo <= 0;
+  const isCura    = ardore.tipo === "cura";
+  const dannoEffettivo = isCura ? 0 : applyAuraEffects(target, ardore.danno);
+  const auraActive = !isCura && dannoEffettivo < ardore.danno;
+  const hpDopo    = isCura
+    ? Math.min(target.hpMax, target.hp + ardore.cura)
+    : Math.max(0, target.hp - dannoEffettivo);
+  const curato    = isCura ? hpDopo - target.hp : 0;
+  const eliminato = !isCura && hpDopo <= 0;
   const hpPct     = Math.round((target.hp / target.hpMax) * 100);
   const isAi      = mode === "ai";
 
@@ -22,7 +26,7 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
         <div className="ap-matchup">
           {/* Caster */}
           <div className="ap-piece ap-piece-caster">
-            <SilhouettePiece natura={caster.natura} size={54} />
+            <SilhouettePiece natura={caster.natura} pieceId={caster.id} size={54} />
             <span className="ap-piece-name">{caster.nome}</span>
             {caster.natura && (
               <span className="ap-natura" style={{ color: NATURA_COLORE[caster.natura] ?? "#888" }}>
@@ -36,7 +40,7 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
 
           {/* Target */}
           <div className="ap-piece ap-piece-target">
-            <SilhouettePiece natura={target.natura} size={54} />
+            <SilhouettePiece natura={target.natura} pieceId={target.id} size={54} />
             <span className="ap-piece-name">{target.nome}</span>
             {target.natura && (
               <span className="ap-natura" style={{ color: NATURA_COLORE[target.natura] ?? "#888" }}>
@@ -57,10 +61,12 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
         )}
 
         {auraActive && <p className="ap-aura-note">🛡 Difesa Possente: danno dimezzato!</p>}
-        <p className={`ap-effect ${eliminato ? "ap-effect-kill" : ""}`}>
-          {eliminato
-            ? `${target.nome} verrà eliminato!`
-            : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${dannoEffettivo})`}
+        <p className={`ap-effect ${eliminato ? "ap-effect-kill" : ""}`} style={isCura ? { color: "#60d080" } : undefined}>
+          {isCura
+            ? `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (+${curato})`
+            : eliminato
+              ? `${target.nome} verrà eliminato!`
+              : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${dannoEffettivo})`}
         </p>
 
         {!isAi && (
@@ -72,7 +78,9 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
             <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>⚡ OK</button>
           ) : (
             <>
-              <button className="qbg-btn qbg-btn-blue" onClick={onConfirm}><img src={ardoreIcon} alt="" className="ap-ardore-icon" /> Spara!</button>
+              <button className="qbg-btn qbg-btn-blue" onClick={onConfirm}>
+                {isCura ? "✨ Cura!" : <><img src={ardoreIcon} alt="" className="ap-ardore-icon" /> Spara!</> }
+              </button>
               <button className="qbg-btn qbg-btn-dark"  onClick={onCancel}>✕ Annulla</button>
             </>
           )}
