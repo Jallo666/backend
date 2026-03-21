@@ -1,0 +1,45 @@
+/* PieceStats */
+
+.piece-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.piece-stat {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 5, 1, 0.6);
+  border: 1px solid rgba(90, 53, 16, 0.4);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.piece-stat-icon {
+  flex-shrink: 0;
+}
+
+.piece-stat-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.piece-stat-lbl {
+  font-family: 'Crimson Text', serif;
+  font-size: 11px;
+  color: #c8a060;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.piece-stat-val {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  color: #f0c040;
+  line-height: 1;
+}

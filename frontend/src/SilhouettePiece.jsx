@@ -4,6 +4,7 @@ import arcanoImg    from "./assets/arcano.png";
 import ombraImg     from "./assets/ombra.png";
 import sentinellaImg from "./assets/sentinella.png";
 import baluardoImg  from "./assets/baluardo.png";
+import genericaImg  from "./assets/silhoutte_generica.png";
 
 const NATURA_IMG = {
   Guerriero:  guerrieroImg,
@@ -12,6 +13,7 @@ const NATURA_IMG = {
   Ombra:      ombraImg,
   Sentinella: sentinellaImg,
   Baluardo:   baluardoImg,
+  generica:   genericaImg,
 };
 
 /**

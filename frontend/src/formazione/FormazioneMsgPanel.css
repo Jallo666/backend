@@ -1,0 +1,59 @@
+/* FormazioneMsgPanel.css — pannello overlay su A4-F3 della scacchiera */
+
+/*
+ * Coordinate calcolate sul grid del board (6 righe, gap 4px):
+ *   cell_h  = (100% - 5*4px) / 6 = (100% - 20px) / 6
+ *   r=2 (A4): top = 2*cell_h + 2*gap = (100%-20px)/3 + 8px
+ *   r=3 (F3): height = 2*cell_h + 1*gap = (100%-20px)/3 + 4px
+ */
+.form-msg-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc((100% - 20px) / 3 + 8px);
+  height: calc((100% - 20px) / 3 + 4px);
+  z-index: 10;
+  pointer-events: none;
+
+  display: flex;
+  flex-direction: row;
+
+  background: rgba(10, 5, 0, 0.88);
+  border: 1px solid rgba(240, 192, 64, 0.4);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.form-msg-panel-left {
+  width: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid rgba(240, 192, 64, 0.2);
+  padding: 8px 10px;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.form-msg-panel-right {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-msg-panel-right-top {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid rgba(240, 192, 64, 0.2);
+  padding: 8px 10px;
+  pointer-events: auto;
+}
+
+.form-msg-panel-right-bottom {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

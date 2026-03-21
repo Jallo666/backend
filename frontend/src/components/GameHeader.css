@@ -1,0 +1,49 @@
+/* GameHeader.css — header condiviso tra schermate di gioco */
+.gh-header {
+  padding: 10px 20px;
+  min-height: 64px;
+  background: transparent;
+  border-bottom: 1px solid rgba(90, 53, 16, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.gh-center {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: center;
+}
+
+.gh-title {
+  font-family: 'Cinzel Decorative', 'Cinzel', serif;
+  font-size: 60px;
+  color: #f0c040;
+  margin: 0;
+  text-shadow: 0 0 16px rgba(240, 192, 64, 0.35);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.gh-subtitle {
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+  font-size: 14px;
+  color: #c8a060;
+  margin: 2px 0 0;
+}
+
+.gh-right {
+  flex-shrink: 0;
+}
+
+/* ── Landscape compatto ── */
+@media (max-height: 600px) and (orientation: landscape) {
+  .gh-header   { min-height: 80px; padding: 6px 16px; position: relative; }
+  .gh-center   { position: absolute; left: 0; right: 0; pointer-events: none; }
+  .gh-title    { font-size: 64px; }
+  .gh-subtitle { display: none; }
+}

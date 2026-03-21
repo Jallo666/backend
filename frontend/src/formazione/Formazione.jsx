@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { fromApi } from "../game/questboard/qb_pieces.js";
 import SilhouettePiece from "../SilhouettePiece.jsx";
-import locandaIcon from "../assets/icon/locanda_button.svg";
+import GameHeader from "../components/GameHeader.jsx";
+import PannelloLista from "../components/PannelloLista.jsx";
+import FormazionePezzo from "./FormazionePezzo.jsx";
+import FormazioneBoard from "./FormazioneBoard.jsx";
 import "./Formazione.css";
 
-const API_URL  = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
-const ROWS = 6, COLS = 6;
+const API_URL     = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 const PLAYER_ROWS = [4, 5];
 
 // ── Helpers persistenza ─────────────────────────────────────────────────────
@@ -19,6 +21,34 @@ function parseFormazioni(raw) {
     }
     return parsed;
   } catch { return []; }
+}
+
+// ── FormazioneCard ───────────────────────────────────────────────────────────
+function FormazioneCard({ formazione, inventario, attiva, onClick, onElimina }) {
+  const pezzi = formazione.schieramento
+    .map(slot => ({ ...inventario.find(p => p.uid === slot.uid), isRe: slot.isRe }))
+    .filter(p => p.uid);
+
+  const pezziOrdinati = [...pezzi].sort((a, b) => (b.isRe ? 1 : 0) - (a.isRe ? 1 : 0));
+
+  return (
+    <div className={`form-saved-card${attiva ? " form-saved-card-active" : ""}`} onClick={onClick}>
+      <div className="form-saved-card-header">
+        <span className="form-saved-card-nome">{formazione.nome}</span>
+        {!attiva && (
+          <button className="form-formazione-del" onClick={onElimina} title="Elimina">✕</button>
+        )}
+      </div>
+      <div className="form-saved-card-pezzi">
+        {pezziOrdinati.map((p, i) => (
+          <FormazionePezzo key={i} pezzo={p} attiva={attiva} />
+        ))}
+      </div>
+      {attiva && (
+        <button className="form-card-btn-elimina" onClick={onElimina}>🗑 ELIMINA</button>
+      )}
+    </div>
+  );
 }
 
 // ── Componente ───────────────────────────────────────────────────────────────
@@ -37,6 +67,10 @@ export default function Formazione({ token, onAvvia, onBack }) {
   const [msg,               setMsg]               = useState("");
   const [confirmReset,      setConfirmReset]      = useState(false);
   const [confirmBack,       setConfirmBack]       = useState(false);
+  const [confirmCarica,     setConfirmCarica]     = useState(null);
+  const [confirmElimina,    setConfirmElimina]    = useState(null);
+  const [isDirty,           setIsDirty]           = useState(false);
+  const dirtySkip = useRef(true);
 
   // Carica inventario + formazioni
   useEffect(() => {
@@ -56,8 +90,15 @@ export default function Formazione({ token, onAvvia, onBack }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  // ── isDirty: si attiva quando board/nome cambiano dopo il caricamento ──────
+  useEffect(() => {
+    if (dirtySkip.current) { dirtySkip.current = false; return; }
+    setIsDirty(true);
+  }, [formazione, nomeInput]);
+
   // ── Carica una formazione nello stato ──────────────────────────────────────
   const caricaFormazione = (forma, showMsg = true) => {
+    dirtySkip.current = true;
     setFormazione(forma.schieramento);
     setFormazioneId(forma.id);
     setNomeInput(forma.nome);
@@ -65,7 +106,15 @@ export default function Formazione({ token, onAvvia, onBack }) {
     setReUid(re?.uid ?? null);
     setSelectedCell(null);
     setSelectedInv(null);
+    setIsDirty(false);
     if (showMsg) setMsg(`"${forma.nome}" caricata.`);
+  };
+
+  // ── Click su card formazione (con check dirty) ────────────────────────────
+  const handleClickFormazione = (f) => {
+    if (f.id === formazioneId) return;
+    if (isDirty) { setConfirmCarica(f); return; }
+    caricaFormazione(f);
   };
 
   // ── Persist su server ──────────────────────────────────────────────────────
@@ -77,8 +126,8 @@ export default function Formazione({ token, onAvvia, onBack }) {
     });
   };
 
-  // ── Salva (aggiorna esistente o crea nuova) ────────────────────────────────
-  const handleSalva = async () => {
+  // ── Sovrascrivi formazione attiva ─────────────────────────────────────────
+  const handleSovrascrivi = async () => {
     if (formazione.length < 6) { setMsg("Piazza tutti e 6 i pezzi!"); return; }
     if (!reUid)                 { setMsg("Designa un Re!"); return; }
     const nome = nomeInput.trim() || "Formazione";
@@ -96,7 +145,26 @@ export default function Formazione({ token, onAvvia, onBack }) {
       }
       await persistFormazioni(nuove);
       setFormazioniSalvate(nuove);
+      setIsDirty(false);
       setMsg("Formazione salvata!");
+    } catch { setMsg("Errore nel salvataggio."); }
+    finally { setSaving(false); }
+  };
+
+  // ── Salva come nuova formazione ────────────────────────────────────────────
+  const handleSalvaNuova = async () => {
+    if (formazione.length < 6) { setMsg("Piazza tutti e 6 i pezzi!"); return; }
+    if (!reUid)                 { setMsg("Designa un Re!"); return; }
+    const nome = nomeInput.trim() || "Formazione";
+    setSaving(true);
+    try {
+      const nuovaId = Date.now().toString();
+      const nuove = [...formazioniSalvate, { id: nuovaId, nome, schieramento: formazione }];
+      await persistFormazioni(nuove);
+      setFormazioniSalvate(nuove);
+      setFormazioneId(nuovaId);
+      setIsDirty(false);
+      setMsg("Salvata come nuova formazione!");
     } catch { setMsg("Errore nel salvataggio."); }
     finally { setSaving(false); }
   };
@@ -252,6 +320,46 @@ export default function Formazione({ token, onAvvia, onBack }) {
         </div>
       )}
 
+      {/* ── Confirm overlay carica formazione ── */}
+      {confirmCarica && (
+        <div className="form-confirm-overlay">
+          <div className="form-confirm-box">
+            <h3 className="form-confirm-title">⚠ Modifiche non salvate</h3>
+            <p className="form-confirm-text">
+              La formazione corrente ha modifiche non salvate. Vuoi continuare senza salvare?
+            </p>
+            <div className="form-confirm-btns">
+              <button className="form-btn form-btn-danger" onClick={() => { caricaFormazione(confirmCarica); setConfirmCarica(null); }}>
+                Continua senza salvare
+              </button>
+              <button className="form-btn form-btn-cancel" onClick={() => setConfirmCarica(null)}>
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirm overlay elimina schema ── */}
+      {confirmElimina && (
+        <div className="form-confirm-overlay">
+          <div className="form-confirm-box">
+            <h3 className="form-confirm-title">🗑 Elimina schema?</h3>
+            <p className="form-confirm-text">
+              Vuoi eliminare «{confirmElimina.nome}»? L'operazione non è reversibile.
+            </p>
+            <div className="form-confirm-btns">
+              <button className="form-btn form-btn-danger" onClick={async () => { await handleElimina(confirmElimina.id, { stopPropagation: () => {} }); setConfirmElimina(null); }}>
+                Elimina
+              </button>
+              <button className="form-btn form-btn-cancel" onClick={() => setConfirmElimina(null)}>
+                Annulla
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Confirm overlay ripristina ── */}
       {confirmReset && (
         <div className="form-confirm-overlay">
@@ -277,180 +385,68 @@ export default function Formazione({ token, onAvvia, onBack }) {
       )}
 
       {/* ── Header ── */}
-      <header className="form-header">
-        <div className="form-header-center">
-          <h1 className="form-title">Formazione</h1>
-          <p className="form-subtitle">Piazza i pezzi nelle ultime 2 righe · Designa il Re</p>
-        </div>
-        <div className="form-header-status">
-          <span className={formazione.length === 6 ? "form-status-ok" : "form-status-warn"}>
-            {formazione.length}/6 pezzi
-          </span>
-          <span className={reUid ? "form-status-ok" : "form-status-warn"}>
-            {reUid ? "♛ Re ✓" : "♛ Re ✗"}
-          </span>
-        </div>
-        <button className="form-back-locanda-btn" onClick={() => setConfirmBack(true)} title="Torna alla locanda">
-          <img src={locandaIcon} alt="locanda" className="form-locanda-icon" />
-        </button>
-      </header>
+      <GameHeader
+        title="Formazione"
+        subtitle="Piazza i pezzi nelle ultime 2 righe · Designa il Re"
+        onBack={() => setConfirmBack(true)}
+        backTitle="Torna alla locanda"
+        rightSlot={
+          <div className="form-header-status">
+            <span className={formazione.length === 6 ? "form-status-ok" : "form-status-warn"}>
+              {formazione.length}/6 pezzi
+            </span>
+            <span className={reUid ? "form-status-ok" : "form-status-warn"}>
+              {reUid ? "♛ Re ✓" : "♛ Re ✗"}
+            </span>
+          </div>
+        }
+      />
 
       <div className="form-body">
 
+        {/* ── Pannello schemi salvati (sinistra) ── */}
+        <PannelloLista
+          className="form-formazioni-panel"
+          titolo="Schemi"
+          items={formazioniSalvate}
+          filterFn={(f, q) => f.nome.toLowerCase().includes(q.toLowerCase())}
+          headerAction={
+            <button className="form-btn-icon" onClick={handleNuova} title="Nuova formazione">＋</button>
+          }
+          renderItem={f => (
+            <FormazioneCard
+              key={f.id}
+              formazione={f}
+              inventario={inventario}
+              attiva={f.id === formazioneId}
+              onClick={() => handleClickFormazione(f)}
+              onElimina={(e) => { e.stopPropagation(); setConfirmElimina(f); }}
+            />
+          )}
+        />
+
         {/* ── Board ── */}
-        <div className="form-board-wrap">
-          <div className="form-col-labels-row">
-            <div className="form-row-labels-spacer" />
-            <div className="form-col-labels">
-              {["A","B","C","D","E","F"].map(l => (
-                <div key={l} className="form-col-label">{l}</div>
-              ))}
-            </div>
-          </div>
-          <div className="form-board-row">
-            <div className="form-row-labels">
-              {[6,5,4,3,2,1].map(n => (
-                <div key={n} className="form-row-label">{n}</div>
-              ))}
-            </div>
-            <div className="form-board">
-              {Array.from({ length: ROWS }, (_, r) =>
-                Array.from({ length: COLS }, (_, c) => {
-                  const isPlayerZone = PLAYER_ROWS.includes(r);
-                  const p    = pieceAt(r, c);
-                  const slot = slotAt(r, c);
-                  const isSelCell      = selectedCell?.row === r && selectedCell?.col === c;
-                  const isSelInvTarget = selectedInv && isPlayerZone && !p;
-                  return (
-                    <div
-                      key={`${r}-${c}`}
-                      className={[
-                        "form-cell",
-                        isPlayerZone   ? "form-cell-player"   : "form-cell-enemy",
-                        isSelCell      ? "form-cell-selected" : "",
-                        isSelInvTarget ? "form-cell-target"   : "",
-                      ].join(" ")}
-                      onClick={() => handleCellClick(r, c)}
-                    >
-                      {p && (
-                        <div
-                          className={`form-piece ${slot?.isRe ? "form-piece-re" : ""}`}
-                          style={{ "--piece-border": p.border, "--piece-glow": p.glow }}
-                        >
-                          <SilhouettePiece natura={p.natura} size={72} className="form-piece-sil" />
-                          {slot?.isRe && <span className="form-piece-crown">♛</span>}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-          {msg && <p className="form-msg">{msg}</p>}
-        </div>
+        <FormazioneBoard
+          formazione={formazione}
+          inventario={inventario}
+          selectedCell={selectedCell}
+          selectedInv={selectedInv}
+          msg={msg}
+          onCellClick={handleCellClick}
+          selectedCellPiece={selectedCellPiece}
+          isRe={selectedCell ? !!slotAt(selectedCell.row, selectedCell.col)?.isRe : false}
+          onDesignaRe={handleDesignaRe}
+          onRemove={handleRemove}
+          onAnnulla={() => setSelectedCell(null)}
+          nomeInput={nomeInput}
+          onNomeChange={e => setNomeInput(e.target.value)}
+          onSovrascrivi={handleSovrascrivi}
+          onSalvaNuova={handleSalvaNuova}
+          saving={saving}
+        />
 
         {/* ── Pannello destra ── */}
         <div className="form-side">
-
-          {/* Nome + salva — sempre in cima */}
-          <div className="form-section form-section-nome">
-            <div className="form-nome-row">
-              <input
-                className="form-nome-input"
-                value={nomeInput}
-                onChange={e => setNomeInput(e.target.value)}
-                placeholder="Nome formazione..."
-                maxLength={28}
-              />
-              <button className="form-btn form-btn-save" onClick={handleSalva} disabled={saving}>
-                {saving ? "..." : "💾 Salva"}
-              </button>
-            </div>
-          </div>
-
-          {/* Formazioni salvate */}
-          <div className="form-section">
-            <div className="form-section-header">
-              <h3 className="form-section-title">Formazioni</h3>
-              <button className="form-btn-icon" onClick={handleNuova} title="Nuova formazione">＋</button>
-            </div>
-            <div className="form-formazioni-lista">
-              {formazioniSalvate.length === 0 && (
-                <p className="form-empty-hint">Nessuna formazione salvata.</p>
-              )}
-              {formazioniSalvate.map(f => (
-                <div
-                  key={f.id}
-                  className={`form-formazione-item ${f.id === formazioneId ? "form-formazione-item-active" : ""}`}
-                  onClick={() => caricaFormazione(f)}
-                >
-                  <span className="form-formazione-nome">{f.nome}</span>
-                  <span className="form-formazione-slots">{f.schieramento.length}/6</span>
-                  <button
-                    className="form-formazione-del"
-                    onClick={(e) => handleElimina(f.id, e)}
-                    title="Elimina"
-                  >✕</button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Azioni cella selezionata — appare sopra inventario */}
-          {selectedCellPiece && (
-            <div className="form-section form-cell-actions">
-              <h3 className="form-section-title">
-                {selectedCellPiece.nome}
-                {slotAt(selectedCell.row, selectedCell.col)?.isRe && " ♛"}
-              </h3>
-              <div className="form-stats-row">
-                <span>❤ {selectedCellPiece.hp}</span>
-                <span>⚔ {selectedCellPiece.atk}</span>
-                <span>🛡 {selectedCellPiece.def}</span>
-                <span>👟 {selectedCellPiece.mov}</span>
-              </div>
-
-              {/* Abilità del pezzo selezionato */}
-              {(selectedCellPiece.ardore?.length > 0 || selectedCellPiece.gesta?.length > 0 || selectedCellPiece.aura?.length > 0) && (
-                <div className="form-abilita-list">
-                  {selectedCellPiece.ardore?.map(a => (
-                    <div key={a.id} className="form-abilita-card form-abilita-ardore">
-                      <span className="form-abilita-icon">{a.icona}</span>
-                      <div className="form-abilita-info">
-                        <span className="form-abilita-nome">{a.nome} <span className="form-abilita-tag">Ardore</span></span>
-                        <span className="form-abilita-desc">{a.desc}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {selectedCellPiece.gesta?.map(g => (
-                    <div key={g.id} className="form-abilita-card form-abilita-gesta">
-                      <span className="form-abilita-icon">{g.icona}</span>
-                      <div className="form-abilita-info">
-                        <span className="form-abilita-nome">{g.nome} <span className="form-abilita-tag">Gesta</span></span>
-                        <span className="form-abilita-desc">{g.desc}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {selectedCellPiece.aura?.map(au => (
-                    <div key={au.id} className="form-abilita-card form-abilita-aura">
-                      <span className="form-abilita-icon">{au.icona}</span>
-                      <div className="form-abilita-info">
-                        <span className="form-abilita-nome">{au.nome} <span className="form-abilita-tag">Aura</span></span>
-                        <span className="form-abilita-desc">{au.desc}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="form-cell-action-btns">
-                <button className="form-btn form-btn-re"     onClick={() => handleDesignaRe(selectedCellPiece.uid)}>♛ Designa Re</button>
-                <button className="form-btn form-btn-remove" onClick={() => handleRemove(selectedCellPiece.uid)}>✕ Rimuovi</button>
-                <button className="form-btn form-btn-cancel" onClick={() => setSelectedCell(null)}>Annulla</button>
-              </div>
-            </div>
-          )}
 
           {/* Inventario — occupa lo spazio rimanente */}
           <div className="form-section form-section-inv">

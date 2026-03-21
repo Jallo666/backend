@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import BackButton from "../components/BackButton.jsx";
+import GameHeader from "../components/GameHeader.jsx";
+import { TagRazza, TagMateriale } from "../components/PieceTag.jsx";
 import MaterialiPanel from "./MaterialiPanel.jsx";
 import RicettaCard from "./RicettaCard.jsx";
 import InventarioCard from "./InventarioCard.jsx";
-import PannelloLista from "./PannelloLista.jsx";
+import PannelloLista from "../components/PannelloLista.jsx";
 import RequisitiForgia, { puoForgiare, COSTO_FORGIA } from "./RequisitiForgia.jsx";
 import "./Fabbro.css";
 
@@ -169,16 +170,12 @@ export default function Fabbro({ token, onBack }) {
       )}
 
       {/* ── Header ── */}
-      <header className="fab-header">
-        <BackButton onClick={onBack} title="Torna al Menu" />
-        <div className="fab-header-center">
-          <h1 className="fab-title">L'Incudine Rossa</h1>
-          <p className="fab-subtitle">Brom il Fabbro — «Dimmi che guerriero vuoi e lo forgio.»</p>
-        </div>
-        <div className="fab-header-right">
-          <span className="fab-gemme">💎 {gemme}</span>
-        </div>
-      </header>
+      <GameHeader
+        title="L'Incudine Rossa"
+        subtitle="Brom il Fabbro — «Dimmi che guerriero vuoi e lo forgio.»"
+        onBack={onBack}
+        rightSlot={<span className="fab-gemme">💎 {gemme}</span>}
+      />
 
       <div className="fab-body">
 
@@ -203,7 +200,7 @@ export default function Fabbro({ token, onBack }) {
         <div className="fab-centro">
         <div className="fab-dettaglio">
           <div className="pnl-header">
-            <span className="fab-section-title">Dettaglio</span>
+            <span className="pnl-titolo">Dettaglio</span>
           </div>
           {!scelta ? (
             <div className="fab-vuoto">
@@ -225,8 +222,8 @@ export default function Fabbro({ token, onBack }) {
                     maxLength={30}
                   />
                   <div className="fab-forgia-tags">
-                    <span className="fab-tag fab-tag-razza">👤 {scelta.razza}</span>
-                    <span className="fab-tag fab-tag-materiale">🪵 {scelta.materiale}</span>
+                    <TagRazza razza={scelta.razza} />
+                    <TagMateriale materiale={scelta.materiale} />
                   </div>
                 </div>
                 <button

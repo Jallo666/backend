@@ -1,4 +1,4 @@
-import PannelloLista from "./PannelloLista.jsx";
+import PannelloLista from "../components/PannelloLista.jsx";
 import RisorsaItemCard from "./RisorsaItemCard.jsx";
 
 export default function RisorsaGruppo({ titolo, categoria, materiali, meta }) {

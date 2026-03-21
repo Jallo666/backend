@@ -1,4 +1,8 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
+import { TagNatura, TagRazza, TagMateriale } from "../components/PieceTag.jsx";
+import { ardoreDiNatura, gesteDiNatura, auraDiNatura } from "../game/questboard/qb_pieces.js";
+import AbilitaList from "../components/AbilitaList.jsx";
+import PieceStats from "../components/PieceStats.jsx";
 
 const NATURA_DA_NOME = {
   "Cavaliere": "Guerriero", "Ranger":    "Arciere",
@@ -7,20 +11,16 @@ const NATURA_DA_NOME = {
   "Guerriero": "Guerriero", "Arciere":   "Arciere",
 };
 
-const NATURA_COLORE = {
-  Guerriero: "#d04030", Arciere:   "#a0c040",
-  Baluardo:  "#4080c0", Ombra:     "#9040c0",
-  Arcano:    "#40b0d0", Sentinella:"#c0a030",
-};
-
 function getNatura(p) {
   if (p.materiali) return p.materiali;
   return NATURA_DA_NOME[p.nome] ?? null;
 }
 
 export default function InventarioCard({ pezzo, aperto, onToggle, onElimina }) {
-  const natura    = getNatura(pezzo);
-  const natColore = NATURA_COLORE[natura] ?? "#888";
+  const natura  = getNatura(pezzo);
+  const ardore  = natura ? ardoreDiNatura(natura) : [];
+  const gesta   = natura ? gesteDiNatura(natura)  : [];
+  const aura    = natura ? auraDiNatura(natura)    : [];
 
   const elimina = e => {
     e.stopPropagation();
@@ -43,11 +43,11 @@ export default function InventarioCard({ pezzo, aperto, onToggle, onElimina }) {
                 <span className="inv-nome-base"> ({pezzo.nome})</span>
               )}
             </span>
-            {natura && <span className="fab-rc-natura" style={{ color: natColore }}>{natura}</span>}
-            {(pezzo.razza || pezzo.materiale) && (
+            {(natura || pezzo.razza || pezzo.materiale) && (
               <div className="fab-rc-tags">
-                {pezzo.razza     && <span className="fab-tag fab-tag-razza">👤 {pezzo.razza}</span>}
-                {pezzo.materiale && <span className="fab-tag fab-tag-materiale">🪵 {pezzo.materiale}</span>}
+                {natura          && <TagNatura natura={natura} />}
+                {pezzo.razza     && <TagRazza razza={pezzo.razza} />}
+                {pezzo.materiale && <TagMateriale materiale={pezzo.materiale} />}
               </div>
             )}
           </div>
@@ -60,20 +60,8 @@ export default function InventarioCard({ pezzo, aperto, onToggle, onElimina }) {
       {/* collassabile: stats + ELIMINA */}
       <div className="fab-rc-collapsible">
         <div className="fab-rc-collapsible-inner">
-          <div className="fab-rc-stats">
-            {[
-              { icon: "❤", val: pezzo.hp,  lbl: "HP"  },
-              { icon: "⚔", val: pezzo.atk, lbl: "ATK" },
-              { icon: "🛡", val: pezzo.def, lbl: "DEF" },
-              { icon: "👟", val: pezzo.mov, lbl: "MOV" },
-            ].map(s => (
-              <div key={s.lbl} className="fab-rc-stat">
-                <span className="fab-rc-stat-icon">{s.icon}</span>
-                <span className="fab-rc-stat-val">{s.val}</span>
-                <span className="fab-rc-stat-lbl">{s.lbl}</span>
-              </div>
-            ))}
-          </div>
+          <PieceStats piece={pezzo} />
+          <AbilitaList ardore={ardore} gesta={gesta} aura={aura} />
           <button className="inv-btn-elimina" onClick={elimina}>
             🗑 ELIMINA
           </button>

@@ -1,0 +1,14 @@
+/* PieceTag.css — tag condivisi per natura, razza, materiale */
+.piece-tag {
+  display: inline-block;
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  font-weight: bold;
+  padding: 3px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--tag-color, #c8a060);
+  color: var(--tag-color, #c8a060);
+  background: color-mix(in srgb, var(--tag-color, #c8a060) 12%, transparent);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}

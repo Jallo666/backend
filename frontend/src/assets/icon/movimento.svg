@@ -1,0 +1,15 @@
+<svg width="64" height="64" viewBox="0 0 64 64"
+     xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Orma di scarpa singola -->
+  <path d="
+    M28 12
+    C36 12 44 20 44 30
+    L44 42
+    C44 50 36 56 28 56
+    C20 56 16 50 16 42
+    L16 30
+    C16 20 20 12 28 12
+    Z"
+    fill="#000000"/>
+</svg>

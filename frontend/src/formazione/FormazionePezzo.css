@@ -1,0 +1,44 @@
+/* FormazionePezzo.css — singola pedina nella card formazione */
+.form-saved-card-pezzo {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  filter: drop-shadow(0 0 6px var(--piece-glow, transparent));
+}
+.form-saved-card-active .form-saved-card-pezzo {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+}
+.form-saved-card-pezzo > img {
+  transition: width 0.35s ease, height 0.35s ease;
+  flex-shrink: 0;
+}
+.form-saved-card-active .form-saved-card-pezzo > img {
+  width: 120px !important;
+  height: 120px !important;
+}
+
+.form-saved-card-pezzo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 4px;
+}
+.form-saved-card-pezzo-nome {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  color: #f5e0b0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.form-saved-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

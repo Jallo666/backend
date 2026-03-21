@@ -4,7 +4,7 @@ import ardoreIcon from '../assets/icon/ardore.svg';
 import gestaIcon from '../assets/icon/gesta.svg';
 import auraIcon from '../assets/icon/aura.svg';
 import coronaIcon from '../assets/icon/corona.svg';
-import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
+import { TagNatura, TagRazza, TagMateriale } from '../components/PieceTag.jsx';
 
 export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, pieceJustMoved, isSelected }) {
   const isPlayer = piece.side === "player";
@@ -18,15 +18,11 @@ export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick,
         <span className="qbg-card-title">
           {piece.nome}
           {piece.isRe && <> &nbsp;<img src={coronaIcon} alt="RE" style={{ width: 16, height: 16, verticalAlign: "middle", filter: "drop-shadow(0 0 4px #f0c040)" }} /></>}
-          {piece.natura && (
-            <span className="qbg-card-natura" style={{ color: NATURA_COLORE[piece.natura] ?? "#888", borderColor: NATURA_COLORE[piece.natura] ?? "#888" }}>
-              {piece.natura}
-            </span>
-          )}
-          {(piece.razza || piece.materiale) && (
+          {(piece.natura || piece.razza || piece.materiale) && (
             <div className="qbg-card-tags">
-              {piece.razza     && <span className="qbg-card-tag">👤 {piece.razza}</span>}
-              {piece.materiale && <span className="qbg-card-tag">🪵 {piece.materiale}</span>}
+              {piece.natura    && <TagNatura natura={piece.natura} />}
+              {piece.razza     && <TagRazza razza={piece.razza} />}
+              {piece.materiale && <TagMateriale materiale={piece.materiale} />}
             </div>
           )}
         </span>

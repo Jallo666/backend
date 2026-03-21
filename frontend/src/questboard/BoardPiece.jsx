@@ -1,4 +1,5 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
+import { TagRazza, TagMateriale } from "../components/PieceTag.jsx";
 import coronaIcon  from "../assets/icon/corona.svg";
 import ardoreIcon  from "../assets/icon/ardore.svg";
 import gestaIcon   from "../assets/icon/gesta.svg";
@@ -54,8 +55,8 @@ export default function BoardPiece({
       <div className={`bp-name bp-name-${p.side}`}>
         {p.nome}
         <div className="bp-tags">
-          {p.razza     && <span className="bp-tag">{p.razza}</span>}
-          {p.materiale && <span className="bp-tag">{p.materiale}</span>}
+          {p.razza     && <TagRazza razza={p.razza} />}
+          {p.materiale && <TagMateriale materiale={p.materiale} />}
         </div>
       </div>
     </div>
