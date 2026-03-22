@@ -1,0 +1,86 @@
+.cm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cm-box {
+  position: relative;
+  background: rgba(10, 5, 1, 0.97) url('../assets/background-journal.png') center / cover no-repeat;
+  background-blend-mode: multiply;
+  border: 3px solid var(--hs-wood-rim, #8a6a30);
+  border-radius: 12px;
+  padding: 56px 72px;
+  width: fit-content;
+  min-width: 600px;
+  max-width: min(1100px, 95vw);
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  font-family: 'Cinzel', serif;
+  color: #e8d5a0;
+  box-shadow: 0 16px 80px rgba(0, 0, 0, 0.8);
+}
+
+.cm-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 48px;
+  color: var(--hs-gold, #c8962a);
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.cm-content {
+  font-family: 'Crimson Text', serif;
+  font-size: 32px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--hs-cream, #e8d5a0);
+}
+
+.cm-btns {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.cm-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  padding: 18px 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.15s;
+  letter-spacing: 0.04em;
+}
+.cm-btn:hover:not(:disabled) { filter: brightness(1.2); transform: translateY(-2px); }
+.cm-btn img { height: 1.1em; width: auto; vertical-align: middle; }
+.cm-btn:disabled { opacity: 0.38; cursor: not-allowed; filter: none; transform: none; }
+
+.cm-btn--gold   { background: #2a1a00; border: 2px solid var(--hs-gold, #c8962a); color: var(--hs-gold, #c8962a); }
+.cm-btn--dark   { background: #0e0a04; border: 2px solid #5a3510; color: #c8a060; }
+.cm-btn--danger { background: #2a0808; border: 2px solid #cc3333; color: #f08080; }
+.cm-btn--cancel { background: rgba(30, 15, 3, 0.9); border: 1px solid #7a4a1a; color: #d4a870; }
+.cm-btn--blue   { background: rgba(40,100,255,0.20); border: 2px solid #4080ff; color: #a0c0ff; }
+.cm-btn--orange { background: rgba(255,80,0,0.18);  border: 2px solid #ff6020; color: #ff9050; }
+.cm-btn--save   { background: #0a1620; border: 1px solid #2060a0; color: #80c0f0; }
+
+.cm-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.2rem;
+  background: none;
+  border: none;
+  color: #8a6a30;
+  font-size: 28px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+}
+.cm-close:hover { color: var(--hs-gold, #c8962a); }

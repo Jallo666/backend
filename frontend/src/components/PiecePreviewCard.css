@@ -1,0 +1,48 @@
+.ppc {
+  display: flex; flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(90, 53, 16, 0.4);
+  border-radius: 10px; padding: 12px 14px;
+  flex: 0 0 auto;
+}
+
+/* ── Nome in alto al centro ── */
+.ppc-header {
+  font-family: 'Cinzel', serif;
+  font-size: 15px; color: #c8a060;
+  letter-spacing: 0.04em;
+  display: flex; flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  width: 100%;
+}
+
+.ppc-header .piece-tag {
+  position: absolute;
+  right: 0;
+}
+
+/* ── Silhouette a sx, stats a dx ── */
+.ppc-body {
+  display: flex; flex-direction: row;
+  align-items: center; gap: 10px;
+}
+
+/* ── PieceStats override: griglia 2×2, dimensioni auto ── */
+.ppc .piece-stats {
+  grid-template-columns: auto auto;
+  gap: 3px;
+  width: auto;
+}
+.ppc .piece-stat       { padding: 3px 5px; gap: 3px; }
+.ppc .piece-stat-icon  { width: 14px; height: 14px; }
+.ppc .piece-stat-val   { font-size: 13px; }
+.ppc .piece-stat-lbl   { font-size: 8px; }
+
+/* ── AbilitaList collapsed override ── */
+.ppc .ab-list-collapsed          { justify-content: center; }
+.ppc .ab-card-collapsed          { padding: 3px 7px; }
+.ppc .ab-card-collapsed .ab-icon { font-size: 15px; }
+.ppc .ab-card-collapsed .ab-nome { font-size: 12px; white-space: nowrap; }

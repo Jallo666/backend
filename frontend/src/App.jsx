@@ -9,6 +9,7 @@ import Formazione from "./formazione/Formazione";
 import QuestBoardGame from "./questboard/QuestBoardGame";
 import useMusic from "./music/useMusic";
 import { unlockAudio } from "./music/unlockAudio";
+import MobileGate from "./components/MobileGate";
 
 const API_URL     = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 const SESSION_KEY = "qb_session";
@@ -139,88 +140,100 @@ function App() {
   // ── Loading ──
   if (checking) {
     return (
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
-                    justifyContent:"center", minHeight:"100vh", gap:"1.5rem" }}>
-        <span style={{ fontSize:"2.5rem", animation:"rpgSpin 1s steps(8,end) infinite" }}>⚔</span>
-        <p style={{ fontFamily:'"Press Start 2P", monospace', fontSize:"0.55rem",
-                    color:"#f0c040", letterSpacing:"0.08em" }}>CARICAMENTO...</p>
-        <style>{`@keyframes rpgSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
-      </div>
+      <MobileGate>
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center",
+                      justifyContent:"center", minHeight:"100vh", gap:"1.5rem" }}>
+          <span style={{ fontSize:"2.5rem", animation:"rpgSpin 1s steps(8,end) infinite" }}>⚔</span>
+          <p style={{ fontFamily:'"Press Start 2P", monospace', fontSize:"0.55rem",
+                      color:"#f0c040", letterSpacing:"0.08em" }}>CARICAMENTO...</p>
+          <style>{`@keyframes rpgSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
+        </div>
+      </MobileGate>
     );
   }
 
   // ── Non autenticato ──
   if (!utente) {
     if (pagina === "registrazione") {
-      return <Registrazione onRegistrato={d => handleAuth(d, false)} onVaiLogin={() => setPagina("login")} />;
+      return <MobileGate><Registrazione onRegistrato={d => handleAuth(d, false)} onVaiLogin={() => setPagina("login")} /></MobileGate>;
     }
-    return <Login onLogin={handleAuth} onVaiRegistrazione={() => setPagina("registrazione")} />;
+    return <MobileGate><Login onLogin={handleAuth} onVaiRegistrazione={() => setPagina("registrazione")} /></MobileGate>;
   }
 
   const isAdmin = utente.ruolo === "admin";
 
   if (pagina === "mainmenu") {
     return (
-      <MainMenu
-        utente={utente}
-        onEnterDungeon={enterDungeon}
-        onEnterLocanda={enterLocanda}
-        onEnterFabbro={enterFabbro}
-        onGilda={() => setPagina("gilda")}
-        onLogout={handleLogout}
-      />
+      <MobileGate>
+        <MainMenu
+          utente={utente}
+          onEnterDungeon={enterDungeon}
+          onEnterLocanda={enterLocanda}
+          onEnterFabbro={enterFabbro}
+          onGilda={() => setPagina("gilda")}
+          onLogout={handleLogout}
+        />
+      </MobileGate>
     );
   }
 
   if (pagina === "dungeon") {
     return (
-      <div style={{ display:"flex", flexDirection:"column", minHeight:"100dvh", background:"#040410" }}>
-        <div className="gioca-wrapper" style={{ flex:1 }}>
-          <Gioco startFloor={startFloor} saveData={saveData} onBackToMenu={() => setPagina("mainmenu")} />
+      <MobileGate>
+        <div style={{ display:"flex", flexDirection:"column", minHeight:"100dvh", background:"#040410" }}>
+          <div className="gioca-wrapper" style={{ flex:1 }}>
+            <Gioco startFloor={startFloor} saveData={saveData} onBackToMenu={() => setPagina("mainmenu")} />
+          </div>
         </div>
-      </div>
+      </MobileGate>
     );
   }
 
   if (pagina === "fabbro") {
-    return <Fabbro token={token} onBack={() => setPagina("mainmenu")} />;
+    return <MobileGate><Fabbro token={token} onBack={() => setPagina("mainmenu")} /></MobileGate>;
   }
 
   if (pagina === "locanda") {
     return (
-      <LocandaPage
-        onBack={() => setPagina("mainmenu")}
-        onApriFormazione={enterFormazione}
-      />
+      <MobileGate>
+        <LocandaPage
+          onBack={() => setPagina("mainmenu")}
+          onApriFormazione={enterFormazione}
+        />
+      </MobileGate>
     );
   }
 
   if (pagina === "formazione") {
     return (
-      <Formazione
-        token={token}
-        sfidante={qbSfidante}
-        onAvvia={avviaPartita}
-        onBack={() => setPagina("locanda")}
-      />
+      <MobileGate>
+        <Formazione
+          token={token}
+          sfidante={qbSfidante}
+          onAvvia={avviaPartita}
+          onBack={() => setPagina("locanda")}
+        />
+      </MobileGate>
     );
   }
 
   if (pagina === "questboard") {
     return (
-      <QuestBoardGame
-        inventario={qbInventario}
-        formazione={qbFormazione}
-        sfidante={qbSfidante}
-        utente={utente}
-        onBack={() => setPagina("locanda")}
-      />
+      <MobileGate>
+        <QuestBoardGame
+          inventario={qbInventario}
+          formazione={qbFormazione}
+          sfidante={qbSfidante}
+          utente={utente}
+          onBack={() => setPagina("locanda")}
+        />
+      </MobileGate>
     );
   }
 
   if (pagina === "gilda") {
     return (
-      <div className="home-wrapper">
+      <MobileGate><div className="home-wrapper">
         <header className="topbar">
           <span className="topbar-brand">⚔ QUEST BOARD</span>
           <nav className="topbar-nav">
@@ -254,7 +267,7 @@ function App() {
             ))}
           </div>
         </main>
-      </div>
+      </div></MobileGate>
     );
   }
 

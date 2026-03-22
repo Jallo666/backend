@@ -1,82 +1,57 @@
 import './GestPreview.css';
-import SilhouettePiece from '../SilhouettePiece.jsx';
+import ConfirmModal from '../components/ConfirmModal';
+import ModalPieceCard from '../components/ModalPieceCard';
+import AbilitaList from '../components/AbilitaList';
 import gestaIcon from '../assets/icon/gesta.svg';
-import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
 import { applyAuraEffects } from '../game/questboard/qb_rules.js';
 
 export default function GestPreview({ caster, target, gesta, onConfirm, onCancel, mode, opponentNome = "AI" }) {
-  const isImmobilize = gesta.effect === "immobilize";
-  const dannoEffettivo = isImmobilize ? 0 : applyAuraEffects(target, gesta.danno);
-  const auraActive = !isImmobilize && dannoEffettivo < gesta.danno;
-  const hpDopo    = Math.max(0, target.hp - dannoEffettivo);
-  const eliminato = !isImmobilize && hpDopo <= 0;
-  const hpPct     = Math.round((target.hp / target.hpMax) * 100);
-  const isAi      = mode === "ai";
+  const isImmobilize   = gesta.effect === "immobilize";
+  // Morso usa ATK del caster come danno dinamico
+  const dannoEffettivo = isImmobilize
+    ? applyAuraEffects(target, caster.atk)
+    : applyAuraEffects(target, gesta.danno);
+  const auraActive = dannoEffettivo < (isImmobilize ? caster.atk : gesta.danno);
+  const hpDopo     = Math.max(0, target.hp - dannoEffettivo);
+  const eliminato  = hpDopo <= 0;
+  const isAi       = mode === "ai";
+
+  const difesaPossente = auraActive ? target.aura?.find(a => a.id === "difesa_possente") : null;
+
+  const title = isAi ? `${opponentNome} usa una Gesta!` : gesta.nome;
+  const titleStyle = isAi
+    ? { color: "#ee5555", textShadow: "0 0 16px rgba(220,40,40,0.6)" }
+    : { color: "#ff8040", textShadow: "0 0 16px rgba(255,100,0,0.5)" };
+
+  const buttons = isAi
+    ? [{ label: "⚡ OK", onClick: onConfirm, variant: "gold" }]
+    : [
+        { label: <><img src={gestaIcon} alt="" className="gp-gesta-icon" /> Lancia!</>, onClick: onConfirm, variant: "orange" },
+        { label: "✕ Annulla", onClick: onCancel, variant: "dark" },
+      ];
 
   return (
-    <div className="gp-overlay">
-      <div className={`gp-box${isAi ? " gp-box-ai" : ""}`}>
-        <h2 className={`gp-title${isAi ? " gp-title-ai" : ""}`}>
-          {isAi ? `⚔ ${opponentNome} usa una Gesta!` : <><img src={gestaIcon} alt="" className="gp-gesta-icon" /> {gesta.nome}</>}
-        </h2>
-
-        <div className="gp-matchup">
-          {/* Caster */}
-          <div className="gp-piece gp-piece-caster">
-            <SilhouettePiece natura={caster.natura} pieceId={caster.id} size={54} />
-            <span className="gp-piece-name">{caster.nome}</span>
-            {caster.natura && (
-              <span className="gp-natura" style={{ color: NATURA_COLORE[caster.natura] ?? "#888" }}>
-                {caster.natura}
-              </span>
-            )}
-            <span className="gp-piece-hp">❤ {caster.hp}</span>
-          </div>
-
-          <span className="gp-arrow"><img src={gestaIcon} alt="" className="gp-gesta-icon" /></span>
-
-          {/* Target */}
-          <div className="gp-piece gp-piece-target">
-            <SilhouettePiece natura={target.natura} pieceId={target.id} size={54} />
-            <span className="gp-piece-name">{target.nome}</span>
-            {target.natura && (
-              <span className="gp-natura" style={{ color: NATURA_COLORE[target.natura] ?? "#888" }}>
-                {target.natura}
-              </span>
-            )}
-            <span className="gp-piece-hp">❤ {target.hp}</span>
-            <div className="gp-hp-bar">
-              <div className="gp-hp-fill" style={{ width: `${hpPct}%` }} />
-            </div>
-          </div>
-        </div>
-
-        <hr className="gp-separator" />
-
-        {isAi && (
-          <p className="gp-ai-label">{caster.nome} usa <strong>{gesta.icona} {gesta.nome}</strong> su {target.nome}</p>
-        )}
-
-        {auraActive && <p className="gp-aura-note">🛡 Difesa Possente: danno dimezzato!</p>}
-        <p className={`gp-effect ${eliminato ? "gp-effect-kill" : ""}`} style={isImmobilize ? { color: "#e08030" } : undefined}>
-          {isImmobilize
-            ? `${target.nome} verrà immobilizzato per un turno!`
-            : eliminato
-              ? `${target.nome} verrà eliminato!`
-              : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${dannoEffettivo})`}
-        </p>
-
-        <div className="gp-btns">
-          {isAi ? (
-            <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>⚡ OK</button>
-          ) : (
-            <>
-              <button className="qbg-btn qbg-btn-orange" onClick={onConfirm}><img src={gestaIcon} alt="" className="gp-gesta-icon" /> Lancia!</button>
-              <button className="qbg-btn qbg-btn-dark"  onClick={onCancel}>✕ Annulla</button>
-            </>
-          )}
-        </div>
+    <ConfirmModal title={title} titleStyle={titleStyle} buttons={buttons} boxClassName={isAi ? "gp-box-ai" : undefined}>
+      <div className="gp-matchup">
+        <ModalPieceCard pezzo={caster} variant="caster" showHpBar />
+        <span className="gp-arrow"><img src={gestaIcon} alt="" className="gp-gesta-icon" /></span>
+        <ModalPieceCard pezzo={target} variant="target" showHpBar />
       </div>
-    </div>
+
+      <hr className="gp-separator" />
+
+      {isAi && <>
+        <p className="gp-ai-label">{caster.nome} usa su <strong>{target.nome}</strong>:</p>
+        <AbilitaList gesta={[gesta]} />
+      </>}
+      {difesaPossente && <AbilitaList aura={[difesaPossente]} />}
+      <p className={`gp-effect${eliminato ? " gp-effect-kill" : ""}`}>
+        {eliminato
+          ? `${target.nome} verrà eliminato!`
+          : isImmobilize
+            ? `${target.nome}: ${target.hp} HP → ${hpDopo} HP (-${dannoEffettivo}), immobilizzato!`
+            : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${dannoEffettivo})`}
+      </p>
+    </ConfirmModal>
   );
 }

@@ -119,7 +119,7 @@ export function createGame(inventario, formazioneSalvata, sfidante = null) {
     }).filter(Boolean)
   );
 
-  const aiPieces = _initForzaDelPopolo(createAiFormation());
+  const aiPieces = _initForzaDelPopolo(createAiFormation(sfidante?.pezziPreview));
 
   return {
     playerPieces,
@@ -491,28 +491,63 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
   const gesta = caster.gesta?.find(g => g.id === gestaId);
   if (!gesta) return state;
 
-  // Morso (effect: "immobilize") — nessun danno, applica debuff immobilizzante
+  // Morso (effect: "immobilize") — danno ATK del caster + debuff immobilizzante
   if (gesta.effect === "immobilize") {
-    const newDebuff = { type: gesta.id, effect: "immobilize", targetUid, sourceUid: casterUid, expiresOn: "target_acts" };
-    let stateWithDebuff = addDebuff(state, newDebuff);
-    // Registra turno del caster
-    const sidePieces = side === "player" ? state.playerPieces : state.aiPieces;
+    const dmgMorso   = applyAuraEffects(target, caster.atk);
+    const nuovoHpMorso = Math.max(0, target.hp - dmgMorso);
+    const targetMortoMorso = nuovoHpMorso <= 0;
+
+    const updatePieceMorso = (p) =>
+      p.uid !== targetUid ? p : (targetMortoMorso ? null : { ...p, hp: nuovoHpMorso });
+
+    let newPlayerPieces = state.playerPieces.map(updatePieceMorso).filter(Boolean);
+    let newAiPieces     = state.aiPieces.map(updatePieceMorso).filter(Boolean);
+
+    let reAuraEvent = null;
+    if (targetMortoMorso) {
+      const targetSide = state.playerPieces.some(p => p.uid === targetUid) ? "player" : "ai";
+      if (targetSide === "player") {
+        const fdp = _applyForzaDelPopolo(newPlayerPieces, target.nome);
+        newPlayerPieces = fdp.pieces; reAuraEvent = fdp.event;
+      } else {
+        const fdp = _applyForzaDelPopolo(newAiPieces, target.nome);
+        newAiPieces = fdp.pieces; reAuraEvent = fdp.event;
+      }
+    }
+
+    // Aggiunge debuff solo se il bersaglio sopravvive
+    let baseState = { ...state, playerPieces: newPlayerPieces, aiPieces: newAiPieces };
+    if (!targetMortoMorso) {
+      const newDebuff = { type: gesta.id, effect: "immobilize", targetUid, sourceUid: casterUid, expiresOn: "target_acts" };
+      baseState = addDebuff(baseState, newDebuff);
+    }
+
+    const sidePieces = side === "player" ? newPlayerPieces : newAiPieces;
     const tracker    = side === "player" ? state.playerRotation : state.aiRotation;
     const newTracker = registerMove(casterUid, tracker, sidePieces);
     const newCasterPieces = sidePieces.map(p => p.uid === casterUid ? { ...p, canAct: false } : p);
-    const logMsg = `${_tag(caster)} ${caster.nome} usa ${gesta.nome} su ${_tag(target)} ${target.nome}! (${target.nome} è immobilizzato)`;
+    const auraTagMorso = dmgMorso < caster.atk ? " [Difesa Possente]" : "";
+    const fdpTagMorso  = reAuraEvent ? ` 👑 ${reAuraEvent.re.nome}: ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP` : "";
+    const logMsg = targetMortoMorso
+      ? `${_tag(caster)} ${caster.nome} usa ${gesta.nome} su ${_tag(target)} ${target.nome}! (-${dmgMorso} HP${auraTagMorso}) → ${target.nome} eliminato!${fdpTagMorso}`
+      : `${_tag(caster)} ${caster.nome} usa ${gesta.nome} su ${_tag(target)} ${target.nome}! (-${dmgMorso} HP${auraTagMorso}) → ${nuovoHpMorso} HP rimasti, immobilizzato`;
+
     let newState = {
-      ...stateWithDebuff,
-      playerPieces: side === "player" ? newCasterPieces : state.playerPieces,
-      aiPieces:     side === "ai"     ? newCasterPieces : state.aiPieces,
-      log:        [...stateWithDebuff.log, logMsg].slice(-40),
-      selected:   null,
-      validMoves: [],
-      combatAnim: null,
+      ...baseState,
+      playerPieces: side === "player" ? newCasterPieces : newPlayerPieces,
+      aiPieces:     side === "ai"     ? newCasterPieces : newAiPieces,
+      log:          [...baseState.log, logMsg].slice(-40),
+      selected:     null,
+      validMoves:   [],
+      combatAnim:   null,
+      reAuraEvent:  reAuraEvent ?? null,
       ...(side === "player" ? { playerRotation: newTracker } : { aiRotation: newTracker }),
     };
-    // Caster ha agito: scade suo eventuale debuff
     newState = expireActDebuffs(newState, casterUid);
+
+    const winner = checkWin(newState.playerPieces, newState.aiPieces);
+    if (winner) { newState.winner = winner; return newState; }
+
     if (side === "ai") {
       newState = _endTurn(newState, side);
       if (newTracker.cycleComplete) newState = _applyCycleEnd(newState, side);

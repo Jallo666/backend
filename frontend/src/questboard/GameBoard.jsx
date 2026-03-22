@@ -11,6 +11,7 @@ export default function GameBoard({
   ardoreMode, ardoreHitAnim, ardoreImpegnato,
   onCellClick,
   scagliareTargetUids, scagliareDests,
+  gestaAdjacentTargetUids,
   placementCells,
 }) {
   const allPieces    = [...game.playerPieces, ...game.aiPieces];
@@ -60,7 +61,8 @@ export default function GameBoard({
                 const isDefCell     = combatFlash && p?.uid === combatFlash.defUid;
                 const isScagliareTgt = scagliareTargetUids && p != null && scagliareTargetUids.includes(p.uid);
                 const scagliareDest  = scagliareDests?.find(d => d.row === r && d.col === c);
-                const isGestaTarget  = !scagliareTargetUids && !scagliareDests && gestaMode && p != null;
+                const isGestaTarget  = !scagliareTargetUids && !scagliareDests && gestaMode && p != null
+                  && (gestaAdjacentTargetUids == null || gestaAdjacentTargetUids.includes(p.uid));
                 const isGestaHit     = gestaHitAnim?.row === r && gestaHitAnim?.col === c;
                 const caricaCaster   = ardoreMode?.tipo === "movimento"
                   ? game.playerPieces.find(p2 => p2.uid === ardoreMode.casterUid)

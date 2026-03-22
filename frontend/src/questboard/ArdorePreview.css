@@ -1,75 +1,23 @@
-/* ── Dialog anteprima ardore ── */
-.ap-overlay {
-  position: fixed; inset: 0; z-index: 110;
-  background: rgba(8, 4, 0, 0.75);
-  display: flex; align-items: center; justify-content: center;
-}
-.ap-box {
-  background: rgba(10, 5, 1, 0.92) url('../assets/background-journal.png') center/cover no-repeat;
-  background-blend-mode: multiply;
-  border-top:    2px solid var(--hs-wood-rim);
-  border-left:   2px solid var(--hs-wood-rim);
-  border-right:  2px solid var(--hs-wood-rim);
-  border-bottom: 2px solid var(--hs-wood-rim);
-  border-radius: 14px;
-  box-shadow: 0 6px 40px rgba(0,0,0,0.7), inset 0 -1px 0 rgba(240,192,64,0.08);
-  padding: 24px 28px; max-width: 480px; width: 94%;
-  display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center;
-  font-family: 'Cinzel', serif;
-}
-.ap-title {
-  font-family: 'Cinzel Decorative', serif;
-  font-size: 15px; color: #6090ff; letter-spacing: 0.12em;
-  text-shadow: 0 0 16px rgba(60,120,255,0.5);
-  border-bottom: 1px solid var(--hs-wood-rim);
-  padding-bottom: 10px; width: 100%;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-}
+/* ── Variante AI: bordo blu sulla cm-box ── */
+.ap-box-ai { border-color: #2050cc !important; }
+
 .ap-ardore-icon {
-  width: 20px; height: 20px; object-fit: contain;
+  width: 56px; height: 56px; object-fit: contain;
   filter: invert(60%) sepia(80%) saturate(400%) hue-rotate(200deg) brightness(1.4);
   flex-shrink: 0;
 }
 .ap-matchup {
-  display: flex; align-items: center; justify-content: center; gap: 20px; width: 100%;
+  display: flex; align-items: stretch; justify-content: center; gap: 48px; width: 100%;
 }
-.ap-piece {
-  display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1;
-  padding: 10px; border-radius: 6px;
-}
-.ap-piece-caster { background: rgba(40,80,200,0.12); border: 1px solid rgba(40,80,200,0.35); }
-.ap-piece-target  { background: rgba(200,40,40,0.12); border: 1px solid rgba(200,40,40,0.35); }
-.ap-piece-name { font-family: 'Cinzel', serif; font-size: 11px; color: var(--hs-cream); }
-.ap-natura     { font-family: 'Cinzel', serif; font-size: 8px; font-weight: bold; }
-.ap-piece-hp   { font-family: 'Cinzel', serif; font-size: 9px; color: #90b0d0; }
-.ap-hp-bar  { width: 100%; height: 5px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-top: 2px; }
-.ap-hp-fill { height: 100%; background: linear-gradient(90deg, #cc2222, #eeaa22, #22cc44); }
 .ap-arrow {
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding-top: 60px;
 }
-.ap-arrow .ap-ardore-icon { width: 28px; height: 28px; }
+.ap-arrow .ap-ardore-icon { width: 72px; height: 72px; }
 .ap-separator { width: 100%; border: none; border-top: 1px solid var(--hs-wood-rim); }
-.ap-aura-note { font-family: 'Cinzel', serif; font-size: 10px; color: #80c4ff; font-style: italic; }
 .ap-effect {
   font-family: 'Cinzel', serif;
-  font-size: 12px; line-height: 1.9; color: #d4b880;
+  font-size: 32px; line-height: 1.6; color: #d4b880;
 }
 .ap-effect-kill { color: #ee4444; text-shadow: 0 0 10px rgba(220,40,40,0.5); font-weight: bold; }
-.ap-bonus-label { font-family: 'Cinzel', serif; font-size: 9px; color: #5070a0; font-style: italic; letter-spacing: 0.05em; }
-.ap-ai-label { font-family: 'Cinzel', serif; font-size: 11px; color: #a0b8d8; }
-.ap-btns { display: flex; gap: 12px; justify-content: center; }
-
-/* ── Variante AI ── */
-.ap-box-ai { border-color: #2050cc; }
-.ap-title-ai { color: #8099ee; text-shadow: 0 0 16px rgba(40,80,220,0.6); }
-
-@media (min-height: 600px) {
-  .ap-box { max-width: 580px; padding: 28px 34px; gap: 18px; }
-  .ap-title { font-size: 18px; }
-  .ap-piece-name { font-size: 14px; }
-  .ap-piece-hp { font-size: 12px; }
-  .ap-natura { font-size: 10px; }
-  .ap-effect { font-size: 15px; }
-  .ap-bonus-label { font-size: 11px; }
-  .ap-ai-label { font-size: 13px; }
-}
+.ap-bonus-label { font-family: 'Cinzel', serif; font-size: 24px; color: #5070a0; font-style: italic; letter-spacing: 0.05em; }
+.ap-ai-label { font-family: 'Cinzel', serif; font-size: 28px; color: #a0b8d8; }

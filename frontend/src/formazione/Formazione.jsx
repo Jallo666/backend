@@ -7,6 +7,7 @@ import PieceStats from "../components/PieceStats.jsx";
 import AbilitaList from "../components/AbilitaList.jsx";
 import FormazionePezzo from "./FormazionePezzo.jsx";
 import FormazioneBoard from "./FormazioneBoard.jsx";
+import ConfirmModal from "../components/ConfirmModal.jsx";
 import "./Formazione.css";
 
 const API_URL     = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
@@ -335,79 +336,51 @@ export default function Formazione({ token, onAvvia, onBack }) {
 
       {/* ── Confirm overlay torna alla locanda ── */}
       {confirmBack && (
-        <div className="form-confirm-overlay">
-          <div className="form-confirm-box">
-            <h3 className="form-confirm-title">↩ Torna alla locanda?</h3>
-            <p className="form-confirm-text">
-              Vuoi abbandonare la formazione e tornare alla locanda?
-            </p>
-            <div className="form-confirm-btns">
-              <button className="form-btn form-btn-danger" onClick={onBack}>
-                Torna alla Locanda
-              </button>
-              <button className="form-btn form-btn-cancel" onClick={() => setConfirmBack(false)}>
-                Annulla
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="↩ Torna alla locanda?"
+          buttons={[
+            { label: "Torna alla Locanda", onClick: onBack, variant: "danger" },
+            { label: "Annulla", onClick: () => setConfirmBack(false), variant: "cancel" },
+          ]}
+        >
+          <p>Vuoi abbandonare la formazione e tornare alla locanda?</p>
+        </ConfirmModal>
       )}
 
       {/* ── Confirm overlay carica formazione ── */}
       {confirmCarica && (
-        <div className="form-confirm-overlay">
-          <div className="form-confirm-box">
-            <h3 className="form-confirm-title">⚠ Modifiche non salvate</h3>
-            <p className="form-confirm-text">
-              La formazione corrente ha modifiche non salvate. Vuoi continuare senza salvare?
-            </p>
-            <div className="form-confirm-btns">
-              <button className="form-btn form-btn-danger" onClick={() => { caricaFormazione(confirmCarica); setConfirmCarica(null); }}>
-                Continua senza salvare
-              </button>
-              <button className="form-btn form-btn-cancel" onClick={() => setConfirmCarica(null)}>
-                Annulla
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Modifiche non salvate"
+          buttons={[
+            { label: "Continua senza salvare", onClick: () => { caricaFormazione(confirmCarica); setConfirmCarica(null); }, variant: "danger" },
+            { label: "Annulla", onClick: () => setConfirmCarica(null), variant: "cancel" },
+          ]}
+        >
+          <p>La formazione corrente ha modifiche non salvate. Vuoi continuare senza salvare?</p>
+        </ConfirmModal>
       )}
 
       {/* ── Confirm overlay elimina schema ── */}
       {confirmElimina && (
-        <div className="form-confirm-overlay">
-          <div className="form-confirm-box">
-            <h3 className="form-confirm-title">🗑 Elimina schema?</h3>
-            <p className="form-confirm-text">
-              Vuoi eliminare «{confirmElimina.nome}»? L'operazione non è reversibile.
-            </p>
-            <div className="form-confirm-btns">
-              <button className="form-btn form-btn-danger" onClick={async () => { await handleElimina(confirmElimina.id, { stopPropagation: () => {} }); setConfirmElimina(null); }}>
-                Elimina
-              </button>
-              <button className="form-btn form-btn-cancel" onClick={() => setConfirmElimina(null)}>
-                Annulla
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Elimina schema?"
+          buttons={[
+            { label: "Elimina", onClick: async () => { await handleElimina(confirmElimina.id, { stopPropagation: () => {} }); setConfirmElimina(null); }, variant: "danger" },
+            { label: "Annulla", onClick: () => setConfirmElimina(null), variant: "cancel" },
+          ]}
+        >
+          <p>Vuoi eliminare «{confirmElimina.nome}»? L'operazione non è reversibile.</p>
+        </ConfirmModal>
       )}
 
       {/* ── Confirm overlay sostituisci pedina ── */}
       {confirmSostituisci && (
-        <div className="form-confirm-overlay">
-          <div className="form-confirm-box">
-            <h3 className="form-confirm-title">⇄ Sostituire pedina?</h3>
-            <div className="form-confirm-sostituisci">
-              <FormazionePezzo pezzo={confirmSostituisci.invPezzo}   attiva={true} hideSilhouette />
-              <span className="form-confirm-sostituisci-arrow">⇄</span>
-              <FormazionePezzo pezzo={confirmSostituisci.boardPezzo} attiva={true} hideSilhouette />
-            </div>
-            <div className="form-confirm-btns">
-              <button className="form-btn form-btn-save" onClick={() => {
+        <ConfirmModal
+          title="⇄ Sostituire pedina?"
+          buttons={[
+            { label: "Sostituisci", onClick: () => {
                 const { uid, row, col, boardPezzo, isMove, fromRow, fromCol } = confirmSostituisci;
                 if (isMove) {
-                  // Scambio tra due celle del board
                   setFormazione(prev => {
                     const movingSlot   = prev.find(f => f.row === fromRow && f.col === fromCol);
                     const existingSlot = prev.find(f => f.row === row    && f.col === col);
@@ -432,39 +405,29 @@ export default function Formazione({ token, onAvvia, onBack }) {
                   setSelectedInv(null);
                 }
                 setConfirmSostituisci(null);
-              }}>
-                Sostituisci
-              </button>
-              <button className="form-btn form-btn-cancel" onClick={() => setConfirmSostituisci(null)}>
-                Annulla
-              </button>
-            </div>
+              }, variant: "save" },
+            { label: "Annulla", onClick: () => setConfirmSostituisci(null), variant: "cancel" },
+          ]}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "20px" }}>
+            <div style={{ flex: 1 }}><FormazionePezzo pezzo={confirmSostituisci.invPezzo}   attiva={true} hideSilhouette /></div>
+            <span style={{ fontSize: "40px", color: "var(--hs-gold)", alignSelf: "center" }}>⇄</span>
+            <div style={{ flex: 1 }}><FormazionePezzo pezzo={confirmSostituisci.boardPezzo} attiva={true} hideSilhouette /></div>
           </div>
-        </div>
+        </ConfirmModal>
       )}
 
       {/* ── Confirm overlay ripristina ── */}
       {confirmReset && (
-        <div className="form-confirm-overlay">
-          <div className="form-confirm-box">
-            <h3 className="form-confirm-title">⚠ Ripristina pezzi?</h3>
-            <p className="form-confirm-text">
-              Tutti i tuoi pezzi e le formazioni salvate verranno sostituiti dai 6 classici.
-            </p>
-            <div className="form-confirm-btns">
-              <button
-                className="form-btn form-btn-danger"
-                onClick={async () => { setConfirmReset(false); await doReset(); }}
-                disabled={resetting}
-              >
-                {resetting ? "Ripristinando..." : "Ripristina"}
-              </button>
-              <button className="form-btn form-btn-cancel" onClick={() => setConfirmReset(false)}>
-                Annulla
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="Ripristina pezzi?"
+          buttons={[
+            { label: resetting ? "Ripristinando..." : "Ripristina", onClick: async () => { setConfirmReset(false); await doReset(); }, variant: "danger", disabled: resetting },
+            { label: "Annulla", onClick: () => setConfirmReset(false), variant: "cancel" },
+          ]}
+        >
+          <p>Tutti i tuoi pezzi e le formazioni salvate verranno sostituiti dai 6 classici.</p>
+        </ConfirmModal>
       )}
 
       {/* ── Header ── */}

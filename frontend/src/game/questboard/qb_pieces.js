@@ -88,12 +88,13 @@ export const GESTA_CATALOG = {
     desc:  "Infligge 5 danni a un personaggio scelto nell'arena (amico o nemico).",
   },
   morso: {
-    id:     "morso",
-    nome:   "Morso",
-    icona:  "🐺",
-    danno:  0,
-    effect: "immobilize",
-    desc:   "Azzanna il bersaglio: riduce il suo MOV a 0 finché non termina il prossimo turno.",
+    id:           "morso",
+    nome:         "Morso",
+    icona:        "🐺",
+    danno:        0,          // dinamico: ATK del caster
+    effect:       "immobilize",
+    adjacentOnly: true,
+    desc:         "Solo pedine adiacenti. Azzanna il bersaglio: infligge danno pari al proprio ATK e riduce il suo MOV a 0 finché non termina il prossimo turno.",
   },
   scagliare: {
     id:    "scagliare",

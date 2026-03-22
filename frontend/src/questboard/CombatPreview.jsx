@@ -1,6 +1,7 @@
 import './CombatPreview.css';
-import SilhouettePiece from '../SilhouettePiece.jsx';
-import { NATURA_COLORE } from '../game/questboard/qb_pieces.js';
+import ConfirmModal from '../components/ConfirmModal';
+import ModalPieceCard from '../components/ModalPieceCard';
+import AbilitaList from '../components/AbilitaList';
 import { resolveCombat } from '../game/questboard/qb_rules.js';
 
 const BATTLE_QUOTES = [
@@ -12,77 +13,60 @@ const BATTLE_QUOTES = [
   "«In nome del Re, colpisci!»",
 ];
 
-// mode: "player" (player attacks, can cancel) | "ai" (ai attacks, read-only)
 export default function CombatPreview({ attacker, defender, onConfirm, onCancel, mode = "player" }) {
   const result  = resolveCombat(attacker, defender);
   const defDies = result.defenderHp <= 0;
   const quote   = BATTLE_QUOTES[Math.floor(Math.random() * BATTLE_QUOTES.length)];
+  const isAi    = mode === "ai";
 
   let esito, resultClass;
   if (defDies) {
-    esito = mode === "ai"
-      ? `${defender.nome} verrà eliminato!`
-      : `${defender.nome} verrà eliminato!`;
-    resultClass = mode === "ai" ? "qbg-cp-result-lose" : "qbg-cp-result-win";
+    esito       = `${defender.nome} verrà eliminato!`;
+    resultClass = isAi ? "qbg-cp-result-lose" : "qbg-cp-result-win";
   } else {
-    esito = mode === "ai"
-      ? `${defender.nome} subisce ${result.dmg} danni (${result.defenderHp} HP rimasti).`
-      : `${defender.nome} subisce ${result.dmg} danni (${result.defenderHp} HP rimasti).`;
+    esito       = `${defender.nome} subisce ${result.dmg} danni (${result.defenderHp} HP rimasti).`;
     resultClass = "qbg-cp-result-draw";
   }
-  const title = mode === "ai" ? "☠ L'AVVERSARIO ATTACCA! ☠" : "⚔ SFIDA AL DUELLO ⚔";
+
+  const title      = isAi ? "L'AVVERSARIO ATTACCA!" : "SFIDA AL DUELLO";
+  const titleStyle = isAi
+    ? { color: "#ee5555", textShadow: "0 0 16px rgba(220,40,40,0.6)" }
+    : { color: "var(--hs-gold)", textShadow: "0 0 16px rgba(240,192,64,0.5)" };
+
+  const buttons = isAi
+    ? [{ label: "Continua!", onClick: onConfirm, variant: "gold" }]
+    : [
+        { label: "Attacca!", onClick: onConfirm, variant: "gold" },
+        { label: "Annulla",  onClick: onCancel,  variant: "dark" },
+      ];
+
+  // In modalità AI i ruoli visivi si invertono
+  const atkVariant = isAi ? "target" : "atk";
+  const defVariant = isAi ? "atk"    : "target";
+
+  const furtiva = result.furtivo    ? attacker.aura?.find(a => a.id === "attacco_furtivo") : null;
+  const ira     = result.ira        ? attacker.aura?.find(a => a.id === "ira")              : null;
+  const difesa  = result.auraActive ? defender.aura?.find(a => a.id === "difesa_possente")  : null;
 
   return (
-    <div className="qbg-combat-preview">
-      <div className={`qbg-cp-box ${mode === "ai" ? "qbg-cp-box-ai" : ""}`}>
-        <div className={`qbg-cp-title ${mode === "ai" ? "qbg-cp-title-ai" : ""}`}>{title}</div>
-
-        <div className="qbg-cp-matchup">
-          <div className="qbg-cp-piece qbg-cp-piece-atk">
-            <SilhouettePiece natura={attacker.natura} pieceId={attacker.id} size={56} />
-            <span className="qbg-cp-piece-name">{attacker.nome}</span>
-            {attacker.natura && <span className="qbg-cp-natura" style={{ color: NATURA_COLORE[attacker.natura] ?? "#888" }}>{attacker.natura}</span>}
-            <span className="qbg-cp-piece-stats">❤{attacker.hp} ⚔{attacker.atk} 🛡{attacker.def}</span>
-            <div className="qbg-cp-hp-bar">
-              <div className="qbg-cp-hp-fill" style={{ width: `${(attacker.hp / attacker.hpMax) * 100}%` }} />
-            </div>
-          </div>
-
-          <span className="qbg-cp-vs">VS</span>
-
-          <div className="qbg-cp-piece qbg-cp-piece-def">
-            <SilhouettePiece natura={defender.natura} pieceId={defender.id} size={56} />
-            <span className="qbg-cp-piece-name">{defender.nome}</span>
-            {defender.natura && <span className="qbg-cp-natura" style={{ color: NATURA_COLORE[defender.natura] ?? "#888" }}>{defender.natura}</span>}
-            <span className="qbg-cp-piece-stats">❤{defender.hp} ⚔{defender.atk} 🛡{defender.def}</span>
-            <div className="qbg-cp-hp-bar">
-              <div className="qbg-cp-hp-fill" style={{ width: `${(defender.hp / defender.hpMax) * 100}%` }} />
-            </div>
-          </div>
-        </div>
-
-        <hr className="qbg-cp-separator" />
-
-        <div className="qbg-cp-forecast">
-          Danni inflitti: <strong style={{ color: "#f0c040" }}>{result.dmg}</strong>
-          {result.furtivo    && <span className="qbg-cp-aura-note"> 🗡 Attacco Furtivo</span>}
-          {result.auraActive && <span className="qbg-cp-aura-note"> 🛡 Difesa Possente</span>}
-        </div>
-
-        <div className={`qbg-cp-result ${resultClass}`}>{esito}</div>
-        <div className="qbg-cp-quote">{quote}</div>
-
-        <div className="qbg-cp-btns">
-          {mode === "ai" ? (
-            <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>Continua!</button>
-          ) : (
-            <>
-              <button className="qbg-btn qbg-btn-gold" onClick={onConfirm}>⚔ Attacca!</button>
-              <button className="qbg-btn qbg-btn-dark" onClick={onCancel}>🏃 Ritirati</button>
-            </>
-          )}
-        </div>
+    <ConfirmModal title={title} titleStyle={titleStyle} buttons={buttons} boxClassName={isAi ? "qbg-cp-box-ai" : undefined}>
+      <div className="qbg-cp-matchup">
+        <ModalPieceCard pezzo={attacker} variant={atkVariant} showHpBar />
+        <span className="qbg-cp-vs">VS</span>
+        <ModalPieceCard pezzo={defender} variant={defVariant} showHpBar />
       </div>
-    </div>
+
+      <hr className="qbg-cp-separator" />
+
+      <div className="qbg-cp-forecast">
+        Danni inflitti: <strong style={{ color: "#f0c040" }}>{result.dmg}</strong>
+      </div>
+      {furtiva && <AbilitaList aura={[furtiva]} />}
+      {ira     && <AbilitaList aura={[ira]}     />}
+      {difesa  && <AbilitaList aura={[difesa]}  />}
+
+      <div className={`qbg-cp-result ${resultClass}`}>{esito}</div>
+      <div className="qbg-cp-quote">{quote}</div>
+    </ConfirmModal>
   );
 }

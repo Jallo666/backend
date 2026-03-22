@@ -1,0 +1,68 @@
+.mg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0d0d1a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  cursor: pointer;
+  padding: 2rem;
+  background-image:
+    radial-gradient(ellipse at 20% 0%, #1a2060 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, #0d1840 0%, transparent 50%);
+}
+
+.mg-icon {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.mg-arrow {
+  font-size: 3.5rem;
+  color: #f0c040;
+  animation: mg-rotate 1.5s ease-in-out infinite;
+}
+
+@keyframes mg-rotate {
+  0%   { transform: rotate(-30deg); }
+  50%  { transform: rotate(30deg); }
+  100% { transform: rotate(-30deg); }
+}
+
+.mg-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1rem;
+  color: #f0c040;
+  text-shadow: 2px 2px 0 #000;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.mg-sub {
+  font-family: 'VT323', monospace;
+  font-size: 1.3rem;
+  color: #7a8aaa;
+  text-align: center;
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+.mg-btn {
+  margin-top: 1rem;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.7rem;
+  color: #0d0d1a;
+  background: #f0c040;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  box-shadow: 0 3px 0 #8a6800;
+  animation: mg-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes mg-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.05); }
+}

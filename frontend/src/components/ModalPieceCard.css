@@ -1,0 +1,76 @@
+.mdc {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  height: 100%;
+  justify-content: space-between;
+  padding: 24px 20px;
+  border-radius: 10px;
+}
+
+.mdc--caster,
+.mdc--atk  { background: rgba(40,80,200,0.12); border: 1px solid rgba(40,80,200,0.45); }
+
+.mdc--target,
+.mdc--def  { background: rgba(200,40,40,0.12); border: 1px solid rgba(200,40,40,0.45); }
+
+/* ── Header ── */
+.mdc-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+.mdc-nome {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  color: var(--hs-cream, #e8d5a0);
+  letter-spacing: 0.04em;
+}
+
+/* ── Body: silhouette + stats ── */
+.mdc-body {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ── Override PieceStats ── */
+.mdc .piece-stats        { grid-template-columns: auto auto; gap: 8px; width: auto; }
+.mdc .piece-stat         { padding: 6px 10px; gap: 6px; }
+.mdc .piece-stat-icon    { width: 28px !important; height: 28px !important; }
+.mdc .piece-stat-val     { font-size: 26px; }
+.mdc .piece-stat-lbl     { font-size: 14px; }
+
+/* ── Tags ── */
+.mdc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.mdc .piece-tag     { font-size: 18px; padding: 4px 14px; }
+.mdc .piece-tag-svg { width: 18px; height: 18px; }
+
+/* ── Override AbilitaList collapsed ── */
+.mdc .ab-list-collapsed          { justify-content: center; }
+.mdc .ab-card-collapsed          { padding: 6px 12px; gap: 6px; }
+.mdc .ab-card-collapsed .ab-icon { font-size: 22px; }
+.mdc .ab-card-collapsed .ab-nome { font-size: 18px; }
+
+/* ── HP bar ── */
+.mdc-hp-bar {
+  width: 100%;
+  height: 14px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.mdc-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #cc2222, #eeaa22, #22cc44);
+  transition: width 0.3s;
+}

@@ -1,3 +1,5 @@
+import { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { TagArdore, TagGesta, TagAura } from './PieceTag.jsx';
 import './AbilitaList.css';
 
@@ -8,13 +10,34 @@ const TIPO_TAG = {
 };
 
 function AbCard({ item, tipo, className, collapsed }) {
+  const [pos, setPos] = useState(null);
+  const ref = useRef(null);
+
+  const handleEnter = () => {
+    const r = ref.current?.getBoundingClientRect();
+    if (r) setPos({ x: r.left + r.width / 2, y: r.bottom + 8 });
+  };
+  const handleLeave = () => setPos(null);
+
   return (
-    <div className={`ab-card ${className}${collapsed ? " ab-card-collapsed" : ""}`}>
+    <div
+      ref={ref}
+      className={`ab-card ${className}${collapsed ? " ab-card-collapsed" : ""}`}
+      onMouseEnter={collapsed ? handleEnter : undefined}
+      onMouseLeave={collapsed ? handleLeave : undefined}
+    >
       <span className="ab-icon">{item.icona}</span>
       <div className="ab-info">
         <span className="ab-nome">{item.nome} {TIPO_TAG[tipo]}</span>
         {!collapsed && <span className="ab-desc">{item.desc}</span>}
       </div>
+      {collapsed && pos && createPortal(
+        <div className="ab-tooltip ab-tooltip-fixed" style={{ left: pos.x, top: pos.y }}>
+          <div className="ab-tooltip-nome">{item.nome}</div>
+          <div className="ab-tooltip-desc">{item.desc}</div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

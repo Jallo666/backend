@@ -547,6 +547,16 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
       if (clickedPiece) {
         const gesta = caster?.gesta?.find(g => g.id === gestaMode.gestaId);
         if (caster && gesta) {
+          if (gesta.adjacentOnly) {
+            const dist = Math.max(
+              Math.abs(clickedPiece.row - caster.row),
+              Math.abs(clickedPiece.col - caster.col)
+            );
+            if (dist > 1) {
+              setGestaMode(null);
+              return;
+            }
+          }
           setGestaPreview({ caster, target: clickedPiece, gesta });
           setGestaMode(null);
         }
@@ -625,6 +635,20 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
         scagliareDests = getScagliareDest(scagliareCaster, gestaMode.targetUid, allPiecesForScagliare)
           .map(d => ({ ...d, danno: calcScagliareDanno(scagliareCaster, d.row, d.col) }));
       }
+    }
+  }
+
+  // ── Target validi per gesta adjacentOnly (es. Morso) ──────────────────────
+  let gestaAdjacentTargetUids = null;
+  if (gestaMode && gestaMode.gestaId !== "scagliare") {
+    const gestaCaster = game.playerPieces.find(p => p.uid === gestaMode.casterUid);
+    const gestaObj = gestaCaster?.gesta?.find(g => g.id === gestaMode.gestaId);
+    if (gestaObj?.adjacentOnly && gestaCaster) {
+      const allPiecesNowG = [...game.playerPieces, ...game.aiPieces];
+      gestaAdjacentTargetUids = allPiecesNowG
+        .filter(p => p.uid !== gestaCaster.uid &&
+          Math.max(Math.abs(p.row - gestaCaster.row), Math.abs(p.col - gestaCaster.col)) <= 1)
+        .map(p => p.uid);
     }
   }
 
@@ -855,6 +879,7 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
         placementCells={pendingPlacement?.validCells ?? null}
         scagliareTargetUids={scagliareTargetUids}
         scagliareDests={scagliareDests}
+        gestaAdjacentTargetUids={gestaAdjacentTargetUids}
       />
 
       <DiarioPanel

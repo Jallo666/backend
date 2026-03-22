@@ -1,4 +1,4 @@
-import GameModal from './GameModal';
+import ConfirmModal from '../components/ConfirmModal';
 import { getHealAmount } from '../game/questboard/qb_rules.js';
 
 export default function RoundEndNotification({ event, onDismiss }) {
@@ -22,16 +22,12 @@ export default function RoundEndNotification({ event, onDismiss }) {
     : `${isPlayer ? "I tuoi pezzi recuperano" : "I pezzi nemici recuperano"} ${healAmount} HP`;
 
   return (
-    <GameModal
+    <ConfirmModal
       title={titolo}
       buttons={[{ label: "Continua", onClick: onDismiss }]}
     >
-      <p style={{ color: isDamage ? "#ee4444" : "#44dd88", marginBottom: "0.4rem" }}>
-        {effetto}
-      </p>
-      <p style={{ color: "#c8a060", fontSize: "11px" }}>
-        Ciclo {nextRound}: <strong>{nextCondition}</strong>
-      </p>
-    </GameModal>
+      <p style={{ color: isDamage ? "#ee4444" : "#44dd88" }}>{effetto}</p>
+      <p>Ciclo {nextRound}: <strong>{nextCondition}</strong></p>
+    </ConfirmModal>
   );
 }

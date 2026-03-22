@@ -1,85 +1,29 @@
-/* ── Dialog anteprima combattimento ── */
-.qbg-combat-preview {
-  position: fixed; inset: 0; z-index: 110;
-  background: rgba(8, 4, 0, 0.75);
-  display: flex; align-items: center; justify-content: center;
-}
-.qbg-cp-box {
-  background: rgba(10, 5, 1, 0.92) url('../assets/background-journal.png') center/cover no-repeat;
-  background-blend-mode: multiply;
-  border-top:    2px solid var(--hs-wood-rim);
-  border-left:   2px solid var(--hs-wood-rim);
-  border-right:  2px solid var(--hs-wood-rim);
-  border-bottom: 2px solid var(--hs-wood-rim);
-  border-radius: 14px;
-  box-shadow: 0 6px 40px rgba(0,0,0,0.7), inset 0 -1px 0 rgba(240,192,64,0.08);
-  padding: 24px 28px; max-width: 480px; width: 94%;
-  display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center;
-  font-family: 'Cinzel', serif;
-}
-.qbg-cp-title {
-  font-family: 'Cinzel Decorative', serif;
-  font-size: 15px; color: var(--hs-gold); letter-spacing: 0.12em;
-  text-shadow: 0 0 16px rgba(240,192,64,0.5);
-  border-bottom: 1px solid var(--hs-wood-rim);
-  padding-bottom: 10px; width: 100%;
-}
+/* ── Variante AI: bordo rosso sulla cm-box ── */
+.qbg-cp-box-ai { border-color: #7a2020 !important; }
+
 .qbg-cp-matchup {
-  display: flex; align-items: center; justify-content: center; gap: 20px; width: 100%;
+  display: flex; align-items: stretch; justify-content: center; gap: 48px; width: 100%;
 }
-.qbg-cp-piece {
-  display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1;
-  padding: 10px; border-radius: 6px;
-}
-.qbg-cp-piece-atk { background: rgba(50,130,230,0.12); border: 1px solid rgba(50,130,230,0.35); }
-.qbg-cp-piece-def { background: rgba(200,40,40,0.12);  border: 1px solid rgba(200,40,40,0.35); }
-.qbg-cp-piece-name { font-family: 'Cinzel', serif; font-size: 11px; color: var(--hs-cream); }
-.qbg-cp-natura { font-family: 'Cinzel', serif; font-size: 8px; font-weight: bold; }
-.qbg-cp-piece-stats { font-family: 'Cinzel', serif; font-size: 9px; color: #c8a060; }
-.qbg-cp-hp-bar { width: 100%; height: 5px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden; margin-top: 2px; }
-.qbg-cp-hp-fill { height: 100%; background: linear-gradient(90deg, #cc2222, #eeaa22, #22cc44); }
 .qbg-cp-vs {
   font-family: 'Cinzel Decorative', serif;
-  font-size: 20px; color: var(--hs-gold); flex-shrink: 0;
+  font-size: 48px; color: var(--hs-gold); flex-shrink: 0;
   text-shadow: 0 0 12px rgba(240,192,64,0.5);
+  padding-top: 60px;
 }
 .qbg-cp-separator { width: 100%; border: none; border-top: 1px solid var(--hs-wood-rim); }
 .qbg-cp-forecast {
   font-family: 'Cinzel', serif;
-  font-size: 12px; line-height: 1.9; color: #d4b880;
+  font-size: 28px; line-height: 1.6; color: #d4b880;
 }
 .qbg-cp-result {
   font-family: 'Cinzel', serif;
-  font-size: 13px; font-weight: bold; letter-spacing: 0.04em;
+  font-size: 32px; font-weight: bold; letter-spacing: 0.04em;
 }
 .qbg-cp-result-win  { color: #44dd66; text-shadow: 0 0 10px rgba(40,200,60,0.5); }
 .qbg-cp-result-lose { color: #ee4444; text-shadow: 0 0 10px rgba(220,40,40,0.5); }
 .qbg-cp-result-draw { color: var(--hs-gold); }
-.qbg-cp-aura-note   { color: #80c4ff; font-size: 10px; font-style: italic; }
 .qbg-cp-quote {
   font-family: 'Cinzel', serif;
-  font-size: 10px; color: #8a6030; font-style: italic;
-  border-top: 1px solid rgba(90,53,16,0.4); padding-top: 8px; width: 100%;
-}
-.qbg-cp-btns  { display: flex; gap: 12px; justify-content: center; }
-
-/* Variante AI — bordo rosso */
-.qbg-cp-box-ai { border-color: #7a2020; }
-.qbg-cp-title-ai {
-  color: #ee5555;
-  text-shadow: 0 0 16px rgba(220,40,40,0.6);
-}
-.qbg-cp-box-ai .qbg-cp-piece-atk { background: rgba(200,40,40,0.12); border: 1px solid rgba(200,40,40,0.35); }
-.qbg-cp-box-ai .qbg-cp-piece-def { background: rgba(50,130,230,0.12); border: 1px solid rgba(50,130,230,0.35); }
-
-@media (min-height: 600px) {
-  .qbg-cp-box { max-width: 580px; padding: 28px 34px; gap: 18px; }
-  .qbg-cp-title { font-size: 18px; }
-  .qbg-cp-piece-name { font-size: 14px; }
-  .qbg-cp-piece-stats { font-size: 12px; }
-  .qbg-cp-natura { font-size: 10px; }
-  .qbg-cp-vs { font-size: 26px; }
-  .qbg-cp-forecast { font-size: 15px; }
-  .qbg-cp-result { font-size: 16px; }
-  .qbg-cp-quote { font-size: 12px; }
+  font-size: 22px; color: #8a6030; font-style: italic;
+  border-top: 1px solid rgba(90,53,16,0.4); padding-top: 16px; width: 100%;
 }

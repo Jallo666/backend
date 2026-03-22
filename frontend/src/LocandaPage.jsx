@@ -1,73 +1,19 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SFIDANTI } from "./sfidanti.js";
-import { CLASSIC_PIECES, NATURA_DA_NOME, ardoreDiNatura, gesteDiNatura, auraDiNatura } from "./game/questboard/qb_pieces.js";
-import SilhouettePiece from "./SilhouettePiece.jsx";
+import SfidanteCard from "./components/SfidanteCard.jsx";
 import "./LocandaPage.css";
 import BackButton from "./components/BackButton.jsx";
-import dragoImg   from "./assets/luoghi/drago_addormentato.png";
-import ardoreIcon from "./assets/icon/ardore.svg";
-import gestaIcon  from "./assets/icon/gesta.svg";
-import auraIcon   from "./assets/icon/aura.svg";
-
-function StarRating({ value, max = 5 }) {
-  return (
-    <div className="loc-stars">
-      {Array.from({ length: max }, (_, i) => (
-        <span key={i} className={i < value ? "loc-star-on" : "loc-star-off"}>★</span>
-      ))}
-    </div>
-  );
-}
-
-function AbIcon({ icon, alt, nome, desc }) {
-  return (
-    <div className="loc-ab-wrap">
-      <img src={icon} alt={alt} className="loc-preview-ab-icon" />
-      <div className="loc-ab-tooltip">
-        <div className="loc-ab-tooltip-nome">{nome}</div>
-        <div className="loc-ab-tooltip-desc">{desc}</div>
-      </div>
-    </div>
-  );
-}
-
-function FormazionePreview({ pezzi }) {
-  return (
-    <div className="loc-preview-wrap">
-      <div className="loc-preview-label">Formazione avversario</div>
-      <div className="loc-preview-list">
-        {pezzi.map(p => {
-          const natura  = NATURA_DA_NOME[p.nome] ?? null;
-          const ardore  = ardoreDiNatura(natura);
-          const gesta   = gesteDiNatura(natura);
-          const aura    = auraDiNatura(natura);
-          const hasAb   = ardore.length > 0 || gesta.length > 0 || aura.length > 0;
-          return (
-            <div key={p.id} className="loc-preview-piece">
-              <SilhouettePiece natura={natura} size={52} />
-              <div className="loc-preview-nome">{p.nome}</div>
-              <div className="loc-preview-stats">
-                <span>❤{p.hp}</span>
-                <span>⚔{p.atk}</span>
-                <span>🛡{p.def}</span>
-              </div>
-              {hasAb && (
-                <div className="loc-preview-abilities">
-                  {ardore.map(a => <AbIcon key={a.id} icon={ardoreIcon} alt="ardore" nome={a.nome} desc={a.desc} />)}
-                  {gesta.map(g  => <AbIcon key={g.id} icon={gestaIcon}  alt="gesta"  nome={g.nome} desc={g.desc} />)}
-                  {aura.map(au  => <AbIcon key={au.id} icon={auraIcon}  alt="aura"   nome={au.nome} desc={au.desc} />)}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+import dragoImg from "./assets/luoghi/drago_addormentato.png";
 
 export default function LocandaPage({ onBack, onApriFormazione }) {
   const starsRef = useRef(null);
+  const [idx, setIdx] = useState(0);
+  const [dir, setDir] = useState('right');
+
+  const goTo = (newIdx, direction) => {
+    setDir(direction);
+    setIdx(newIdx);
+  };
 
   useEffect(() => {
     const container = starsRef.current;
@@ -106,25 +52,31 @@ export default function LocandaPage({ onBack, onApriFormazione }) {
 
         <h2 className="loc-sfidanti-title">⚔ Sfidanti</h2>
 
-        <div className="loc-sfidanti-list">
-          {SFIDANTI.map(sf => (
-            <div key={sf.id} className="loc-sfidante-card">
-              <div className="loc-sfidante-left">
-                <div className="loc-sfidante-portrait">
-                  <img src={sf.img} alt={sf.nome} className="loc-sfidante-img" />
-                </div>
-                <button className="loc-sfida-btn" onClick={() => onApriFormazione(sf)}>
-                  ⚔ Sfida
-                </button>
-              </div>
-              <div className="loc-sfidante-info">
-                <div className="loc-sfidante-nome">{sf.nome}</div>
-                <div className="loc-sfidante-titolo">{sf.titolo}</div>
-                <StarRating value={sf.difficolta} />
-                <p className="loc-sfidante-desc">{sf.descrizione}</p>
-                <FormazionePreview pezzi={sf.pezziPreview ?? CLASSIC_PIECES} />
-              </div>
-            </div>
+        <div className="loc-carousel">
+          <button
+            className="loc-carousel-arrow"
+            onClick={() => goTo((idx - 1 + SFIDANTI.length) % SFIDANTI.length, 'left')}
+            disabled={SFIDANTI.length <= 1}
+          >‹</button>
+
+          <div key={idx} className={`loc-carousel-slide loc-carousel-slide--${dir}`}>
+            <SfidanteCard sfidante={SFIDANTI[idx]} onSfida={onApriFormazione} />
+          </div>
+
+          <button
+            className="loc-carousel-arrow"
+            onClick={() => goTo((idx + 1) % SFIDANTI.length, 'right')}
+            disabled={SFIDANTI.length <= 1}
+          >›</button>
+        </div>
+
+        <div className="loc-carousel-dots">
+          {SFIDANTI.map((_, i) => (
+            <button
+              key={i}
+              className={`loc-carousel-dot${i === idx ? " active" : ""}`}
+              onClick={() => goTo(i, i > idx ? 'right' : 'left')}
+            />
           ))}
         </div>
       </div>

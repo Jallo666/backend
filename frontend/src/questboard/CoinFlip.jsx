@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import GameModal from "./GameModal";
+import ConfirmModal from "../components/ConfirmModal";
 
 function CoinSvg({ side }) {
   const isTesta = side === "heads";
@@ -60,49 +60,49 @@ export default function CoinFlip({ onChoice }) {
 
   if (phase === "pick") {
     return (
-      <GameModal
-        title="⚜ Tiro di Moneta"
+      <ConfirmModal
+        title="Tiro di Moneta"
         buttons={[
           { label: "👑 Testa", onClick: () => handlePick("heads") },
           { label: "⚔ Croce", onClick: () => handlePick("tails"), variant: "dark" },
         ]}
       >
-        <p style={{ color: "#c8a060", fontSize: "12px" }}>Scegli: se indovini vai per primo!</p>
-      </GameModal>
+        <p style={{ color: "#c8a060" }}>Scegli: se indovini vai per primo!</p>
+      </ConfirmModal>
     );
   }
 
   if (phase === "flipping") {
     return (
-      <GameModal title="⚜ Tiro di Moneta" buttons={[]}>
+      <ConfirmModal title="Tiro di Moneta" buttons={[]}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
           <div className="qbg-coin">
             <CoinSvg side="heads" />
           </div>
-          <p style={{ color: "#c8a060", fontSize: "11px" }}>Lancio in corso...</p>
+          <p style={{ color: "#c8a060" }}>Lancio in corso...</p>
         </div>
-      </GameModal>
+      </ConfirmModal>
     );
   }
 
   // phase === 'result'
   const won = pick === result;
   return (
-    <GameModal
-      title="⚜ Tiro di Moneta"
+    <ConfirmModal
+      title="Tiro di Moneta"
       buttons={[{ label: won ? "🎉 Vai per primo!" : "OK, vado per secondo", onClick: () => onChoice(won) }]}
     >
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "0.75rem" }}>
         <div>
           <CoinSvg side={result} />
         </div>
-        <p style={{ fontSize: "14px", color: result === "heads" ? "#f0c040" : "#c8a060" }}>
+        <p style={{ color: result === "heads" ? "#f0c040" : "#c8a060" }}>
           {result === "heads" ? "👑 Testa!" : "⚔ Croce!"}
         </p>
-        <p style={{ fontSize: "13px", color: won ? "#f0c040" : "#a08050", fontWeight: "bold" }}>
+        <p style={{ color: won ? "#f0c040" : "#a08050", fontWeight: "bold" }}>
           {won ? "Hai indovinato! Vai per primo 🎉" : "Non hai indovinato. Vai per secondo."}
         </p>
       </div>
-    </GameModal>
+    </ConfirmModal>
   );
 }

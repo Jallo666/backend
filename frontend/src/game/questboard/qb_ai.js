@@ -159,7 +159,10 @@ export function chooseArdoreAction(aiPieces, playerPieces, aiArdoreTracker) {
   for (const piece of aiPieces) {
     if (!canUseArdore(piece.uid, aiArdoreTracker)) continue;
     for (const ardore of (piece.ardore ?? [])) {
-      for (const target of playerPieces) {
+      const candidates = ardore.tipo === "movimento"
+        ? playerPieces.filter(t => Math.max(Math.abs(t.row - piece.row), Math.abs(t.col - piece.col)) <= 1)
+        : playerPieces;
+      for (const target of candidates) {
         const score = scoreArdore(piece, ardore, target);
         if (score > bestScore) {
           bestScore = score;
@@ -205,7 +208,13 @@ export function chooseBestMove(aiPieces, playerPieces, rotationTracker) {
           bestChoice = { piece, gestaId: gesta.id, targetUid: opt.targetUid, destRow: opt.destRow, destCol: opt.destCol };
         }
       } else {
-        for (const target of allPieces.filter(p => p.uid !== piece.uid)) {
+        const gestaTargets = gesta.adjacentOnly
+          ? allPieces.filter(p =>
+              p.uid !== piece.uid &&
+              Math.max(Math.abs(p.row - piece.row), Math.abs(p.col - piece.col)) <= 1
+            )
+          : allPieces.filter(p => p.uid !== piece.uid);
+        for (const target of gestaTargets) {
           const score = scoreGesta(piece, gesta, target);
           if (score > bestScore) {
             bestScore = score;
@@ -222,41 +231,32 @@ export function chooseBestMove(aiPieces, playerPieces, rotationTracker) {
 // ── Formazione AI di default ──────────────────────────────────────────────────
 // L'AI usa gli stessi 6 pezzi classici con statistiche identiche.
 // Posizionati nelle prime 2 righe (righe 0-1 dall'alto = lato AI).
-import { CLASSIC_PIECES, PIECE_COLORS, NATURA_DA_NOME, gesteDiNatura, ardoreDiNatura, auraDiNatura } from "./qb_pieces.js";
+import { CLASSIC_PIECES, PIECE_COLORS, NATURA_DA_NOME, abilitaPerPezzo } from "./qb_pieces.js";
 import { canUseArdore } from "./qb_rules.js";
 
-export function createAiFormation() {
-  const positions = [
-    // [row, col, isRe]
-    [0, 0, false], // Cavaliere
-    [0, 1, false], // Ranger
-    [0, 2, true],  // Scudiero → designato Re dell'AI
-    [0, 3, false], // Assassino
-    [0, 4, false], // Mago
-    [0, 5, false], // Campione
-  ];
-
-  return CLASSIC_PIECES.map((tmpl, i) => {
-    const id = tmpl.id;
+export function createAiFormation(pezzi = CLASSIC_PIECES) {
+  return pezzi.map((tmpl, i) => {
+    const id     = tmpl.id;
+    const natura = NATURA_DA_NOME[tmpl.nome] ?? null;
     const colors = PIECE_COLORS[id] ?? {};
     return {
-      uid:    `ai_${id}`,
+      uid:    `ai_${id}_${i}`,
       id,
-      nome:   tmpl.nome,
-      icona:  CHESS_ICONS[id] ?? tmpl.icona,
-      hp:     tmpl.hp,
-      hpMax:  tmpl.hpMax,
-      atk:    tmpl.atk,
-      def:    tmpl.def,
-      mov:    tmpl.mov,
-      row:    positions[i][0],
-      col:    positions[i][1],
-      isRe:   positions[i][2],
-      side:   "ai",
-      natura: NATURA_DA_NOME[tmpl.nome] ?? null,
-      gesta:  gesteDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
-      ardore: ardoreDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
-      aura:   auraDiNatura(NATURA_DA_NOME[tmpl.nome] ?? null),
+      nome:     tmpl.nome,
+      icona:    CHESS_ICONS[id] ?? tmpl.icona,
+      hp:       tmpl.hp,
+      hpMax:    tmpl.hpMax,
+      atk:      tmpl.atk,
+      def:      tmpl.def,
+      mov:      tmpl.mov,
+      row:      0,
+      col:      i,
+      isRe:     tmpl.isRe ?? (i === 2),
+      side:     "ai",
+      natura,
+      razza:    tmpl.razza    ?? "Umanoide",
+      materiale: tmpl.materiale ?? "Legno",
+      ...abilitaPerPezzo(id, natura),
       canAct: true,
       ...colors,
     };

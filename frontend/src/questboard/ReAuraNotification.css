@@ -1,81 +1,22 @@
-/* ── Notifica Forza del Popolo ── */
-.ran-overlay {
-  position: fixed; inset: 0; z-index: 120;
-  background: rgba(8, 4, 0, 0.75);
-  display: flex; align-items: center; justify-content: center;
-}
-.ran-box {
-  background: rgba(10, 5, 1, 0.92) url('../assets/background-journal.png') center/cover no-repeat;
-  background-blend-mode: multiply;
-  border: 2px solid var(--hs-wood-rim);
-  border-radius: 14px;
-  box-shadow: 0 6px 40px rgba(0,0,0,0.7), inset 0 -1px 0 rgba(240,192,64,0.08);
-  padding: 24px 28px; max-width: 380px; width: 94%;
-  display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center;
-}
-.ran-title {
-  font-family: 'Cinzel Decorative', serif;
-  font-size: 15px; color: var(--hs-gold); letter-spacing: 0.12em;
-  text-shadow: 0 0 16px rgba(240,192,64,0.5);
-  border-bottom: 1px solid var(--hs-wood-rim);
-  padding-bottom: 10px; width: 100%;
-}
-.ran-re {
-  display: flex; align-items: center; gap: 14px; width: 100%;
-}
-.ran-re-icon { filter: drop-shadow(0 0 10px currentColor); }
-.ran-re-icon-player { color: #f0d060; }
-.ran-re-icon-ai     { color: #dd5050; }
-.ran-re-info {
-  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-}
-.ran-re-nome {
-  font-family: 'Cinzel', serif; font-size: 14px; color: var(--hs-cream);
-}
-.ran-re-natura {
-  font-family: 'Cinzel', serif; font-size: 9px; font-weight: bold;
-  border: 1px solid currentColor; padding: 1px 6px; border-radius: 3px;
-  background: rgba(0,0,0,0.3);
-}
-.ran-re-badge {
-  font-size: 8px; padding: 2px 8px; border-radius: 3px;
+.ran-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  padding: 6px 20px;
+  border-radius: 20px;
 }
 .ran-badge-player { background: rgba(50,130,230,0.2); color: #66bbff; border: 1px solid #335599; }
 .ran-badge-ai     { background: rgba(200,40,40,0.2);  color: #ff7777; border: 1px solid #992222; }
+
 .ran-separator { width: 100%; border: none; border-top: 1px solid var(--hs-wood-rim); }
+
 .ran-body {
-  font-family: 'Cinzel', serif; font-size: 12px; color: #d4b880; line-height: 1.5;
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  color: #d4b880;
+  line-height: 1.5;
 }
 .ran-effect {
-  font-family: 'Cinzel', serif; font-size: 13px; color: #d4b880;
-}
-.ran-hp-row {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-}
-.ran-hp-label {
-  font-family: 'Cinzel', serif; font-size: 9px; color: #c8a060; flex-shrink: 0;
-}
-.ran-hp-bar {
-  flex: 1; height: 6px; background: rgba(0,0,0,0.4); border-radius: 3px; overflow: hidden;
-}
-.ran-hp-fill {
-  height: 100%; border-radius: 3px;
-  background: linear-gradient(90deg, #cc2222, #eeaa22, #22cc44);
-  transition: width 0.3s;
-}
-.ran-hp-val {
-  font-family: 'Cinzel', serif; font-size: 10px; color: var(--hs-cream); flex-shrink: 0;
-}
-.ran-btns { display: flex; justify-content: center; }
-
-@media (min-height: 600px) {
-  .ran-box { max-width: 460px; padding: 28px 34px; gap: 16px; }
-  .ran-title { font-size: 18px; }
-  .ran-re-nome { font-size: 18px; }
-  .ran-re-natura { font-size: 12px; }
-  .ran-re-badge { font-size: 11px; }
-  .ran-body { font-size: 15px; }
-  .ran-effect { font-size: 16px; }
-  .ran-hp-val { font-size: 13px; }
-  .ran-hp-label { font-size: 12px; }
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  color: #d4b880;
 }
