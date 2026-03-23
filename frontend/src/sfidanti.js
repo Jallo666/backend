@@ -48,7 +48,7 @@ export const SFIDANTI = [
     id:          'mirta',
     nome:        'Mirta la Fattucchiera',
     tag:         'MIRTA',
-    titolo:      'Strega di Secondo Livello',
+    titolo:      'Fanatica della Necromanzia',
     difficolta:  2,
     img:         mirtaImg,
     avatarImg:   mirtaAvatarImg,
