@@ -202,6 +202,20 @@ using (var scope = app.Services.CreateScope())
     }
     if (nuoviMatAdded) db.SaveChanges();
 
+    // Migrazione: imposta RicettaId sui pezzi classici che ne sono privi
+    var ricettaIdClassici = new Dictionary<string, string>
+    {
+        ["Cavaliere"] = "cavaliere", ["Ranger"]   = "ranger",   ["Scudiero"]  = "scudiero",
+        ["Assassino"] = "assassino", ["Mago"]      = "mago",     ["Campione"]  = "campione",
+        ["Chierico"]  = "chierico",  ["Barbaro"]   = "barbaro",  ["Lupo"]      = "lupo",
+    };
+    var pezziSenzaRicetta = db.PezziUtente
+        .Where(p => p.RicettaId == null && ricettaIdClassici.Keys.Contains(p.Nome))
+        .ToList();
+    foreach (var p in pezziSenzaRicetta)
+        if (ricettaIdClassici.TryGetValue(p.Nome, out var rid)) p.RicettaId = rid;
+    if (pezziSenzaRicetta.Any()) db.SaveChanges();
+
     // Seed admin
     if (!db.Utenti.Any(u => u.Ruolo == "admin"))
     {
@@ -304,7 +318,8 @@ Dictionary<string, (string tipo, int qty)[]> CostiRicette = new()
     ["assassino"] = [("legna", 2), ("quarzo", 2), ("resina", 2)],
     ["mago"]      = [("legna", 2), ("quarzo", 2), ("resina", 2)],
     ["campione"]  = [("legna", 2), ("quarzo", 2), ("resina", 2)],
-    ["lich"]      = [("legna", 2), ("farina_ossa", 2), ("onice_nero", 2)],
+    ["lich"]           = [("legna", 2), ("farina_ossa", 2), ("onice_nero", 2)],
+    ["guerriero_ossa"] = [("legna", 2), ("farina_ossa", 2), ("onice_nero", 2)],
 };
 (string tipo, int qty)[] CostoDefault = [("legna", 2), ("quarzo", 2), ("resina", 2)];
 
@@ -485,12 +500,12 @@ void SeedPezziClassici(AppDbContext db, int utenteId)
 {
     var classici = new[]
     {
-        new PezzoUtente { UtenteId=utenteId, Nome="Cavaliere", Icona="⚔",  Hp=14, HpMax=14, Atk=4, Def=3, Mov=2, Razza="Umanoide", Materiale="Legno" },
-        new PezzoUtente { UtenteId=utenteId, Nome="Ranger",    Icona="🏹", Hp=8,  HpMax=8,  Atk=6, Def=1, Mov=3, Razza="Umanoide", Materiale="Legno" },
-        new PezzoUtente { UtenteId=utenteId, Nome="Scudiero",  Icona="🛡", Hp=18, HpMax=18, Atk=2, Def=5, Mov=1, Razza="Umanoide", Materiale="Legno" },
-        new PezzoUtente { UtenteId=utenteId, Nome="Assassino", Icona="🗡", Hp=9,  HpMax=9,  Atk=3, Def=2, Mov=4, Razza="Umanoide", Materiale="Legno" },
-        new PezzoUtente { UtenteId=utenteId, Nome="Mago",      Icona="✨", Hp=7,  HpMax=7,  Atk=7, Def=1, Mov=2, Razza="Umanoide", Materiale="Legno" },
-        new PezzoUtente { UtenteId=utenteId, Nome="Campione",  Icona="🏆", Hp=15, HpMax=15, Atk=5, Def=4, Mov=2, Razza="Umanoide", Materiale="Legno" },
+        new PezzoUtente { UtenteId=utenteId, Nome="Cavaliere", Icona="⚔",  Hp=14, HpMax=14, Atk=4, Def=3, Mov=2, Razza="Umanoide", Materiale="Legno", RicettaId="cavaliere" },
+        new PezzoUtente { UtenteId=utenteId, Nome="Ranger",    Icona="🏹", Hp=8,  HpMax=8,  Atk=6, Def=1, Mov=3, Razza="Umanoide", Materiale="Legno", RicettaId="ranger"    },
+        new PezzoUtente { UtenteId=utenteId, Nome="Scudiero",  Icona="🛡", Hp=18, HpMax=18, Atk=2, Def=5, Mov=1, Razza="Umanoide", Materiale="Legno", RicettaId="scudiero"  },
+        new PezzoUtente { UtenteId=utenteId, Nome="Assassino", Icona="🗡", Hp=9,  HpMax=9,  Atk=3, Def=2, Mov=4, Razza="Umanoide", Materiale="Legno", RicettaId="assassino" },
+        new PezzoUtente { UtenteId=utenteId, Nome="Mago",      Icona="✨", Hp=7,  HpMax=7,  Atk=7, Def=1, Mov=2, Razza="Umanoide", Materiale="Legno", RicettaId="mago"      },
+        new PezzoUtente { UtenteId=utenteId, Nome="Campione",  Icona="🏆", Hp=15, HpMax=15, Atk=5, Def=4, Mov=2, Razza="Umanoide", Materiale="Legno", RicettaId="campione"  },
     };
     db.PezziUtente.AddRange(classici);
 }

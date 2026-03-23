@@ -17,7 +17,7 @@ export default function PiecePreviewCard({ piece }) {
         <TagLivello livello={livelloPerRicetta(piece.id)} />
       </div>
       <div className="ppc-body">
-        <SilhouettePiece natura={natura} size={52} />
+        <SilhouettePiece natura={natura} pieceId={piece.id} size={52} />
         <PieceStats piece={piece} compact />
       </div>
       <AbilitaList ardore={ardore} gesta={gesta} aura={aura} collapsed />

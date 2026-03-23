@@ -97,6 +97,12 @@ function scoreArdore(piece, ardore, target) {
     if (afterDist <= piece.mov + 1) return 80 + (target.isRe ? 200 : 0) + Math.random() * 5;
     return 20 + Math.random() * 5;
   }
+  // Ardore cura (selfOnly: target è il pezzo stesso)
+  if (ardore.tipo === "cura") {
+    const mancanti = target.hpMax - target.hp;
+    const curato   = Math.min(mancanti, ardore.cura ?? 0);
+    return curato > 0 ? 40 + curato * 8 + Math.random() * 5 : 0;
+  }
   // Ardore danno
   const hpDopo   = Math.max(0, target.hp - (ardore.danno ?? 0));
   const eliminato = hpDopo <= 0;
@@ -159,9 +165,11 @@ export function chooseArdoreAction(aiPieces, playerPieces, aiArdoreTracker) {
   for (const piece of aiPieces) {
     if (!canUseArdore(piece.uid, aiArdoreTracker)) continue;
     for (const ardore of (piece.ardore ?? [])) {
-      const candidates = ardore.tipo === "movimento"
-        ? playerPieces.filter(t => Math.max(Math.abs(t.row - piece.row), Math.abs(t.col - piece.col)) <= 1)
-        : playerPieces;
+      const candidates = ardore.selfOnly
+        ? [piece]
+        : ardore.tipo === "movimento"
+          ? playerPieces.filter(t => Math.max(Math.abs(t.row - piece.row), Math.abs(t.col - piece.col)) <= 1)
+          : playerPieces;
       for (const target of candidates) {
         const score = scoreArdore(piece, ardore, target);
         if (score > bestScore) {

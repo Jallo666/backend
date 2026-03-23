@@ -80,6 +80,17 @@ const RICETTE = [
       { tipo: "onice_nero",  label: "Onice Nero",    img: oniceNeroImg,  qty: 2 },
     ],
   },
+  {
+    id: "guerriero_ossa", nome: "Guerriero D'Ossa", natura: "Sentinella",
+    razza: "Non-Morto", materiale: "Legno",
+    hp: 12, hpMax: 12, atk: 3, def: 3, mov: 2,
+    desc: "Un guerriero non-morto. Lento ma coriaceo, sa ricomporsi dopo i danni.",
+    costo: [
+      { tipo: "legna",       label: "Legna",        img: legnaImg,       qty: 2 },
+      { tipo: "farina_ossa", label: "Farina d'Ossa", img: farinaOssaImg, qty: 2 },
+      { tipo: "onice_nero",  label: "Onice Nero",    img: oniceNeroImg,  qty: 2 },
+    ],
+  },
 ];
 
 function leggiGemme() {

@@ -7,7 +7,8 @@ import baluardoImg  from "./assets/baluardo.png";
 import chiericoImg  from "./assets/chierico.png";
 import barbaroImg   from "./assets/barbaro.png";
 import lupoImg      from "./assets/lupo.png";
-import lichImg      from "./assets/lich.png";
+import lichImg           from "./assets/lich.png";
+import guerrieroOssaImg  from "./assets/scheletro_guerriero.png";
 import genericaImg  from "./assets/silhoutte_generica.png";
 
 const NATURA_IMG = {
@@ -27,7 +28,8 @@ const PIECE_IMG_BY_ID = {
   barbaro:  barbaroImg,
   chierico: chiericoImg,
   lupo:     lupoImg,
-  lich:     lichImg,
+  lich:           lichImg,
+  guerriero_ossa: guerrieroOssaImg,
 };
 
 // CSS filter per materiale — aggiungere nuovi materiali qui

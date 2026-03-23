@@ -71,6 +71,16 @@ export const ARDORE_CATALOG = {
     isArdore: true,
     desc:    "Azione bonus: cura 3 HP a qualsiasi pedina (alleata o nemica).",
   },
+  ricomponimento: {
+    id:       "ricomponimento",
+    nome:     "Ricomponimento",
+    icona:    "🦴",
+    tipo:     "cura",
+    cura:     3,
+    selfOnly: true,
+    isArdore: true,
+    desc:     "Si ricompone, recuperando 3 HP.",
+  },
 };
 
 const ARDORE_PER_NATURA = {
@@ -135,7 +145,8 @@ export function gesteDiNatura(natura) {
 const ABILITY_OVERRIDES = {
   barbaro: { gesta: [],                   ardore: [], aura: ["ira"]       },
   lupo:    { gesta: ["morso"],            ardore: [], aura: []            },
-  lich:    { gesta: ["drenaggio_vitale"], ardore: [], aura: ["non_morto"] },
+  lich:           { gesta: ["drenaggio_vitale"], ardore: [],                aura: ["non_morto"] },
+  guerriero_ossa: { gesta: [],                  ardore: ["ricomponimento"], aura: ["non_morto"] },
 };
 
 export function abilitaPerPezzo(id, natura) {
@@ -189,7 +200,8 @@ export const PIECE_COLORS = {
   assassino:   { bg: "#1a1a0a", border: "#706020", glow: "#d0b030" },
   mago:        { bg: "#1a0a2a", border: "#602080", glow: "#a040e0" },
   campione:    { bg: "#2a1a0a", border: "#906020", glow: "#e0a030" },
-  lich:        { bg: "#1a0a2a", border: "#5a2080", glow: "#9030c0" },
+  lich:           { bg: "#1a0a2a", border: "#5a2080", glow: "#9030c0" },
+  guerriero_ossa: { bg: "#1a1408", border: "#7a6020", glow: "#c0a030" },
 };
 
 // Natura per pezzi classici senza campo materiali (backward compat)
@@ -206,7 +218,8 @@ export const NATURA_DA_NOME = {
   "Chierico":    "Sacerdote",
   "Barbaro":     "Selvaggio",
   "Lupo":        "Selvaggio",
-  "Lich":        "Non Morto",
+  "Lich":           "Non Morto",
+  "Guerriero D'Ossa": "Sentinella",
 };
 
 export const NATURA_COLORE = {
@@ -224,7 +237,8 @@ export const NATURA_COLORE = {
 // ── Livelli ricetta ──────────────────────────────────────────────────────────
 // Il livello è determinato dalla ricetta. Default 1 per tutti, 2+ per pezzi avanzati.
 export const LIVELLO_PER_RICETTA = {
-  lich: 2,
+  lich:           2,
+  guerriero_ossa: 2,
 };
 
 export function livelloPerRicetta(id) {
@@ -233,7 +247,7 @@ export function livelloPerRicetta(id) {
 
 // Converte un pezzo dal formato backend al formato di gioco interno
 export function fromApi(apiPiece) {
-  const id = apiPiece.nome.toLowerCase().replace(/\s+/g, "_");
+  const id = apiPiece.ricettaId ?? apiPiece.nome.toLowerCase().replace(/\s+/g, "_");
   const colors = PIECE_COLORS[id] ?? PIECE_COLORS["guerriero"];
   const natura = apiPiece.materiali ?? NATURA_DA_NOME[apiPiece.nome] ?? null;
   return {

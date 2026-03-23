@@ -8,6 +8,7 @@ import { applyAuraEffects, resolveCombat } from '../game/questboard/qb_rules.js'
 export default function ArdorePreview({ caster, target, ardore, onConfirm, onCancel, mode, opponentNome = "AI" }) {
   const isCura      = ardore.tipo === "cura";
   const isMovimento = ardore.tipo === "movimento";
+  const isSelf      = caster.uid === target.uid;
 
   const combatResult   = isMovimento ? resolveCombat(caster, target) : null;
   const dannoEffettivo = isCura ? 0 : isMovimento ? combatResult.dmg : applyAuraEffects(target, ardore.danno ?? 0);
@@ -44,9 +45,13 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
   return (
     <ConfirmModal title={title} titleStyle={titleStyle} buttons={buttons} boxClassName={isAi ? "ap-box-ai" : undefined}>
       <div className="ap-matchup">
-        <ModalPieceCard pezzo={caster} variant="caster" showHpBar />
-        <span className="ap-arrow"><img src={ardoreIcon} alt="" className="ap-ardore-icon" /></span>
-        <ModalPieceCard pezzo={target} variant="target" showHpBar />
+        {isSelf ? (
+          <ModalPieceCard pezzo={caster} variant="caster" showHpBar />
+        ) : (<>
+          <ModalPieceCard pezzo={caster} variant="caster" showHpBar />
+          <span className="ap-arrow"><img src={ardoreIcon} alt="" className="ap-ardore-icon" /></span>
+          <ModalPieceCard pezzo={target} variant="target" showHpBar />
+        </>)}
       </div>
 
       <hr className="ap-separator" />

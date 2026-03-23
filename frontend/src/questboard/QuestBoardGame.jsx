@@ -922,8 +922,12 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
           canUseArdore(pieceCard?.uid, game.playerArdoreTracker ?? { used: new Set() })
             ? (ardoreId) => {
                 const ardoreObj = pieceCard.ardore?.find(a => a.id === ardoreId);
-                setArdoreMode({ ardoreId, casterUid: pieceCard.uid, tipo: ardoreObj?.tipo });
-                setActiveTab('diario');
+                if (ardoreObj?.selfOnly) {
+                  setArdorePreview({ caster: pieceCard, target: pieceCard, ardore: ardoreObj });
+                } else {
+                  setArdoreMode({ ardoreId, casterUid: pieceCard.uid, tipo: ardoreObj?.tipo });
+                  setActiveTab('diario');
+                }
               }
             : null
         }
