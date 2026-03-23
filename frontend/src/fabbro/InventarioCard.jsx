@@ -1,6 +1,6 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
-import { TagNatura, TagRazza, TagMateriale } from "../components/PieceTag.jsx";
-import { abilitaPerPezzo, NATURA_DA_NOME } from "../game/questboard/qb_pieces.js";
+import { TagNatura, TagRazza, TagMateriale, TagLivello } from "../components/PieceTag.jsx";
+import { abilitaPerPezzo, NATURA_DA_NOME, livelloPerRicetta } from "../game/questboard/qb_pieces.js";
 import AbilitaList from "../components/AbilitaList.jsx";
 import PieceStats from "../components/PieceStats.jsx";
 
@@ -13,6 +13,7 @@ export default function InventarioCard({ pezzo, aperto, onToggle, onElimina }) {
   const natura  = getNatura(pezzo);
   const pieceId = pezzo.ricettaId ?? pezzo.nome?.toLowerCase();
   const { ardore, gesta, aura } = abilitaPerPezzo(pieceId, natura);
+  const livello = livelloPerRicetta(pieceId);
 
   const elimina = e => {
     e.stopPropagation();
@@ -40,6 +41,7 @@ export default function InventarioCard({ pezzo, aperto, onToggle, onElimina }) {
                 {natura          && <TagNatura natura={natura} />}
                 {pezzo.razza     && <TagRazza razza={pezzo.razza} />}
                 {pezzo.materiale && <TagMateriale materiale={pezzo.materiale} />}
+                <TagLivello livello={livello} />
               </div>
             )}
           </div>

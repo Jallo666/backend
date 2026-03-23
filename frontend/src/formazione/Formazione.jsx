@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { fromApi } from "../game/questboard/qb_pieces.js";
+import { fromApi, livelloPerRicetta } from "../game/questboard/qb_pieces.js";
+import { TagLivello } from "../components/PieceTag.jsx";
 import SilhouettePiece from "../SilhouettePiece.jsx";
 import GameHeader from "../components/GameHeader.jsx";
 import PannelloLista from "../components/PannelloLista.jsx";
@@ -513,7 +514,7 @@ export default function Formazione({ token, onAvvia, onBack }) {
                 >
                   <SilhouettePiece natura={p.natura} materiale={p.materiale} pieceId={p.id} size={80} />
                   <div className="form-inv-info">
-                    <span className="form-inv-nome">{p.nome}</span>
+                    <span className="form-inv-nome">{p.nome} <TagLivello livello={livelloPerRicetta(p.id)} /></span>
                     <PieceStats piece={p} compact />
                     <AbilitaList ardore={p.ardore} gesta={p.gesta} aura={p.aura} collapsed />
                   </div>

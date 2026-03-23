@@ -70,15 +70,15 @@ export function resolveCombat(attacker, defender) {
     ? attacker.atk
     : Math.max(1, attacker.atk - defender.def);
   const rawDmgWithIra = hasIra ? rawDmg * 2 : rawDmg;
-  const dmg = applyAuraEffects(defender, rawDmgWithIra);
+  const dmg       = applyAuraEffects(defender, rawDmgWithIra);
   const defenderHp = Math.max(0, defender.hp - dmg);
   return {
-    attackerHp: attacker.hp,
+    attackerHp:  attacker.hp,
     defenderHp,
     dmg,
-    auraActive:   dmg < rawDmgWithIra,
-    furtivo:      hasAttaccoFurtivo,
-    ira:          hasIra,
+    auraActive:  dmg < rawDmgWithIra,
+    furtivo:     hasAttaccoFurtivo,
+    ira:         hasIra,
     log: [{ round: 1, aDmg: dmg, dDmg: 0 }],
     attackerWins: true,
   };

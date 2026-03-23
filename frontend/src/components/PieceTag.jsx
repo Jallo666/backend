@@ -53,3 +53,9 @@ export function TagGesta() {
 export function TagAura() {
   return <span className="piece-tag" style={{ '--tag-color': '#50c050' }}><img src={auraIcon} alt="" className="piece-tag-svg" />Aura</span>;
 }
+
+export function TagLivello({ livello }) {
+  const isAlto = livello >= 2;
+  const color = isAlto ? "#e04040" : "#888888";
+  return <span className="piece-tag" style={{ '--tag-color': color }}>⭐ Lv.{livello}</span>;
+}

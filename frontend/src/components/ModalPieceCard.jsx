@@ -1,8 +1,8 @@
 import SilhouettePiece from '../SilhouettePiece.jsx';
 import PieceStats from './PieceStats.jsx';
 import AbilitaList from './AbilitaList.jsx';
-import { TagRe, TagNatura, TagRazza, TagMateriale } from './PieceTag.jsx';
-import { abilitaPerPezzo } from '../game/questboard/qb_pieces.js';
+import { TagRe, TagNatura, TagRazza, TagMateriale, TagLivello } from './PieceTag.jsx';
+import { abilitaPerPezzo, livelloPerRicetta } from '../game/questboard/qb_pieces.js';
 import './ModalPieceCard.css';
 
 export default function ModalPieceCard({ pezzo, variant = 'target', showHpBar = false, size = 80 }) {
@@ -25,6 +25,7 @@ export default function ModalPieceCard({ pezzo, variant = 'target', showHpBar = 
         {pezzo.natura   && <TagNatura   natura={pezzo.natura} />}
         {pezzo.razza    && <TagRazza    razza={pezzo.razza} />}
         {pezzo.materiale && <TagMateriale materiale={pezzo.materiale} />}
+        <TagLivello livello={livelloPerRicetta(pezzo.id)} />
       </div>
 
       <AbilitaList ardore={ardore} gesta={gesta} aura={aura} collapsed />

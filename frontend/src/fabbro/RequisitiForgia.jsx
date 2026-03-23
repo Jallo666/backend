@@ -8,20 +8,20 @@ export const COSTO_FORGIA = [
   { tipo: "resina", label: "Resina", img: resinaImg, qty: 2 },
 ];
 
-export function puoForgiare(materiali) {
-  return COSTO_FORGIA.every(c =>
+export function puoForgiare(materiali, costo = COSTO_FORGIA) {
+  return costo.every(c =>
     (materiali.find(m => m.tipo === c.tipo)?.quantita ?? 0) >= c.qty
   );
 }
 
-export default function RequisitiForgia({ pezzo, materiali }) {
+export default function RequisitiForgia({ pezzo, materiali, costo = COSTO_FORGIA }) {
   return (
     <div className="req-root">
       <p className="req-titolo">
         Per fabbricare <span className="req-nome">{pezzo.nome}</span> hai bisogno di:
       </p>
       <div className="req-lista">
-        {COSTO_FORGIA.map(c => {
+        {costo.map(c => {
           const disponibile = materiali.find(m => m.tipo === c.tipo)?.quantita ?? 0;
           const ok = disponibile >= c.qty;
           return (

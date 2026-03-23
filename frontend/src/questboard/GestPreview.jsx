@@ -7,14 +7,20 @@ import { applyAuraEffects } from '../game/questboard/qb_rules.js';
 
 export default function GestPreview({ caster, target, gesta, onConfirm, onCancel, mode, opponentNome = "AI" }) {
   const isImmobilize   = gesta.effect === "immobilize";
-  // Morso usa ATK del caster come danno dinamico
-  const dannoEffettivo = isImmobilize
-    ? applyAuraEffects(target, caster.atk)
-    : applyAuraEffects(target, gesta.danno);
-  const auraActive = dannoEffettivo < (isImmobilize ? caster.atk : gesta.danno);
-  const hpDopo     = Math.max(0, target.hp - dannoEffettivo);
-  const eliminato  = hpDopo <= 0;
-  const isAi       = mode === "ai";
+  const isDrain        = gesta.effect === "drain";
+  // Morso e Drenaggio Vitale usano ATK del caster come danno dinamico
+  const dannoBase = (isImmobilize || isDrain)
+    ? caster.atk
+    : gesta.danno;
+  const dannoEffettivo = applyAuraEffects(target, dannoBase);
+  const auraActive     = dannoEffettivo < dannoBase;
+  const hpDopo         = Math.max(0, target.hp - dannoEffettivo);
+  const eliminato      = hpDopo <= 0;
+  const isAi           = mode === "ai";
+
+  // Drain: cura il caster
+  const healCaster  = isDrain ? dannoEffettivo : 0;
+  const hpCasterDopo = isDrain ? Math.min(caster.hpMax, caster.hp + healCaster) : caster.hp;
 
   const difesaPossente = auraActive ? target.aura?.find(a => a.id === "difesa_possente") : null;
 
@@ -52,6 +58,11 @@ export default function GestPreview({ caster, target, gesta, onConfirm, onCancel
             ? `${target.nome}: ${target.hp} HP → ${hpDopo} HP (-${dannoEffettivo}), immobilizzato!`
             : `${target.nome}: ${target.hp} HP → ${hpDopo} HP  (-${dannoEffettivo})`}
       </p>
+      {isDrain && (
+        <p className="gp-effect" style={{ color: "#60d080" }}>
+          {caster.nome}: {caster.hp} HP → {hpCasterDopo} HP (+{healCaster})
+        </p>
+      )}
     </ConfirmModal>
   );
 }

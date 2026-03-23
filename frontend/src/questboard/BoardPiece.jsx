@@ -1,5 +1,6 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
-import { TagRazza, TagMateriale } from "../components/PieceTag.jsx";
+import { TagRazza, TagMateriale, TagLivello } from "../components/PieceTag.jsx";
+import { livelloPerRicetta } from "../game/questboard/qb_pieces.js";
 import coronaIcon  from "../assets/icon/corona.svg";
 import ardoreIcon  from "../assets/icon/ardore.svg";
 import gestaIcon   from "../assets/icon/gesta.svg";
@@ -57,6 +58,7 @@ export default function BoardPiece({
         <div className="bp-tags">
           {p.razza     && <TagRazza razza={p.razza} />}
           {p.materiale && <TagMateriale materiale={p.materiale} />}
+          <TagLivello livello={livelloPerRicetta(p.id)} />
         </div>
       </div>
     </div>

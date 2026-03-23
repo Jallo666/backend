@@ -14,10 +14,10 @@ const BATTLE_QUOTES = [
 ];
 
 export default function CombatPreview({ attacker, defender, onConfirm, onCancel, mode = "player" }) {
-  const result  = resolveCombat(attacker, defender);
-  const defDies = result.defenderHp <= 0;
-  const quote   = BATTLE_QUOTES[Math.floor(Math.random() * BATTLE_QUOTES.length)];
-  const isAi    = mode === "ai";
+  const result      = resolveCombat(attacker, defender);
+  const defDies     = result.defenderHp <= 0;
+  const quote       = BATTLE_QUOTES[Math.floor(Math.random() * BATTLE_QUOTES.length)];
+  const isAi        = mode === "ai";
 
   let esito, resultClass;
   if (defDies) {

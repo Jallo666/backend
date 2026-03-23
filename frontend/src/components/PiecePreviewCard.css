@@ -14,14 +14,9 @@
   letter-spacing: 0.04em;
   display: flex; flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
-  position: relative;
+  gap: 6px;
+  flex-wrap: wrap;
   width: 100%;
-}
-
-.ppc-header .piece-tag {
-  position: absolute;
-  right: 0;
 }
 
 /* ── Silhouette a sx, stats a dx ── */

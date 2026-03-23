@@ -4,10 +4,12 @@ import ardoreIcon from '../assets/icon/ardore.svg';
 import gestaIcon from '../assets/icon/gesta.svg';
 import auraIcon from '../assets/icon/aura.svg';
 import coronaIcon from '../assets/icon/corona.svg';
-import { TagNatura, TagRazza, TagMateriale } from '../components/PieceTag.jsx';
+import { TagNatura, TagRazza, TagMateriale, TagLivello } from '../components/PieceTag.jsx';
+import { livelloPerRicetta } from '../game/questboard/qb_pieces.js';
 
 export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick, ardoreUsed, pieceJustMoved, isSelected, debuffs = [] }) {
   const isPlayer = piece.side === "player";
+  const livello  = livelloPerRicetta(piece.id);
   const hpPct = Math.round((piece.hp / piece.hpMax) * 100);
   const isImmobilized = debuffs.some(d => d.targetUid === piece.uid && d.effect === "immobilize");
   return (
@@ -24,6 +26,7 @@ export default function PieceCard({ piece, onClose, onGestaClick, onArdoreClick,
               {piece.natura    && <TagNatura natura={piece.natura} />}
               {piece.razza     && <TagRazza razza={piece.razza} />}
               {piece.materiale && <TagMateriale materiale={piece.materiale} />}
+              <TagLivello livello={livello} />
             </div>
           )}
         </span>

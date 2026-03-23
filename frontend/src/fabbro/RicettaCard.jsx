@@ -1,12 +1,13 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
-import { abilitaPerPezzo } from "../game/questboard/qb_pieces.js";
-import { TagNatura, TagRazza, TagMateriale } from "../components/PieceTag.jsx";
+import { abilitaPerPezzo, livelloPerRicetta } from "../game/questboard/qb_pieces.js";
+import { TagNatura, TagRazza, TagMateriale, TagLivello } from "../components/PieceTag.jsx";
 import AbilitaList from "../components/AbilitaList.jsx";
 import PieceStats from "../components/PieceStats.jsx";
 
 export default function RicettaCard({ ricetta, selected, giaForgiato, onClick }) {
   const { ardore, gesta, aura } = abilitaPerPezzo(ricetta.id, ricetta.natura);
-  const hasAb     = ardore.length > 0 || gesta.length > 0 || aura.length > 0;
+  const hasAb  = ardore.length > 0 || gesta.length > 0 || aura.length > 0;
+  const livello = livelloPerRicetta(ricetta.id);
 
   return (
     <button
@@ -24,6 +25,7 @@ export default function RicettaCard({ ricetta, selected, giaForgiato, onClick })
             <TagNatura natura={ricetta.natura} />
             <TagRazza razza={ricetta.razza} />
             <TagMateriale materiale={ricetta.materiale} />
+            <TagLivello livello={livello} />
           </div>
         </div>
       </div>

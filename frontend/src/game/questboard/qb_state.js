@@ -335,6 +335,10 @@ function _applyMove(state, piece, move, side, skipAutoEndTurn = false) {
       log: result.log,
     };
 
+    if (result.nonMortoTriggered) {
+      newLog.push(`💀 Non Morto! ${target.nome} sopravvive con 1 HP!`);
+    }
+
     // Aggiorna HP e posizioni
     // Cella più vicina al difensore raggiungibile dall'attaccante (se difensore sopravvive)
     const allForAdvance = [...state.playerPieces, ...state.aiPieces];
@@ -353,7 +357,8 @@ function _applyMove(state, piece, move, side, skipAutoEndTurn = false) {
         return { ...p, hp: result.attackerHp }; // avanzata nella cella del difensore gestita sotto
       }
       if (p.uid === target.uid) {
-        return result.defenderHp > 0 ? { ...p, hp: result.defenderHp } : null;
+        if (result.defenderHp <= 0) return null;
+        return { ...p, hp: result.defenderHp };
       }
       return p;
     };
@@ -493,12 +498,15 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
 
   // Morso (effect: "immobilize") — danno ATK del caster + debuff immobilizzante
   if (gesta.effect === "immobilize") {
-    const dmgMorso   = applyAuraEffects(target, caster.atk);
+    const dmgMorso     = applyAuraEffects(target, caster.atk);
     const nuovoHpMorso = Math.max(0, target.hp - dmgMorso);
     const targetMortoMorso = nuovoHpMorso <= 0;
 
-    const updatePieceMorso = (p) =>
-      p.uid !== targetUid ? p : (targetMortoMorso ? null : { ...p, hp: nuovoHpMorso });
+    const updatePieceMorso = (p) => {
+      if (p.uid !== targetUid) return p;
+      if (targetMortoMorso) return null;
+      return { ...p, hp: nuovoHpMorso };
+    };
 
     let newPlayerPieces = state.playerPieces.map(updatePieceMorso).filter(Boolean);
     let newAiPieces     = state.aiPieces.map(updatePieceMorso).filter(Boolean);
@@ -557,11 +565,89 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
     return newState;
   }
 
+  // Drenaggio Vitale (effect: "drain") — danno ATK del caster, cura il caster
+  if (gesta.effect === "drain") {
+    const dmgDrain      = applyAuraEffects(target, caster.atk);
+    const nuovoHpTarget = Math.max(0, target.hp - dmgDrain);
+    const targetMortoDrain = nuovoHpTarget <= 0;
+    const nuovoHpCaster = Math.min(caster.hpMax, caster.hp + dmgDrain);
+
+    const updatePieceDrain = (p) => {
+      if (p.uid === targetUid) {
+        if (targetMortoDrain) return null;
+        return { ...p, hp: nuovoHpTarget };
+      }
+      if (p.uid === casterUid) return { ...p, hp: nuovoHpCaster };
+      return p;
+    };
+
+    let newPlayerPiecesDrain = state.playerPieces.map(updatePieceDrain).filter(Boolean);
+    let newAiPiecesDrain     = state.aiPieces.map(updatePieceDrain).filter(Boolean);
+
+    let reAuraEventDrain = null;
+    if (targetMortoDrain) {
+      const targetSide = state.playerPieces.some(p => p.uid === targetUid) ? "player" : "ai";
+      if (targetSide === "player") {
+        const fdp = _applyForzaDelPopolo(newPlayerPiecesDrain, target.nome);
+        newPlayerPiecesDrain = fdp.pieces; reAuraEventDrain = fdp.event;
+      } else {
+        const fdp = _applyForzaDelPopolo(newAiPiecesDrain, target.nome);
+        newAiPiecesDrain = fdp.pieces; reAuraEventDrain = fdp.event;
+      }
+    }
+
+    const auraTagDrain = dmgDrain < caster.atk ? " [Difesa Possente]" : "";
+    const fdpTagDrain  = reAuraEventDrain ? ` 👑 ${reAuraEventDrain.re.nome}: ${reAuraEventDrain.newHp}/${reAuraEventDrain.newHpMax} HP` : "";
+    const logMsgDrain  = targetMortoDrain
+      ? `${_tag(caster)} ${caster.nome} usa ${gesta.nome} su ${_tag(target)} ${target.nome}! (-${dmgDrain} HP${auraTagDrain}) → ${target.nome} eliminato! +${dmgDrain} HP a ${caster.nome}${fdpTagDrain}`
+      : `${_tag(caster)} ${caster.nome} usa ${gesta.nome} su ${_tag(target)} ${target.nome}! (-${dmgDrain} HP${auraTagDrain}) → ${nuovoHpTarget} HP rimasti. +${dmgDrain} HP a ${caster.nome}`;
+
+    if (side === "player") {
+      newPlayerPiecesDrain = newPlayerPiecesDrain.map(p => p.uid === casterUid ? { ...p, canAct: false } : p);
+    } else {
+      newAiPiecesDrain = newAiPiecesDrain.map(p => p.uid === casterUid ? { ...p, canAct: false } : p);
+    }
+
+    const aliveSideDrain = side === "player" ? newPlayerPiecesDrain : newAiPiecesDrain;
+    const trackerDrain   = side === "player" ? state.playerRotation : state.aiRotation;
+    const newTrackerDrain = registerMove(casterUid, trackerDrain, aliveSideDrain);
+
+    let newStateDrain = expireActDebuffs({
+      ...state,
+      playerPieces: newPlayerPiecesDrain,
+      aiPieces:     newAiPiecesDrain,
+      log:          [...state.log, logMsgDrain].slice(-40),
+      selected:     null,
+      validMoves:   [],
+      combatAnim:   null,
+      reAuraEvent:  reAuraEventDrain ?? null,
+      ...(side === "player" ? { playerRotation: newTrackerDrain } : { aiRotation: newTrackerDrain }),
+    }, casterUid);
+
+    const winnerDrain = checkWin(newStateDrain.playerPieces, newStateDrain.aiPieces);
+    if (winnerDrain) {
+      const winMsg = winnerDrain === "player" ? "⚜ VITTORIA! Hai sconfitto il Re nemico!" :
+                     winnerDrain === "ai"     ? "☠ SCONFITTA. Il tuo Re è caduto." : "Pareggio.";
+      return { ...newStateDrain, status: "over", winner: winnerDrain, log: [...newStateDrain.log, winMsg].slice(-40) };
+    }
+
+    if (side === "ai") {
+      newStateDrain = _endTurn(newStateDrain, side);
+      if (newTrackerDrain.cycleComplete) { newStateDrain = _applyCycleEnd(newStateDrain, side); }
+    } else {
+      if (newTrackerDrain.cycleComplete) { newStateDrain = { ...newStateDrain, pendingCycleEnd: true }; }
+    }
+    return newStateDrain;
+  }
+
   const dannoEffettivo = applyAuraEffects(target, gesta.danno);
   const nuovoHp    = Math.max(0, target.hp - dannoEffettivo);
   const targetMorto = nuovoHp <= 0;
-  const updatePiece = (p) =>
-    p.uid !== targetUid ? p : (targetMorto ? null : { ...p, hp: nuovoHp });
+  const updatePiece = (p) => {
+    if (p.uid !== targetUid) return p;
+    if (targetMorto) return null;
+    return { ...p, hp: nuovoHp };
+  };
 
   let newPlayerPieces = state.playerPieces.map(updatePiece).filter(Boolean);
   let newAiPieces     = state.aiPieces.map(updatePiece).filter(Boolean);
@@ -580,7 +666,7 @@ export function applyGesta(state, side, casterUid, gestaId, targetUid) {
 
   const auraTag = dannoEffettivo < gesta.danno ? " [Difesa Possente]" : "";
   const fdpTag  = reAuraEvent ? ` 👑 ${reAuraEvent.re.nome}: ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP` : "";
-  const logMsg =
+  const logMsg  =
     `${_tag(caster)} ${caster.nome} usa ${gesta.nome} su ${_tag(target)} ${target.nome}! (-${dannoEffettivo} HP${auraTag})` +
     (targetMorto ? ` → ${target.nome} eliminato!${fdpTag}` : ` → ${nuovoHp} HP rimasti`);
 
@@ -639,7 +725,7 @@ export function applyScagliare(state, side, casterUid, targetUid, destRow, destC
 
   const rawDanno = isEnemy ? calcScagliareDanno(caster, destRow, destCol) : 0;
   const dannoEffettivo = isEnemy ? applyAuraEffects(target, rawDanno) : 0;
-  const nuovoHp = Math.max(0, target.hp - dannoEffettivo);
+  const nuovoHp   = Math.max(0, target.hp - dannoEffettivo);
   const targetMorto = isEnemy && nuovoHp <= 0;
 
   const updateTarget = (p) => {
@@ -662,8 +748,8 @@ export function applyScagliare(state, side, casterUid, targetUid, destRow, destC
     }
   }
 
-  const auraTag = isEnemy && dannoEffettivo < rawDanno ? " [Difesa Possente]" : "";
-  const fdpTag  = reAuraEvent ? ` 👑 ${reAuraEvent.re.nome}: ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP` : "";
+  const auraTag  = isEnemy && dannoEffettivo < rawDanno ? " [Difesa Possente]" : "";
+  const fdpTag   = reAuraEvent ? ` 👑 ${reAuraEvent.re.nome}: ${reAuraEvent.newHp}/${reAuraEvent.newHpMax} HP` : "";
   let logMsg;
   if (!isEnemy) {
     logMsg = `${_tag(caster)} ${caster.nome} scaglia ${_tag(target)} ${target.nome} in (${destRow + 1},${destCol + 1})!`;
@@ -753,10 +839,13 @@ export function applyArdore(state, side, casterUid, ardoreId, targetUid) {
   }
 
   const dannoEffettivo = applyAuraEffects(target, ardore.danno);
-  const nuovoHp    = Math.max(0, target.hp - dannoEffettivo);
+  const nuovoHp     = Math.max(0, target.hp - dannoEffettivo);
   const targetMorto = nuovoHp <= 0;
-  const updatePiece = (p) =>
-    p.uid !== targetUid ? p : (targetMorto ? null : { ...p, hp: nuovoHp });
+  const updatePiece = (p) => {
+    if (p.uid !== targetUid) return p;
+    if (targetMorto) return null;
+    return { ...p, hp: nuovoHp };
+  };
 
   let newPlayerPieces = state.playerPieces.map(updatePiece).filter(Boolean);
   let newAiPieces     = state.aiPieces.map(updatePiece).filter(Boolean);
@@ -866,8 +955,10 @@ export function applyArdoreCaricaAttack(state, side, casterUid, targetUid) {
   const targetMorto = result.defenderHp <= 0;
 
   const updatePiece = (p) => {
-    if (p.uid === targetUid)
-      return targetMorto ? null : { ...p, hp: result.defenderHp };
+    if (p.uid === targetUid) {
+      if (targetMorto) return null;
+      return { ...p, hp: result.defenderHp };
+    }
     return p;
   };
 

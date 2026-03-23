@@ -24,6 +24,12 @@ export const AURA_CATALOG = {
     icona: "👑",
     desc:  "Gli HP massimi aumentano di 2 per ogni alleato in vita. Se un alleato cade, il Re perde 2 HP massimi.",
   },
+  non_morto: {
+    id:    "non_morto",
+    nome:  "Non Morto",
+    icona: "💀",
+    desc:  "È non morto.",
+  },
 };
 
 const AURA_PER_NATURA = {
@@ -103,6 +109,14 @@ export const GESTA_CATALOG = {
     danno: 0, // dinamico: floor(ATK/2) × distanza Chebyshev dal campione
     desc:  "Lancia una pedina adiacente in una cella libera entro 2 celle. Infligge ATK/2 × distanza ai nemici (gli alleati vengono solo riposizionati).",
   },
+  drenaggio_vitale: {
+    id:     "drenaggio_vitale",
+    nome:   "Drenaggio Vitale",
+    icona:  "🩸",
+    danno:  0,          // dinamico: ATK del caster
+    effect: "drain",
+    desc:   "Infligge danni pari al proprio ATK e si cura degli stessi HP.",
+  },
 };
 
 export const GESTA_PER_NATURA = {
@@ -119,8 +133,9 @@ export function gesteDiNatura(natura) {
 // ── Override abilità per ricetta id ──────────────────────────────────────────
 // Usato quando due pezzi con la stessa natura devono avere abilità diverse.
 const ABILITY_OVERRIDES = {
-  barbaro: { gesta: [],        ardore: [], aura: ["ira"]   },
-  lupo:    { gesta: ["morso"], ardore: [], aura: []        },
+  barbaro: { gesta: [],                   ardore: [], aura: ["ira"]       },
+  lupo:    { gesta: ["morso"],            ardore: [], aura: []            },
+  lich:    { gesta: ["drenaggio_vitale"], ardore: [], aura: ["non_morto"] },
 };
 
 export function abilitaPerPezzo(id, natura) {
@@ -154,6 +169,7 @@ export const CHESS_ICONS = {
   chierico:    "✚",   // croce    — guaritore devoto
   barbaro:     "⚔",   // spade    — guerriero selvaggio
   lupo:        "🐺",  // bestia   — lupo da caccia
+  lich:        "💀",  // teschio  — arcimago non morto
 };
 
 export const CLASSIC_PIECES = [
@@ -173,6 +189,7 @@ export const PIECE_COLORS = {
   assassino:   { bg: "#1a1a0a", border: "#706020", glow: "#d0b030" },
   mago:        { bg: "#1a0a2a", border: "#602080", glow: "#a040e0" },
   campione:    { bg: "#2a1a0a", border: "#906020", glow: "#e0a030" },
+  lich:        { bg: "#1a0a2a", border: "#5a2080", glow: "#9030c0" },
 };
 
 // Natura per pezzi classici senza campo materiali (backward compat)
@@ -189,18 +206,30 @@ export const NATURA_DA_NOME = {
   "Chierico":    "Sacerdote",
   "Barbaro":     "Selvaggio",
   "Lupo":        "Selvaggio",
+  "Lich":        "Non Morto",
 };
 
 export const NATURA_COLORE = {
-  Guerriero: "#d04030",
-  Arciere:   "#a0c040",
-  Baluardo:  "#4080c0",
-  Ombra:     "#9040c0",
-  Arcano:    "#40b0d0",
-  Sentinella:"#c0a030",
-  Sacerdote: "#a0d0ff",
-  Selvaggio: "#e06020",
+  Guerriero:   "#d04030",
+  Arciere:     "#a0c040",
+  Baluardo:    "#4080c0",
+  Ombra:       "#9040c0",
+  Arcano:      "#40b0d0",
+  Sentinella:  "#c0a030",
+  Sacerdote:   "#a0d0ff",
+  Selvaggio:   "#e06020",
+  "Non Morto": "#7030a0",
 };
+
+// ── Livelli ricetta ──────────────────────────────────────────────────────────
+// Il livello è determinato dalla ricetta. Default 1 per tutti, 2+ per pezzi avanzati.
+export const LIVELLO_PER_RICETTA = {
+  lich: 2,
+};
+
+export function livelloPerRicetta(id) {
+  return LIVELLO_PER_RICETTA[id] ?? 1;
+}
 
 // Converte un pezzo dal formato backend al formato di gioco interno
 export function fromApi(apiPiece) {

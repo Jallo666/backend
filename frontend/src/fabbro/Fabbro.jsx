@@ -6,6 +6,9 @@ import RicettaCard from "./RicettaCard.jsx";
 import InventarioCard from "./InventarioCard.jsx";
 import PannelloLista from "../components/PannelloLista.jsx";
 import RequisitiForgia, { puoForgiare, COSTO_FORGIA } from "./RequisitiForgia.jsx";
+import legnaImg      from "../assets/materiali/legna.png";
+import farinaOssaImg from "../assets/reagenti/farina_ossa.png";
+import oniceNeroImg  from "../assets/gemme/onice_nero.png";
 import "./Fabbro.css";
 
 const API_URL  = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
@@ -65,6 +68,17 @@ const RICETTE = [
     razza: "Bestiale", materiale: "Legno",
     hp: 11, hpMax: 11, atk: 4, def: 1, mov: 4,
     desc: "Una bestia da caccia. Veloce e letale, può bloccare la preda sul posto.",
+  },
+  {
+    id: "lich", nome: "Lich", natura: "Non Morto",
+    razza: "Non-Morto", materiale: "Legno",
+    hp: 9, hpMax: 9, atk: 5, def: 1, mov: 2,
+    desc: "Un arcimago non morto. La prima volta che cadrebbe, sopravvive con 1 HP. Drena la vita dei nemici.",
+    costo: [
+      { tipo: "legna",       label: "Legna",        img: legnaImg,       qty: 2 },
+      { tipo: "farina_ossa", label: "Farina d'Ossa", img: farinaOssaImg, qty: 2 },
+      { tipo: "onice_nero",  label: "Onice Nero",    img: oniceNeroImg,  qty: 2 },
+    ],
   },
 ];
 
@@ -168,9 +182,10 @@ export default function Fabbro({ token, onBack }) {
       });
       if (!res.ok) throw new Error();
       const pezzo = await res.json();
+      const costoUsato = scelta.costo ?? COSTO_FORGIA;
       setInventario(prev => [...prev, pezzo]);
       setMateriali(prev => prev.map(m => {
-        const costo = COSTO_FORGIA.find(c => c.tipo === m.tipo);
+        const costo = costoUsato.find(c => c.tipo === m.tipo);
         return costo ? { ...m, quantita: m.quantita - costo.qty } : m;
       }));
       setMsg({ testo: `${scelta.nome} forgiato! Ora è nella tua collezione.`, tipo: "ok" });
@@ -226,7 +241,7 @@ export default function Fabbro({ token, onBack }) {
             </div>
           ) : (
             <div className="pnl-list">
-              <RequisitiForgia pezzo={scelta} materiali={materiali} />
+              <RequisitiForgia pezzo={scelta} materiali={materiali} costo={scelta.costo ?? COSTO_FORGIA} />
 
               <div className="fab-forgia-sezione">
                 <div className="fab-forgia-nome-wrap">
@@ -247,7 +262,7 @@ export default function Fabbro({ token, onBack }) {
                 <button
                   className={`fab-btn-forgia${animating ? " fab-btn-forgia--animating" : ""}`}
                   onClick={handleForgia}
-                  disabled={forgiando || !puoForgiare(materiali)}
+                  disabled={forgiando || !puoForgiare(materiali, scelta.costo ?? COSTO_FORGIA)}
                 >
                   <span className="fab-btn-forgia-icon">⚒</span>
                   <span className="fab-btn-forgia-testo">

@@ -1,8 +1,8 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
 import PieceStats from "./PieceStats.jsx";
 import AbilitaList from "./AbilitaList.jsx";
-import { TagRe } from "./PieceTag.jsx";
-import { NATURA_DA_NOME, abilitaPerPezzo } from "../game/questboard/qb_pieces.js";
+import { TagRe, TagLivello } from "./PieceTag.jsx";
+import { NATURA_DA_NOME, abilitaPerPezzo, livelloPerRicetta } from "../game/questboard/qb_pieces.js";
 import "./PiecePreviewCard.css";
 
 export default function PiecePreviewCard({ piece }) {
@@ -14,6 +14,7 @@ export default function PiecePreviewCard({ piece }) {
       <div className="ppc-header">
         {piece.nome}
         {piece.isRe && <TagRe />}
+        <TagLivello livello={livelloPerRicetta(piece.id)} />
       </div>
       <div className="ppc-body">
         <SilhouettePiece natura={natura} size={52} />

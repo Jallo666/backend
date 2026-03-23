@@ -29,7 +29,10 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "https://frontend-cop1.onrender.com")
+        policy.WithOrigins(
+                  "http://localhost:5173",
+                  "http://localhost:5174",
+                  "https://frontend-cop1.onrender.com")
               .AllowAnyMethod()
               .AllowAnyHeader();
     });
@@ -182,6 +185,23 @@ using (var scope = app.Services.CreateScope())
         SeedMaterialiDefault(db, u.Id);
     if (utentiSenzaMateriali.Any()) db.SaveChanges();
 
+    // Seed farina_ossa e onice_nero per utenti che non li hanno ancora
+    var nuoviMaterialiSeed = new[] { ("farina_ossa", "reagente"), ("onice_nero", "gemma") };
+    var utentiEsistenti = db.Utenti.ToList();
+    bool nuoviMatAdded = false;
+    foreach (var u in utentiEsistenti)
+    {
+        foreach (var (tipo, cat) in nuoviMaterialiSeed)
+        {
+            if (!db.MaterialiUtente.Any(m => m.UtenteId == u.Id && m.Tipo == tipo))
+            {
+                db.MaterialiUtente.Add(new MaterialeUtente { UtenteId = u.Id, Tipo = tipo, Categoria = cat, Quantita = 100 });
+                nuoviMatAdded = true;
+            }
+        }
+    }
+    if (nuoviMatAdded) db.SaveChanges();
+
     // Seed admin
     if (!db.Utenti.Any(u => u.Ruolo == "admin"))
     {
@@ -275,13 +295,27 @@ app.MapPut("/api/formazione", async (ClaimsPrincipal user, FormazioneRequest req
     return Results.Ok();
 }).RequireAuthorization();
 
+// ── Mappa costi per ricetta ───────────────────────────────────────────────────
+Dictionary<string, (string tipo, int qty)[]> CostiRicette = new()
+{
+    ["cavaliere"] = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["ranger"]    = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["scudiero"]  = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["assassino"] = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["mago"]      = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["campione"]  = [("legna", 2), ("quarzo", 2), ("resina", 2)],
+    ["lich"]      = [("legna", 2), ("farina_ossa", 2), ("onice_nero", 2)],
+};
+(string tipo, int qty)[] CostoDefault = [("legna", 2), ("quarzo", 2), ("resina", 2)];
+
 // ── Endpoint: crafta pezzo ────────────────────────────────────────────────────
 app.MapPost("/api/inventario/crafta", async (ClaimsPrincipal user, CraftaRequest req, AppDbContext db) =>
 {
     var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
 
-    // Deduzione materiali
-    var costoForgia = new[] { ("legna", 2), ("quarzo", 2), ("resina", 2) };
+    // Deduzione materiali (costo per-ricetta, fallback al default)
+    var costoForgia = req.RicettaId is not null && CostiRicette.TryGetValue(req.RicettaId, out var costoRic)
+        ? costoRic : CostoDefault;
     foreach (var (tipo, qty) in costoForgia)
     {
         var mat = await db.MaterialiUtente
@@ -317,18 +351,6 @@ app.MapPost("/api/inventario/crafta", async (ClaimsPrincipal user, CraftaRequest
         pezzo.Razza, pezzo.Materiale, pezzo.NomeCustom, pezzo.RicettaId
     });
 }).RequireAuthorization();
-
-// ── Mappa costi per ricetta (usata per rimborso) ─────────────────────────────
-Dictionary<string, (string tipo, int qty)[]> CostiRicette = new()
-{
-    ["cavaliere"] = [("legna", 2), ("quarzo", 2), ("resina", 2)],
-    ["ranger"]    = [("legna", 2), ("quarzo", 2), ("resina", 2)],
-    ["scudiero"]  = [("legna", 2), ("quarzo", 2), ("resina", 2)],
-    ["assassino"] = [("legna", 2), ("quarzo", 2), ("resina", 2)],
-    ["mago"]      = [("legna", 2), ("quarzo", 2), ("resina", 2)],
-    ["campione"]  = [("legna", 2), ("quarzo", 2), ("resina", 2)],
-};
-(string tipo, int qty)[] CostoDefault = [("legna", 2), ("quarzo", 2), ("resina", 2)];
 
 // ── Endpoint: elimina/distruggi pezzo inventario ─────────────────────────────
 app.MapDelete("/api/inventario/{id}", async (int id, ClaimsPrincipal user, AppDbContext db) =>
@@ -449,9 +471,11 @@ void SeedMaterialiDefault(AppDbContext db, int utenteId)
 {
     var defaults = new[]
     {
-        new MaterialeUtente { UtenteId = utenteId, Tipo = "legna",  Categoria = "materiale", Quantita = 100 },
-        new MaterialeUtente { UtenteId = utenteId, Tipo = "quarzo", Categoria = "gemma",     Quantita = 100 },
-        new MaterialeUtente { UtenteId = utenteId, Tipo = "resina", Categoria = "reagente",  Quantita = 100 },
+        new MaterialeUtente { UtenteId = utenteId, Tipo = "legna",       Categoria = "materiale", Quantita = 100 },
+        new MaterialeUtente { UtenteId = utenteId, Tipo = "quarzo",      Categoria = "gemma",     Quantita = 100 },
+        new MaterialeUtente { UtenteId = utenteId, Tipo = "resina",      Categoria = "reagente",  Quantita = 100 },
+        new MaterialeUtente { UtenteId = utenteId, Tipo = "farina_ossa", Categoria = "reagente",  Quantita = 100 },
+        new MaterialeUtente { UtenteId = utenteId, Tipo = "onice_nero",  Categoria = "gemma",     Quantita = 100 },
     };
     db.MaterialiUtente.AddRange(defaults);
 }

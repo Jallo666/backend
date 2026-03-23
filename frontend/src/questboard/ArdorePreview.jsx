@@ -12,9 +12,11 @@ export default function ArdorePreview({ caster, target, ardore, onConfirm, onCan
   const combatResult   = isMovimento ? resolveCombat(caster, target) : null;
   const dannoEffettivo = isCura ? 0 : isMovimento ? combatResult.dmg : applyAuraEffects(target, ardore.danno ?? 0);
   const auraActive     = isMovimento ? combatResult.auraActive : (!isCura && dannoEffettivo < (ardore.danno ?? 0));
-  const hpDopo         = isCura
+  const hpDopo = isCura
     ? Math.min(target.hpMax, target.hp + ardore.cura)
-    : Math.max(0, target.hp - dannoEffettivo);
+    : isMovimento
+      ? combatResult.defenderHp
+      : Math.max(0, target.hp - dannoEffettivo);
   const curato    = isCura ? hpDopo - target.hp : 0;
   const eliminato = !isCura && hpDopo <= 0;
   const isAi      = mode === "ai";
