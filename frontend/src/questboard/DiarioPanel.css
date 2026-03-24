@@ -11,7 +11,7 @@
   box-shadow: 0 6px 24px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(240,192,64,0.08);
   overflow: hidden;
   transition: width 0.25s ease;
-  width: 600px; max-width: max(0px, calc(50vw - min(600px, var(--cell-size) * 4 + 12px))); z-index: 50;
+  width: 485px; max-width: 485px; z-index: 50;
 }
 .qbg-log-panel.qbg-log-hidden { width: 22px; }
 .qbg-log-panel.qbg-log-hidden .qbg-log-inner { visibility: hidden; }
@@ -36,23 +36,23 @@
   border-bottom: 1px solid var(--hs-wood-rim); flex-shrink: 0;
 }
 .qbg-log-tab-btn {
-  font-size: 12px; font-family: 'Cinzel', serif; background: rgba(0,0,0,0.3);
+  font-size: 24px; font-family: 'Cinzel', serif; background: rgba(0,0,0,0.3);
   border: 1px solid var(--hs-wood-rim); border-bottom: none;
   color: #c8a060; padding: 4px 8px; cursor: pointer;
   border-radius: 3px 3px 0 0; display: flex; align-items: center; gap: 5px;
-  max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   transition: background 0.15s, color 0.15s;
 }
 .qbg-log-tab-btn.active { background: rgba(80,40,10,0.6); color: var(--hs-gold); }
 .qbg-log-tab-btn:hover { color: var(--hs-gold); }
-.qbg-tab-close { font-size: 8px; opacity: 0.6; flex-shrink: 0; }
+.qbg-tab-close { font-size: 24px; opacity: 0.6; flex-shrink: 0; }
 .qbg-tab-close:hover { opacity: 1; color: #ee4444; }
 
-.qbg-log-piece-content { overflow-y: auto; overflow-x: hidden; padding: 8px; max-height: calc(100% - 130px); width: 100%; box-sizing: border-box; }
+.qbg-log-piece-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px; min-height: 0; width: 100%; box-sizing: border-box; }
 
 .qbg-log-header {
   font-family: 'Cinzel', serif;
-  font-size: 13px; color: var(--hs-gold); padding: 8px 14px 6px;
+  font-size: 25px; color: var(--hs-gold); padding: 8px 14px 6px;
   border-bottom: 1px solid var(--hs-wood-rim); flex-shrink: 0;
   letter-spacing: 0.1em;
 }
@@ -66,7 +66,7 @@
 .qbg-log-content::-webkit-scrollbar-thumb { background: var(--hs-wood-rim); border-radius: 2px; }
 .qbg-log-line {
   font-family: 'Cinzel', serif;
-  font-size: 12px; color: #d4b880; line-height: 2;
+  font-size: 24px; color: #d4b880; line-height: 2;
   padding-bottom: 4px; border-bottom: 1px solid rgba(90,53,16,0.2);
 }
 
@@ -76,12 +76,12 @@
 }
 
 @media (min-height: 600px) {
-  .qbg-log-panel { width: 840px; max-width: max(0px, calc(50vw - 600px)); }
-  .qbg-log-header { font-size: 20px; padding: 12px 18px 8px; }
-  .qbg-log-line { font-size: 18px; }
+  .qbg-log-panel { width: 685px; max-width: 685px; }
+  .qbg-log-header { font-size: 32px; padding: 12px 18px 8px; }
+  .qbg-log-line { font-size: 30px; }
   .qbg-log-content { max-height: calc(100% - 200px); padding: 10px 18px; gap: 8px; }
-  .qbg-log-piece-content { max-height: calc(100% - 160px); padding: 12px; }
-  .qbg-log-tab-btn { font-size: 16px; max-width: 180px; padding: 5px 12px; }
+  .qbg-log-piece-content { padding: 12px; }
+  .qbg-log-tab-btn { font-size: 30px; padding: 5px 12px; }
   .qbg-log-tab { min-width: 26px; width: 26px; font-size: 20px; }
   .qbg-log-panel.qbg-log-hidden { width: 26px; }
 }

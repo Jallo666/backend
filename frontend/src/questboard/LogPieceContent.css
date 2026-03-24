@@ -1,0 +1,100 @@
+/* ── LogPieceContent — layout diario pezzo ── */
+
+.lpc-card {
+  display: flex; flex-direction: column;
+  min-height: 100%;
+  padding: 14px 16px;
+  box-sizing: border-box;
+  background: rgba(10,5,1,0.5);
+  border: 1px solid rgba(90,53,16,0.4);
+  border-radius: 6px;
+  color: var(--hs-cream, #f5e0b0);
+}
+
+/* ── Header ── */
+.lpc-header {
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--hs-wood-rim, #5a3510);
+  padding-bottom: 10px; margin-bottom: 14px;
+}
+.lpc-title {
+  flex: 1;
+  font-family: 'Cinzel', serif;
+  font-size: 24px;
+  color: var(--hs-gold, #f0c040);
+  display: flex; align-items: center; gap: 6px;
+}
+@media (min-height: 600px) {
+  .lpc-title { font-size: 30px; }
+}
+.lpc-team {
+  font-family: 'Cinzel', serif;
+  font-size: 16px; padding: 5px 12px; border-radius: 4px;
+}
+.lpc-team-player { background: rgba(50,130,230,0.2); color: #66bbff; border: 1px solid #335599; }
+.lpc-team-ai     { background: rgba(200,40,40,0.2);  color: #ff7777; border: 1px solid #992222; }
+.lpc-close {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--hs-wood-rim, #5a3510); font-size: 1.2rem;
+  transition: color 0.15s; padding: 0;
+}
+.lpc-close:hover { color: #ee4444; }
+
+/* ── Hero: silhouette + tag ── */
+.lpc-hero {
+  display: flex; flex-direction: row; gap: 16px;
+  align-items: stretch; padding: 8px 0 14px; width: 100%;
+}
+.lpc-silhouette {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  filter: drop-shadow(0 0 18px currentColor);
+}
+.lpc-silhouette-player { color: #f0d060; }
+.lpc-silhouette-ai     { color: #dd5050; }
+.lpc-tags {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 8px; flex-wrap: wrap;
+  justify-content: center;
+}
+.lpc-hero .piece-stats {
+  flex: 1;
+  grid-template-columns: repeat(2, 1fr);
+  align-self: center;
+}
+.lpc-tags .piece-tag {
+  font-size: 17px;
+  padding: 4px 12px;
+}
+.lpc-tags .piece-tag-svg {
+  width: 18px; height: 18px;
+}
+.lpc-hero .piece-stat-val  { font-size: 44px; }
+.lpc-hero .piece-stat-lbl  { font-size: 19px; }
+.lpc-hero .piece-stat-icon { width: 40px; height: 40px; }
+
+/* ── HP ── */
+
+/* ── Status ── */
+.lpc-status {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-top: 10px;
+}
+.lpc-status-label {
+  font-family: 'Cinzel', serif;
+  font-size: 18px; color: #c8a060;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+@media (min-height: 600px) {
+  .lpc-status-label { font-size: 22px; }
+}
+.lpc-status-tags {
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+
+/* ── Abilità (in fondo) ── */
+.lpc-abilities {
+  margin-top: auto; padding-top: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+

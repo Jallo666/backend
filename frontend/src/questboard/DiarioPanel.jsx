@@ -1,5 +1,5 @@
 import './DiarioPanel.css';
-import PieceCard from './PieceCard.jsx';
+import LogPieceContent from './LogPieceContent.jsx';
 
 export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveTab, displayLog, opponentNome, pieceCard, setPieceCard, onGestaClick, onArdoreClick, ardoreUsed, pieceJustMoved, selectedUid, debuffs = [] }) {
   return (
@@ -39,18 +39,17 @@ export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveT
         )}
 
         {activeTab === 'pezzo' && pieceCard && (
-          <div className="qbg-log-piece-content">
-            <PieceCard
-              piece={pieceCard}
-              onClose={() => { setPieceCard(null); setActiveTab('diario'); }}
-              onGestaClick={onGestaClick}
-              onArdoreClick={onArdoreClick}
-              ardoreUsed={ardoreUsed}
-              pieceJustMoved={pieceJustMoved}
-              isSelected={pieceCard?.uid === selectedUid}
-              debuffs={debuffs}
-            />
-          </div>
+          <LogPieceContent
+            pieceCard={pieceCard}
+            setPieceCard={setPieceCard}
+            setActiveTab={setActiveTab}
+            onGestaClick={onGestaClick}
+            onArdoreClick={onArdoreClick}
+            ardoreUsed={ardoreUsed}
+            pieceJustMoved={pieceJustMoved}
+            selectedUid={selectedUid}
+            debuffs={debuffs}
+          />
         )}
       </div>
 

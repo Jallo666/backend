@@ -9,7 +9,12 @@ const TIPO_TAG = {
   Aura:   <TagAura />,
 };
 
-function AbCard({ item, tipo, className, collapsed }) {
+const TIPO_BADGE = {
+  Aura:   { label: "Sempre Attiva",  cls: "ab-badge-aura"   },
+  Ardore: { label: "Azione Bonus",   cls: "ab-badge-ardore" },
+};
+
+function AbCard({ item, tipo, className, collapsed, cardMode = false, onAction = null, actionUsed = false }) {
   const [pos, setPos] = useState(null);
   const ref = useRef(null);
 
@@ -19,17 +24,36 @@ function AbCard({ item, tipo, className, collapsed }) {
   };
   const handleLeave = () => setPos(null);
 
+  const badge = TIPO_BADGE[tipo];
+
   return (
     <div
       ref={ref}
-      className={`ab-card ${className}${collapsed ? " ab-card-collapsed" : ""}`}
+      className={`ab-card ${className}${collapsed ? " ab-card-collapsed" : ""}${cardMode ? " ab-card-mode" : ""}`}
       onMouseEnter={collapsed ? handleEnter : undefined}
       onMouseLeave={collapsed ? handleLeave : undefined}
     >
       <span className="ab-icon">{item.icona}</span>
       <div className="ab-info">
-        <span className="ab-nome">{item.nome} {TIPO_TAG[tipo]}</span>
-        {!collapsed && <span className="ab-desc">{item.desc}</span>}
+        {cardMode ? (
+          <>
+            <div className="ab-nome-row">
+              <span className="ab-nome">{item.nome} {TIPO_TAG[tipo]}</span>
+              {badge && <span className={`ab-badge ${badge.cls}`}>{badge.label}</span>}
+            </div>
+            <span className="ab-desc">{item.desc}</span>
+            {onAction && (
+              <button className="ab-action-btn" disabled={actionUsed} onClick={onAction}>
+                {actionUsed ? "Usato" : "Usa"}
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            <span className="ab-nome">{item.nome} {TIPO_TAG[tipo]}</span>
+            {!collapsed && <span className="ab-desc">{item.desc}</span>}
+          </>
+        )}
       </div>
       {collapsed && pos && createPortal(
         <div className="ab-tooltip ab-tooltip-fixed" style={{ left: pos.x, top: pos.y }}>
@@ -42,14 +66,14 @@ function AbCard({ item, tipo, className, collapsed }) {
   );
 }
 
-export default function AbilitaList({ ardore = [], gesta = [], aura = [], collapsed = false }) {
+export default function AbilitaList({ ardore = [], gesta = [], aura = [], collapsed = false, cardMode = false, onGestaClick, onArdoreClick, ardoreUsed = false }) {
   if (!ardore.length && !gesta.length && !aura.length) return null;
 
   return (
     <div className={`ab-list${collapsed ? " ab-list-collapsed" : ""}`}>
-      {ardore.map(a => <AbCard key={a.id} item={a} tipo="Ardore" className="ab-ardore" collapsed={collapsed} />)}
-      {gesta.map(g =>  <AbCard key={g.id} item={g} tipo="Gesta"  className="ab-gesta"  collapsed={collapsed} />)}
-      {aura.map(au =>  <AbCard key={au.id} item={au} tipo="Aura" className="ab-aura"   collapsed={collapsed} />)}
+      {gesta.map(g =>   <AbCard key={g.id}  item={g}  tipo="Gesta"  className="ab-gesta"  collapsed={collapsed} cardMode={cardMode} onAction={onGestaClick  ? () => onGestaClick(g.id)  : null} actionUsed={false} />)}
+      {aura.map(au =>   <AbCard key={au.id} item={au} tipo="Aura"   className="ab-aura"   collapsed={collapsed} cardMode={cardMode} />)}
+      {ardore.map(a =>  <AbCard key={a.id}  item={a}  tipo="Ardore" className="ab-ardore" collapsed={collapsed} cardMode={cardMode} onAction={onArdoreClick ? () => onArdoreClick(a.id) : null} actionUsed={ardoreUsed} />)}
     </div>
   );
 }

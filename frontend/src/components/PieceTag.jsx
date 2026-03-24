@@ -59,3 +59,7 @@ export function TagLivello({ livello }) {
   const color = isAlto ? "#e04040" : "#888888";
   return <span className="piece-tag" style={{ '--tag-color': color }}>⭐ Lv.{livello}</span>;
 }
+
+export function TagDebuff({ label }) {
+  return <span className="piece-tag" style={{ '--tag-color': '#e04040' }}>🔒 {label}</span>;
+}

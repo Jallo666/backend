@@ -1,0 +1,80 @@
+/* ── HpGauge — barra HP medievale ── */
+
+.hp-gauge {
+  display: flex; flex-direction: column; gap: 4px;
+  width: 100%;
+}
+
+.hp-gauge-label {
+  font-family: 'Cinzel', serif;
+  font-size: 18px; color: #c8a060;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+.hp-gauge-track {
+  position: relative;
+  height: 28px;
+  background: rgba(0,0,0,0.55);
+  border: 2px solid var(--hs-wood-rim, #5a3510);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 2px 6px rgba(0,0,0,0.6),
+    0 1px 0 rgba(240,192,64,0.12);
+}
+
+/* Tacche decorative */
+.hp-gauge-track::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    transparent 24px,
+    rgba(0,0,0,0.18) 24px,
+    rgba(0,0,0,0.18) 25px
+  );
+  z-index: 2; pointer-events: none;
+}
+
+.hp-gauge-fill {
+  position: absolute; inset: 0;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    #8b0000 0%,
+    #cc2222 30%,
+    #e08020 60%,
+    #44bb44 100%
+  );
+  background-size: 200% 100%;
+  background-position-x: calc(100% - var(--hp-pct, 100) * 1%);
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(0,0,0,0.3);
+}
+
+/* Riflesso superiore */
+.hp-gauge-fill::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.12), transparent);
+  border-radius: 2px 2px 0 0;
+}
+
+.hp-gauge-text {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif;
+  font-size: 20px; font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(0,0,0,0.9), 0 1px 2px rgba(0,0,0,1);
+  z-index: 3; pointer-events: none;
+  letter-spacing: 0.05em;
+}
+
+@media (min-height: 600px) {
+  .hp-gauge-track  { height: 44px; }
+  .hp-gauge-text   { font-size: 26px; }
+  .hp-gauge-label  { font-size: 22px; }
+}
