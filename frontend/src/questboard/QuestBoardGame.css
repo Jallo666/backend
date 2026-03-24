@@ -77,13 +77,14 @@
 .qbg-btn-gold { background: #2a1a00; border: 2px solid var(--hs-gold); color: var(--hs-gold); }
 .qbg-btn-dark { background: #0e0a04; border: 2px solid #5a3510; color: #c8a060; }
 .qbg-hud-fine-turno {
-  position: absolute; top: 50%; left: 8px; transform: translateY(-50%);
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   font-family: 'Cinzel', serif;
-  font-size: 22px; font-weight: 700; letter-spacing: 0.04em;
-  white-space: pre-line; text-align: center; line-height: 1.3;
-  padding: 4px 10px; border-radius: 4px;
-  cursor: pointer; background: none; z-index: 1;
+  font-size: 60px; font-weight: 700; letter-spacing: 0.04em;
+  text-align: center; line-height: 1.1;
+  padding: 4px 24px; border-radius: 4px;
+  cursor: pointer; background: rgba(10, 5, 1, 0.85);
   transition: filter 0.15s;
+  z-index: 5;
 }
 .qbg-hud-fine-turno:hover { filter: brightness(1.3); }
 .qbg-hud-fine-turno-ready {
@@ -96,38 +97,72 @@
   color: #806030;
   border: 1px solid rgba(120,80,20,0.4);
 }
+
+.qbg-hud-hint {
+  position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(10, 5, 1, 0.88);
+  border-left:  2px solid var(--hs-wood-rim);
+  border-right: 2px solid var(--hs-wood-rim);
+  padding: 0 20px;
+  z-index: 4; transition: background 0.2s, border-color 0.2s;
+}
+.qbg-hud-hint--collapsed {
+  background: transparent;
+  border-color: transparent;
+}
+.qbg-hud-hint--collapsed .qbg-hud-hint-text { visibility: hidden; }
+.qbg-hud-hint-text {
+  font-family: 'Cinzel', serif; font-size: 48px; font-weight: 600;
+  color: var(--hs-gold); letter-spacing: 0.05em;
+  text-align: center; line-height: 1.4;
+  text-shadow: 0 0 8px rgba(240,192,64,0.4);
+  pointer-events: none;
+}
+.qbg-hud-hint-toggle {
+  position: absolute; bottom: 0; left: 50%; transform: translate(-50%, 50%);
+  background: rgba(10, 5, 1, 0.95);
+  border: 2px solid var(--hs-wood-rim); border-radius: 50%;
+  cursor: pointer; width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.85; padding: 0; pointer-events: auto;
+  transition: opacity 0.15s, border-color 0.15s;
+}
+.qbg-hud-hint-toggle::before {
+  content: '';
+  display: block; width: 16px; height: 16px;
+  border-right: 3px solid var(--hs-gold);
+  border-bottom: 3px solid var(--hs-gold);
+  transform: rotate(45deg) translate(-3px, -3px);
+}
+.qbg-hud-hint-toggle--up::before {
+  transform: rotate(225deg) translate(-3px, -3px);
+}
+.qbg-hud-hint-toggle:hover { opacity: 1; border-color: var(--hs-gold); }
 @keyframes ftPulse {
   0%,100% { text-shadow: 0 0 6px rgba(240,192,64,0.4); }
   50%      { text-shadow: 0 0 14px rgba(240,192,64,0.9); }
 }
 
-/* ── HUD — dimensioni fisse ── */
+/* ── HUD — pill centrato, larghezza fissa ── */
 .qbg-hud {
-  display: flex; align-items: center; justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center;
+  align-self: center;
   position: relative;
-  background: transparent;
-  border-bottom: none;
-  flex-shrink: 0;
-  box-shadow: 0 3px 16px rgba(0,0,0,0.7);
-  min-height: 64px;
-}
-
-/* Wrapper centrato giocatore + VS + AI */
-.qbg-hud-matchup {
-  display: flex; align-items: center;
-  gap: 0;
+  min-width: 1200px;
   background: rgba(10, 5, 1, 0.82);
   border-left:   2px solid var(--hs-wood-rim);
   border-right:  2px solid var(--hs-wood-rim);
   border-bottom: 2px solid var(--hs-wood-rim);
-  border-radius: 0 0 14px 14px;
+  border-radius: 0 0 16px 16px;
   box-shadow: 0 6px 24px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(240,192,64,0.08);
 }
 
+
 /* Lato combattente (giocatore o AI) */
 .qbg-hud-fighter {
-  display: flex; align-items: center; gap: 10px;
-  flex: 1; min-width: 0; max-width: 200px; padding: 8px 16px;
+  display: flex; align-items: center; gap: 12px;
+  flex: 1; min-width: 0;
   position: relative; overflow: hidden;
   opacity: 0.38;
   transition: opacity 0.3s;
@@ -136,9 +171,9 @@
   content: ""; position: absolute; bottom: 0; left: 0; right: 0;
   height: 2px; opacity: 0; transition: opacity 0.3s;
 }
-.qbg-hud-player-side { justify-content: flex-start; }
+.qbg-hud-player-side { justify-content: flex-start; padding: 0 20px 0 20px; }
 .qbg-hud-player-side::after { background: rgba(60,200,90,0.9); }
-.qbg-hud-ai-side     { justify-content: flex-end; }
+.qbg-hud-ai-side     { justify-content: flex-end;   padding: 0 20px 0 20px; }
 .qbg-hud-ai-side::after     { background: rgba(200,60,60,0.9); }
 
 /* Lato attivo */
@@ -158,54 +193,52 @@
   color: rgba(200,60,60,0.7);
 }
 
-/* Avatar */
+/* Avatar — full height della barra */
 .qbg-hud-avatar {
-  width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+  width: 110px; height: 110px; flex-shrink: 0; align-self: center;
   display: flex; align-items: center; justify-content: center;
   font-family: 'Press Start 2P', monospace;
-  font-size: 13px; font-weight: bold;
+  font-size: 28px; font-weight: bold;
   border: 2px solid #5a3510;
+  border-radius: 50%;
   background: rgba(30, 15, 4, 0.9);
   overflow: hidden;
 }
 .qbg-hud-avatar-player { border-color: rgba(60,200,90,0.6); box-shadow: 0 0 10px rgba(60,200,90,0.2); }
-.qbg-hud-avatar-ai     { border-color: rgba(200,60,60,0.6); box-shadow: 0 0 10px rgba(200,60,60,0.2); font-size: 22px; }
-.qbg-hud-avatar-img    { width: 100%; height: 100%; object-fit: cover; }
+.qbg-hud-avatar-ai     { border-color: rgba(200,60,60,0.6); box-shadow: 0 0 10px rgba(200,60,60,0.2); }
+.qbg-hud-avatar-img    { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .qbg-hud-avatar-initials { color: #f0c040; }
 
 /* Info testo combattente */
 .qbg-hud-fighter-info {
-  display: flex; flex-direction: column; gap: 3px;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 4px;
+  min-width: 0; padding: 8px 0;
 }
 .qbg-hud-fighter-info-right { align-items: flex-end; }
+.qbg-hud-fighter-row {
+  display: flex; flex-direction: row; align-items: baseline; gap: 12px;
+}
+.qbg-hud-fighter-row-right { flex-direction: row-reverse; }
 .qbg-hud-fighter-name {
   font-family: 'Cinzel', serif;
-  font-size: 20px; color: #f0c040; white-space: nowrap;
+  font-size: 60px; color: #f0c040; white-space: nowrap;
   letter-spacing: 0.06em;
-  overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis;
 }
-.qbg-hud-fighter-pieces { font-family: 'Cinzel', serif; font-size: 12px; color: #c8a060; }
-
+.qbg-hud-fighter-pieces { font-family: 'Cinzel', serif; font-size: 32px; color: #c8a060; white-space: nowrap; }
 
 /* Centro VS */
 .qbg-hud-center {
-  display: flex; flex-direction: column;
-  align-items: center; gap: 2px;
-  padding: 0 20px; flex-shrink: 0;
+  display: flex; align-items: center;
+  padding: 0 24px; flex-shrink: 0;
 }
 .qbg-hud-vs {
   font-family: 'Cinzel Decorative', serif;
-  font-size: 32px; color: #f0c040;
+  font-size: 52px; color: #f0c040;
   text-shadow: 0 0 16px rgba(240,192,64,0.6);
   letter-spacing: 0.1em;
 }
-.qbg-hud-round { font-family: 'Cinzel', serif; font-size: 13px; color: #8a6030; }
-.qbg-back-btn {
-  position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
-  background: none; border: none; padding: 4px; cursor: pointer; z-index: 1;
-}
-.qbg-settings-icon { width: 60px; height: 60px; display: block; opacity: 0.7; transition: opacity 0.15s; }
-.qbg-back-btn:hover .qbg-settings-icon { opacity: 1; }
+.qbg-hud-round { font-family: 'Cinzel', serif; font-size: 28px; color: #8a6030; }
 
 /* ── Bottone conferma attacco ── */
 .qbg-confirm-attack-btn {
@@ -490,68 +523,47 @@
 /* ── Responsive mobile landscape ── */
 @media (max-height: 500px) and (orientation: landscape) {
   .qbg-scene { perspective: 520px; perspective-origin: 50% 10%; padding: 0.2rem; }
-  .qbg-board-wrap { 
-    /*transform: rotateX(30deg) translateY(-8%); */
-  }
 
-  /* HUD: overlay trasparente in cima, non sottrae altezza alla board */
+  /* HUD: pill assoluto in cima, stesse dimensioni del desktop */
   .qbg-hud {
-    position: absolute; top: 0; left: 0; right: 0;
-    background: transparent; box-shadow: none;
-    min-height: 0; height: auto; padding: 3px 6px;
-    z-index: 10; pointer-events: none;
-    justify-content: center; align-items: center;
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    z-index: 10;
+    border-radius: 0 0 10px 10px;
   }
-  .qbg-hud-matchup {
-    pointer-events: auto;
-    border: 1px solid var(--hs-wood-rim);
-    border-radius: 6px;
-    background: rgba(10, 5, 1, 0.70);
-    box-shadow: none;
-  }
-  .qbg-hud-fighter { width: auto; padding: 2px 6px; gap: 4px; }
-  .qbg-hud-center { padding: 0 6px; }
-  .qbg-hud-avatar { width: 28px; height: 28px; font-size: 10px; }
-  .qbg-hud-avatar-ai { font-size: 13px; }
-  .qbg-hud-fighter-name { font-size: 10px; }
-  .qbg-hud-fighter-pieces { font-size: 8px; }
-  .qbg-hud-vs { font-size: 12px; }
-  .qbg-hud-round { font-size: 7px; }
-  .qbg-back-btn { pointer-events: auto; position: absolute; top: 50%; right: 6px; transform: translateY(-50%); }
-  .qbg-hud-fine-turno {
-    position: static; transform: none;
-    order: -1; pointer-events: auto;
-    font-size: 9px; padding: 0 8px; white-space: nowrap; align-self: stretch;
-  }
-  .qbg-settings-icon { width: 38px; height: 38px; }
 }
 
 /* ── Toast annuncio turno ── */
 .qbg-turn-toast {
   position: fixed;
-  top: 72px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 150;
-  background: rgba(15, 8, 2, 0.92);
-  border: 2px solid var(--hs-gold, #f0c040);
-  border-radius: 8px;
-  padding: 12px 24px;
+  z-index: 155;
+  min-width: 1200px;
+  background: rgba(10, 5, 1, 0.96);
+  border-left:   2px solid var(--hs-wood-rim);
+  border-right:  2px solid var(--hs-wood-rim);
+  border-bottom: 2px solid var(--hs-gold, #f0c040);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  min-height: 148px;
+  padding: 0 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   cursor: pointer;
   animation: qbg-toast-in 0.25s ease;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.7);
   pointer-events: auto;
 }
 .qbg-turn-toast span {
   font-family: 'Cinzel', serif;
-  color: #e8d080;
-  font-size: 13px;
+  color: #f0c040;
+  font-size: 60px;
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.2;
 }
 @keyframes qbg-toast-in {
   from { opacity: 0; transform: translateX(-50%) translateY(-12px); }

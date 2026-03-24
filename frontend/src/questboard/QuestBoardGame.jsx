@@ -9,19 +9,13 @@ import {
 import { isBlocked, canMoveInRotation, canUseArdore, BOARD_SIZE, getScagliareTargets, getScagliareDest, calcScagliareDanno } from "../game/questboard/qb_rules.js";
 import { chooseBestMove } from "../game/questboard/qb_ai.js";
 import GameBoard from "./GameBoard.jsx";
-import CombatPreview from "./CombatPreview.jsx";
-import GestPreview from "./GestPreview.jsx";
-import ArdorePreview from "./ArdorePreview.jsx";
+import GameOverlays from "./GameOverlays.jsx";
 import DiarioPanel from "./DiarioPanel.jsx";
-import StatusHint from "./StatusHint.jsx";
 import RotazioneTracker from "./RotazioneTracker.jsx";
 import GameHud from "./GameHud.jsx";
-import GameOverModal from "./GameOverModal.jsx";
 import GameOptionsModal from "./GameOptionsModal.jsx";
-import ReAuraNotification from "./ReAuraNotification.jsx";
-import RoundEndNotification from "./RoundEndNotification.jsx";
-import CoinFlip from "./CoinFlip.jsx";
 import FineTurnoPopup from "./FineTurnoPopup.jsx";
+import SettingsButton from "../components/SettingsButton.jsx";
 import "./QuestBoardGame.css";
 
 const AI_DELAY_MS = 1200;
@@ -416,6 +410,34 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
     setPendingAiMove(caster.uid); // dopo ardore l'AI deve muovere lo stesso pezzo
   }, [aiArdorePreview]);
 
+  // ── Conferma ardore giocatore dopo preview ───────────────────────────────
+  const confirmArdorePlayer = useCallback(() => {
+    if (!ardorePreview) return;
+    const { caster, target, ardore } = ardorePreview;
+    setArdorePreview(null);
+    setArdoreHitAnim({ row: target.row, col: target.col });
+    setTimeout(() => setArdoreHitAnim(null), 1000);
+    setGame(s => {
+      const afterArdore = applyArdore(s, "player", caster.uid, ardore.id, target.uid);
+      if (afterArdore.status === "over") return afterArdore;
+      return selectPiece(afterArdore, caster.uid);
+    });
+    setArdoreImpegnato({ pieceUid: caster.uid });
+    setArdoreUsedUid(caster.uid);
+  }, [ardorePreview]);
+
+  // ── Conferma gesta giocatore dopo preview ────────────────────────────────
+  const confirmGestaPlayer = useCallback(() => {
+    if (!gestaPreview) return;
+    const { caster, target, gesta } = gestaPreview;
+    setGestaPreview(null);
+    setPieceCard(null); setActiveTab('diario');
+    setGestaHitAnim({ row: target.row, col: target.col });
+    setTimeout(() => setGestaHitAnim(null), 1000);
+    setPendingFineTurnoUid(caster.uid);
+    setGame(s => applyGesta(s, "player", caster.uid, gesta.id, target.uid));
+  }, [gestaPreview]);
+
   // ── Conferma attacco AI dopo preview ──────────────────────────────────────
   const confirmAiAttack = useCallback(() => {
     if (!aiAttackPreview) return;
@@ -667,6 +689,98 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
       }
     : null;
 
+  // ── Reset e riavvio partita ───────────────────────────────────────────────
+  const handleRestart = useCallback(() => {
+    setShowOptions(false);
+    clearTimeout(aiTimerRef.current);
+    clearTimeout(moveAnimTimer.current);
+    clearTimeout(combatTimer.current);
+    clearTimeout(logTimer.current);
+    setArdoreImpegnato(null);
+    setPendingFineTurnoUid(null);
+    setShowEndTurnPopup(false);
+    setTurnPopup(null);
+    setArdoreUsedUid(null);
+    clearTimeout(turnPopupTimer.current);
+    setArdoreMode(null);
+    setGestaMode(null);
+    setPendingAttack(null);
+    setPendingPlacement(null);
+    setCombatPreview(null);
+    setGestaPreview(null);
+    setArdorePreview(null);
+    setAiAttackPreview(null);
+    setAiArdorePreview(null);
+    setAiGestaPreview(null);
+    setAiScagliarePreview(null);
+    setCaricaAttackPreview(null);
+    setPendingAiMove(null);
+    setPieceCard(null);
+    setActiveTab('diario');
+    setReAuraNotif(null);
+    setRoundEndNotif(null);
+    setCombatFlash(null);
+    setMoveAnim(null);
+    setAnimCell(null);
+    setGestaHitAnim(null);
+    setArdoreHitAnim(null);
+    setGame(() => createGame(inventario, formazione, sfidante));
+  }, [inventario, formazione, sfidante]);
+
+  // ── Callback DiarioPanel ─────────────────────────────────────────────────
+  const gestaEnabled =
+    game.turn === "player" && pieceCard?.side === "player" &&
+    pieceCard?.canAct &&
+    !pendingFineTurnoUid &&
+    (!activePieceUid || activePieceUid === pieceCard?.uid) &&
+    (!gestaMode || gestaMode.casterUid === pieceCard?.uid) &&
+    (!ardoreMode || ardoreMode.casterUid === pieceCard?.uid);
+
+  const handleGestaClick = gestaEnabled
+    ? (gestaId) => {
+        if (gestaId === "scagliare") {
+          const allPieces = [...game.playerPieces, ...game.aiPieces];
+          const targets = getScagliareTargets(game.playerPieces.find(p => p.uid === pieceCard.uid), allPieces);
+          if (targets.length === 0) {
+            showGameMsg(`${pieceCard.nome} non ha nemici adiacenti da scagliare!`);
+            return;
+          }
+        }
+        const phase = gestaId === "scagliare" ? "selectTarget" : undefined;
+        setGestaMode({ gestaId, casterUid: pieceCard.uid, phase });
+        setActiveTab('diario');
+      }
+    : null;
+
+  const ardoreEnabled =
+    game.turn === "player" && pieceCard?.side === "player" &&
+    pieceCard?.canAct &&
+    (!activePieceUid || activePieceUid === pieceCard?.uid) &&
+    (!gestaMode || gestaMode.casterUid === pieceCard?.uid) &&
+    (!ardoreMode || ardoreMode.casterUid === pieceCard?.uid) &&
+    canUseArdore(pieceCard?.uid, game.playerArdoreTracker ?? { used: new Set() });
+
+  const handleArdoreClick = ardoreEnabled
+    ? (ardoreId) => {
+        const ardoreObj = pieceCard.ardore?.find(a => a.id === ardoreId);
+        if (ardoreObj?.selfOnly) {
+          setArdorePreview({ caster: pieceCard, target: pieceCard, ardore: ardoreObj });
+        } else {
+          setArdoreMode({ ardoreId, casterUid: pieceCard.uid, tipo: ardoreObj?.tipo });
+          setActiveTab('diario');
+        }
+      }
+    : null;
+
+  const ardoreUsed = pieceCard
+    ? !canUseArdore(
+        pieceCard.uid,
+        pieceCard.side === "player"
+          ? (game.playerArdoreTracker ?? { used: new Set() })
+          : (game.aiArdoreTracker    ?? { used: new Set() })
+      )
+    : false;
+
   return (
     <div className="qbg-root" style={{ "--cell-size": `${cellSize}px` }}>
 
@@ -676,198 +790,58 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
         <p className="qbg-rotate-text">Ruota lo schermo<br />in orizzontale<br />per giocare</p>
       </div>
 
-      {/* ── Coin Flip ── */}
-      {game.status === "coinflip" && (
-        <CoinFlip onChoice={handlePlayerChoice} />
-      )}
+      {/* ── Modali e preview ── */}
+      <GameOverlays
+        game={game}
+        onBack={onBack}
+        handlePlayerChoice={handlePlayerChoice}
+        reAuraNotif={reAuraNotif}
+        onDismissReAura={() => { setReAuraNotif(null); setGame(g => ({ ...g, reAuraEvent: null })); }}
+        roundEndNotif={roundEndNotif}
+        onDismissRoundEnd={() => { setRoundEndNotif(null); setGame(g => ({ ...g, cycleEndEvent: null })); }}
+        combatPreview={combatPreview}
+        confirmAttack={confirmAttack}
+        onCancelCombat={() => setCombatPreview(null)}
+        aiAttackPreview={aiAttackPreview}
+        confirmAiAttack={confirmAiAttack}
+        aiArdorePreview={aiArdorePreview}
+        confirmAiArdore={confirmAiArdore}
+        ardorePreview={ardorePreview}
+        confirmArdorePlayer={confirmArdorePlayer}
+        onCancelArdore={() => setArdorePreview(null)}
+        caricaAttackPreview={caricaAttackPreview}
+        confirmCaricaAttack={confirmCaricaAttack}
+        onCancelCaricaAttack={() => setCaricaAttackPreview(null)}
+        aiScagliarePreview={aiScagliarePreview}
+        confirmAiScagliare={confirmAiScagliare}
+        aiGestaPreview={aiGestaPreview}
+        confirmAiGesta={confirmAiGesta}
+        gestaPreview={gestaPreview}
+        confirmGestaPlayer={confirmGestaPlayer}
+        onCancelGesta={() => setGestaPreview(null)}
+      />
 
-      {/* ── Game Over ── */}
-      {game.status === "over" && (
-        <GameOverModal winner={game.winner} onBack={onBack} />
-      )}
-
-      {/* ── Forza del Popolo ── */}
-      {reAuraNotif && (
-        <ReAuraNotification
-          event={reAuraNotif}
-          onDismiss={() => {
-            setReAuraNotif(null);
-            setGame(g => ({ ...g, reAuraEvent: null }));
-          }}
-        />
-      )}
-
-      {/* ── Fine Ciclo ── */}
-      {roundEndNotif && !reAuraNotif && (
-        <RoundEndNotification
-          event={roundEndNotif}
-          onDismiss={() => {
-            setRoundEndNotif(null);
-            setGame(g => ({ ...g, cycleEndEvent: null }));
-          }}
-        />
-      )}
-
-      {/* ── Anteprima combattimento giocatore ── */}
-      {combatPreview && (
-        <CombatPreview
-          attacker={combatPreview.attacker}
-          defender={combatPreview.defender}
-          onConfirm={confirmAttack}
-          onCancel={() => setCombatPreview(null)}
-          mode="player"
-        />
-      )}
-
-      {/* ── Anteprima attacco AI ── */}
-      {aiAttackPreview && !reAuraNotif && (
-        <CombatPreview
-          attacker={aiAttackPreview.piece}
-          defender={aiAttackPreview.defender}
-          onConfirm={confirmAiAttack}
-          onCancel={confirmAiAttack}
-          mode="ai"
-        />
-      )}
-
-      {/* ── Ardore AI ── */}
-      {aiArdorePreview && !reAuraNotif && (
-        <ArdorePreview
-          caster={aiArdorePreview.caster}
-          target={aiArdorePreview.target}
-          ardore={aiArdorePreview.ardore}
-          onConfirm={confirmAiArdore}
-          onCancel={confirmAiArdore}
-          mode="ai"
-          opponentNome={game.opponentNome}
-        />
-      )}
-
-      {/* ── Ardore giocatore ── */}
-      {ardorePreview && (
-        <ArdorePreview
-          caster={ardorePreview.caster}
-          target={ardorePreview.target}
-          ardore={ardorePreview.ardore}
-          onConfirm={() => {
-            const { caster, target, ardore } = ardorePreview;
-            setArdorePreview(null);
-            setArdoreHitAnim({ row: target.row, col: target.col });
-            setTimeout(() => setArdoreHitAnim(null), 1000);
-            setGame(s => {
-              const afterArdore = applyArdore(s, "player", caster.uid, ardore.id, target.uid);
-              if (afterArdore.status === "over") return afterArdore;
-              return selectPiece(afterArdore, caster.uid); // pre-seleziona il pezzo impegnato
-            });
-            setArdoreImpegnato({ pieceUid: caster.uid });
-            setArdoreUsedUid(caster.uid);
-            // Rimani sulla tab pezzo così il player vede il bottone Ardore grayed
-          }}
-          onCancel={() => setArdorePreview(null)}
-        />
-      )}
-
-      {/* ── Carica attacco giocatore ── */}
-      {caricaAttackPreview && (
-        <CombatPreview
-          attacker={caricaAttackPreview.caster}
-          defender={caricaAttackPreview.target}
-          onConfirm={confirmCaricaAttack}
-          onCancel={() => setCaricaAttackPreview(null)}
-          mode="player"
-        />
-      )}
-
-      {/* ── Scagliare AI ── */}
-      {aiScagliarePreview && !reAuraNotif && (
-        <GestPreview
-          caster={aiScagliarePreview.caster}
-          target={aiScagliarePreview.target}
-          gesta={{ id: "scagliare", nome: "Scagliare", icona: "💨", danno: aiScagliarePreview.danno }}
-          onConfirm={confirmAiScagliare}
-          onCancel={confirmAiScagliare}
-          mode="ai"
-          opponentNome={game.opponentNome}
-        />
-      )}
-
-      {/* ── Notifica gesta AI ── */}
-      {aiGestaPreview && !reAuraNotif && (
-        <GestPreview
-          caster={aiGestaPreview.caster}
-          target={aiGestaPreview.target}
-          gesta={aiGestaPreview.gesta}
-          onConfirm={confirmAiGesta}
-          onCancel={confirmAiGesta}
-          mode="ai"
-          opponentNome={game.opponentNome}
-        />
-      )}
-
-      {/* ── Anteprima gesta giocatore ── */}
-      {gestaPreview && (
-        <GestPreview
-          caster={gestaPreview.caster}
-          target={gestaPreview.target}
-          gesta={gestaPreview.gesta}
-          onConfirm={() => {
-            const { caster, target, gesta } = gestaPreview;
-            setGestaPreview(null);
-            setPieceCard(null); setActiveTab('diario');
-            setGestaHitAnim({ row: target.row, col: target.col });
-            setTimeout(() => setGestaHitAnim(null), 1000);
-            setPendingFineTurnoUid(caster.uid); // mantieni activePieceUid per il popup
-            setGame(s => applyGesta(s, "player", caster.uid, gesta.id, target.uid));
-          }}
-          onCancel={() => setGestaPreview(null)}
-        />
-      )}
-
-      {/* ── HUD ── */}
-      <GameHud game={game} utente={utente} onOptions={() => setShowOptions(true)} onFineTurno={onFineTurnoHud} pieceJustMoved={hudPieceJustMoved} />
-
+      {/* ── Opzioni partita ── */}
       {showOptions && (
         <GameOptionsModal
           onClose={() => setShowOptions(false)}
-          onRestart={() => {
-            setShowOptions(false);
-            clearTimeout(aiTimerRef.current);
-            clearTimeout(moveAnimTimer.current);
-            clearTimeout(combatTimer.current);
-            clearTimeout(logTimer.current);
-            setArdoreImpegnato(null);
-            setPendingFineTurnoUid(null);
-            setShowEndTurnPopup(false);
-            setTurnPopup(null);
-            setArdoreUsedUid(null);
-            clearTimeout(turnPopupTimer.current);
-            setArdoreMode(null);
-            setGestaMode(null);
-            setPendingAttack(null);
-            setPendingPlacement(null);
-            setCombatPreview(null);
-            setGestaPreview(null);
-            setArdorePreview(null);
-            setAiAttackPreview(null);
-            setAiArdorePreview(null);
-            setAiGestaPreview(null);
-            setAiScagliarePreview(null);
-            setCaricaAttackPreview(null);
-            setPendingAiMove(null);
-            setPieceCard(null);
-            setActiveTab('diario');
-            setReAuraNotif(null);
-            setRoundEndNotif(null);
-            setCombatFlash(null);
-            setMoveAnim(null);
-            setAnimCell(null);
-            setGestaHitAnim(null);
-            setArdoreHitAnim(null);
-            setGame(() => createGame(inventario, formazione, sfidante));
-          }}
+          onRestart={handleRestart}
           onRetire={() => { setShowOptions(false); onBack(); }}
         />
       )}
+
+      {/* ── Settings (top-left, identico alla Locanda) ── */}
+      <SettingsButton onClick={() => setShowOptions(true)} absolute />
+
+      {/* ── HUD ── */}
+      <GameHud
+        game={game} utente={utente} onFineTurno={onFineTurnoHud} pieceJustMoved={hudPieceJustMoved}
+        hint={
+          pendingPlacement?.validCells
+            ? "↖ Scegli dove posizionare la tua pedina dopo l'attacco"
+            : calcStatusHint(game, gestaMode, ardoreMode, pieceCard)
+        }
+      />
 
       {/* ── Board 3D ── */}
       <GameBoard
@@ -890,67 +864,14 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
         pieceCard={[...game.playerPieces, ...game.aiPieces].find(p => p.uid === pieceCard?.uid) ?? pieceCard}
         setPieceCard={setPieceCard}
         selectedUid={pieceCard?.side === 'player' ? pieceCard?.uid : null}
-        onGestaClick={
-          game.turn === "player" && pieceCard?.side === "player" &&
-          pieceCard?.canAct &&
-          !pendingFineTurnoUid &&
-          (!activePieceUid || activePieceUid === pieceCard?.uid) &&
-          (!gestaMode || gestaMode.casterUid === pieceCard?.uid) &&
-          (!ardoreMode || ardoreMode.casterUid === pieceCard?.uid)
-            ? (gestaId) => {
-                if (gestaId === "scagliare") {
-                  const allPieces = [...game.playerPieces, ...game.aiPieces];
-                  const targets = getScagliareTargets(game.playerPieces.find(p => p.uid === pieceCard.uid), allPieces);
-                  if (targets.length === 0) {
-                    showGameMsg(`${pieceCard.nome} non ha nemici adiacenti da scagliare!`);
-                    return;
-                  }
-                }
-                const phase = gestaId === "scagliare" ? "selectTarget" : undefined;
-                setGestaMode({ gestaId, casterUid: pieceCard.uid, phase });
-                setActiveTab('diario');
-              }
-            : null
-        }
+        onGestaClick={handleGestaClick}
         pieceJustMoved={pendingFineTurnoUid === pieceCard?.uid}
-        onArdoreClick={
-          game.turn === "player" && pieceCard?.side === "player" &&
-          pieceCard?.canAct &&
-          (!activePieceUid || activePieceUid === pieceCard?.uid) &&
-          (!gestaMode || gestaMode.casterUid === pieceCard?.uid) &&
-          (!ardoreMode || ardoreMode.casterUid === pieceCard?.uid) &&
-          canUseArdore(pieceCard?.uid, game.playerArdoreTracker ?? { used: new Set() })
-            ? (ardoreId) => {
-                const ardoreObj = pieceCard.ardore?.find(a => a.id === ardoreId);
-                if (ardoreObj?.selfOnly) {
-                  setArdorePreview({ caster: pieceCard, target: pieceCard, ardore: ardoreObj });
-                } else {
-                  setArdoreMode({ ardoreId, casterUid: pieceCard.uid, tipo: ardoreObj?.tipo });
-                  setActiveTab('diario');
-                }
-              }
-            : null
-        }
-        ardoreUsed={
-          pieceCard
-            ? !canUseArdore(
-                pieceCard.uid,
-                pieceCard.side === "player"
-                  ? (game.playerArdoreTracker ?? { used: new Set() })
-                  : (game.aiArdoreTracker    ?? { used: new Set() })
-              )
-            : false
-        }
+        onArdoreClick={handleArdoreClick}
+        ardoreUsed={ardoreUsed}
         debuffs={game.debuffs ?? []}
       />
 
       {/* ── Info pezzo selezionato ── */}
-
-      <StatusHint hint={
-        pendingPlacement?.validCells
-          ? "↖ Scegli dove posizionare la tua pedina dopo l'attacco"
-          : calcStatusHint(game, gestaMode, ardoreMode, pieceCard)
-      } />
 
       <RotazioneTracker game={game} openPieceTab={openPieceTab} selectedUid={pieceCard?.uid ?? null} opponentNome={game.opponentNome} />
 

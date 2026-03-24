@@ -1,46 +1,50 @@
-import settingsIcon from "../assets/icon/settings.svg";
+import { useState, useEffect } from "react";
 import "./QuestBoardGame.css";
 
-export default function GameHud({ game, utente, onOptions, onFineTurno, pieceJustMoved }) {
+export default function GameHud({ game, utente, onFineTurno, pieceJustMoved, hint }) {
+  const [hintCollapsed, setHintCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (hint) setHintCollapsed(false);
+  }, [hint]);
+
   return (
     <div className="qbg-hud">
-      <div className="qbg-hud-matchup">
-        {/* Lato giocatore */}
-        <div className={`qbg-hud-fighter qbg-hud-player-side ${game.turn === "player" ? "qbg-hud-active" : ""}`}>
-          <div className="qbg-hud-avatar qbg-hud-avatar-player">
-            {utente?.avatar
-              ? <img src={utente.avatar} alt="avatar" className="qbg-hud-avatar-img" />
-              : <span className="qbg-hud-avatar-initials">
-                  {(utente?.nome?.[0] ?? "?")}
-                  {(utente?.cognome?.[0] ?? "")}
-                </span>
-            }
-          </div>
-          <div className="qbg-hud-fighter-info">
-            <span className="qbg-hud-fighter-name">{utente?.nome ?? "Giocatore"}</span>
-            <span className="qbg-hud-fighter-pieces">♟ {game.playerPieces.length} pedine</span>
+
+      <div className={`qbg-hud-fighter qbg-hud-player-side ${game.turn === "player" ? "qbg-hud-active" : ""}`}>
+        <div className="qbg-hud-avatar qbg-hud-avatar-player">
+          {utente?.avatar
+            ? <img src={utente.avatar} alt="avatar" className="qbg-hud-avatar-img" />
+            : <span className="qbg-hud-avatar-initials">
+                {(utente?.nome?.[0] ?? "?")}
+                {(utente?.cognome?.[0] ?? "")}
+              </span>
+          }
+        </div>
+        <div className="qbg-hud-fighter-info">
+          <span className="qbg-hud-fighter-name">{utente?.nome ?? "Giocatore"}</span>
+          <div className="qbg-hud-fighter-row">
+            <span className="qbg-hud-round">Round {game.playerRound}</span>
+            <span className="qbg-hud-fighter-pieces">♟ {game.playerPieces.length}</span>
           </div>
         </div>
+      </div>
 
-        {/* Centro VS */}
-        <div className="qbg-hud-center">
-          <span className="qbg-hud-vs">VS</span>
-          <span className="qbg-hud-round">R{game.playerRound} / R{game.aiRound}</span>
+
+      <div className={`qbg-hud-fighter qbg-hud-ai-side ${game.turn === "ai" ? "qbg-hud-active" : ""}`}>
+        <div className="qbg-hud-fighter-info qbg-hud-fighter-info-right">
+          <span className="qbg-hud-fighter-name">{game.opponentTag ?? game.opponentNome ?? "AI"}</span>
+          <div className="qbg-hud-fighter-row qbg-hud-fighter-row-right">
+            <span className="qbg-hud-fighter-pieces">{game.aiPieces.length} ♟</span>
+            <span className="qbg-hud-round">{game.aiRound} Round</span>
+          </div>
         </div>
-
-        {/* Lato AI */}
-        <div className={`qbg-hud-fighter qbg-hud-ai-side ${game.turn === "ai" ? "qbg-hud-active" : ""}`}>
-          <div className="qbg-hud-fighter-info qbg-hud-fighter-info-right">
-            <span className="qbg-hud-fighter-name">{game.opponentTag ?? game.opponentNome ?? "AI"}</span>
-            <span className="qbg-hud-fighter-pieces">♟ {game.aiPieces.length} pedine</span>
-          </div>
-          <div className="qbg-hud-avatar qbg-hud-avatar-ai">
-            {game.opponentAvatarImg
-              ? <img src={game.opponentAvatarImg} alt={game.opponentNome} className="qbg-hud-avatar-img"
-                     style={{ objectPosition: game.opponentAvatarPos ?? 'center' }} />
-              : <span className="qbg-hud-avatar-initials">🤖</span>
-            }
-          </div>
+        <div className="qbg-hud-avatar qbg-hud-avatar-ai">
+          {game.opponentAvatarImg
+            ? <img src={game.opponentAvatarImg} alt={game.opponentNome} className="qbg-hud-avatar-img"
+                   style={{ objectPosition: game.opponentAvatarPos ?? 'center' }} />
+            : <span className="qbg-hud-avatar-initials">🤖</span>
+          }
         </div>
       </div>
 
@@ -49,13 +53,20 @@ export default function GameHud({ game, utente, onOptions, onFineTurno, pieceJus
           className={`qbg-hud-fine-turno ${pieceJustMoved ? "qbg-hud-fine-turno-ready" : "qbg-hud-fine-turno-skip"}`}
           onClick={onFineTurno}
         >
-          {pieceJustMoved ? "Fine\nTurno" : "Fine\nTurno"}
+          Fine<br/>Turno
         </button>
       )}
 
-      <button className="qbg-back-btn" onClick={onOptions} title="Opzioni">
-        <img src={settingsIcon} alt="opzioni" className="qbg-settings-icon" />
-      </button>
+      {hint && !onFineTurno && (
+        <div className={`qbg-hud-hint${hintCollapsed ? ' qbg-hud-hint--collapsed' : ''}`}>
+          <span className="qbg-hud-hint-text">{hint}</span>
+          <button
+            className={`qbg-hud-hint-toggle${hintCollapsed ? ' qbg-hud-hint-toggle--up' : ''}`}
+            onClick={() => setHintCollapsed(v => !v)}
+          />
+        </div>
+      )}
+
     </div>
   );
 }
