@@ -6,7 +6,7 @@ import {
   endPlayerPieceTurn, applyArdoreCarica, applyArdoreCaricaAttack, applyScagliare,
   applyAttackerRelocation,
 } from "../game/questboard/qb_state.js";
-import { isBlocked, canMoveInRotation, canUseArdore, BOARD_SIZE, getScagliareTargets, getScagliareDest, calcScagliareDanno } from "../game/questboard/qb_rules.js";
+import { isBlocked, canMoveInRotation, canUseArdore, BOARD_SIZE, getValidMoves, getScagliareTargets, getScagliareDest, calcScagliareDanno } from "../game/questboard/qb_rules.js";
 import { chooseBestMove } from "../game/questboard/qb_ai.js";
 import GameBoard from "./GameBoard.jsx";
 import GameOverlays from "./GameOverlays.jsx";
@@ -19,6 +19,7 @@ import SettingsButton from "../components/SettingsButton.jsx";
 import "./QuestBoardGame.css";
 
 const AI_DELAY_MS = 1200;
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
 
 function calcStatusHint(game, gestaMode, ardoreMode, pieceCard) {
   if (ardoreMode) {
@@ -44,7 +45,7 @@ function calcStatusHint(game, gestaMode, ardoreMode, pieceCard) {
   if (game.selected) {
     if (game.validMoves.length === 0) return 'Nessun movimento disponibile';
     const hasAttacks = game.validMoves.some(m => m.isAttack);
-    if (hasAttacks) return '⚔ Clicca su un nemico per attaccare, o scegli una cella';
+    if (hasAttacks) return 'Clicca su un nemico per attaccare, o scegli una cella';
     return 'Scegli la cella in cui spostarlo';
   }
   return null;
@@ -59,7 +60,7 @@ function calcCellSize() {
   return Math.max(60, Math.min(maxByW, maxByH, 144));
 }
 // ── Componente principale ─────────────────────────────────────────────────────
-export default function QuestBoardGame({ inventario, formazione, sfidante, utente, onBack }) {
+export default function QuestBoardGame({ inventario, formazione, sfidante, utente, token, onMoneteUpdate, onBack }) {
   const [game,          setGame]          = useState(() => createGame(inventario, formazione, sfidante));
   const [animCell,      setAnimCell]      = useState(null);
   const [moveAnim,      setMoveAnim]      = useState(null);
@@ -255,6 +256,18 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
     if (game.cycleEndEvent) setRoundEndNotif(game.cycleEndEvent);
   }, [game.cycleEndEvent]);
 
+  // ── Vittoria: assegna monete in base alla difficoltà dello sfidante ───────────
+  useEffect(() => {
+    if (game.status !== "over" || game.winner !== "player" || !token || !onMoneteUpdate) return;
+    const guadagno = (sfidante?.difficolta ?? 1) * 10;
+    const nuove = (utente?.monete ?? 0) + guadagno;
+    fetch(`${API_URL}/api/me/preferenze`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ monete: nuove }),
+    }).then(r => { if (r.ok) onMoneteUpdate(nuove); });
+  }, [game.status, game.winner]);
+
   // ── Reset Fine Turno quando il turno torna al giocatore (dopo AI) ────────────
   useEffect(() => {
     if (game.turn === "player") {
@@ -341,20 +354,21 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
     const defenderAlive = game.aiPieces.some(p => p.row === defRow && p.col === defCol);
     if (!defenderAlive) { setPendingPlacement(null); return; } // difensore morto, nessuna scelta
     const allPieces = [...game.playerPieces, ...game.aiPieces];
-    const occupied = new Set(allPieces.map(p => `${p.row},${p.col}`));
+    // Celle realmente raggiungibili dall'attaccante (con pathfinding, no salto pezzi)
+    const reachableKeys = new Set(
+      getValidMoves(attacker, allPieces)
+        .filter(m => !m.isAttack)
+        .map(m => `${m.row},${m.col}`)
+    );
+    reachableKeys.add(`${attacker.row},${attacker.col}`); // può restare ferma
     const adjacentFree = [];
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
         if (dr === 0 && dc === 0) continue;
         const r = defRow + dr, c = defCol + dc;
         if (r < 0 || r >= BOARD_SIZE || c < 0 || c >= BOARD_SIZE) continue;
-        // Intersezione: deve essere raggiungibile dall'attaccante (distanza Chebyshev ≤ mov)
-        const distFromAttacker = Math.max(Math.abs(r - attacker.row), Math.abs(c - attacker.col));
-        if (distFromAttacker > attacker.mov) continue;
-        // Includi la cella corrente dell'attaccante + celle libere
-        if (!occupied.has(`${r},${c}`) || (r === attacker.row && c === attacker.col)) {
-          adjacentFree.push({ row: r, col: c });
-        }
+        if (!reachableKeys.has(`${r},${c}`)) continue;
+        adjacentFree.push({ row: r, col: c });
       }
     }
     if (adjacentFree.length <= 1) { setPendingPlacement(null); return; }
@@ -631,6 +645,16 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
         setGame(s => skipBlockedPiece(s, playerPiece.uid));
         return;
       }
+      // Pedina immobilizzata senza abilità: skippa automaticamente
+      const isImmobilized = game.debuffs?.some(
+        db => db.targetUid === playerPiece.uid && db.effect === "immobilize"
+      ) ?? false;
+      const hasAbilities = (playerPiece.gesta?.length > 0) || (playerPiece.ardore?.length > 0);
+      if (isImmobilized && !hasAbilities && canMoveInRotation(playerPiece.uid, game.playerRotation)) {
+        setArdoreImpegnato(null);
+        setGame(s => skipBlockedPiece(s, playerPiece.uid));
+        return;
+      }
       setGame(s => selectPiece(s, playerPiece.uid));
       return;
     }
@@ -810,6 +834,7 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
       <GameOverlays
         game={game}
         onBack={onBack}
+        guadagnoMonete={(sfidante?.difficolta ?? 1) * 10}
         handlePlayerChoice={handlePlayerChoice}
         reAuraNotif={reAuraNotif}
         onDismissReAura={() => { setReAuraNotif(null); setGame(g => ({ ...g, reAuraEvent: null })); }}

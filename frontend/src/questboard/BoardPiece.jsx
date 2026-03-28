@@ -2,6 +2,7 @@ import SilhouettePiece from "../SilhouettePiece.jsx";
 import HpGauge from "../components/HpGauge.jsx";
 import BoardPieceAbilities from "./BoardPieceAbilities.jsx";
 import BoardPieceStatus from "./BoardPieceStatus.jsx";
+import { TagSide } from "../components/PieceTag.jsx";
 import "./BoardPiece.css";
 
 export default function BoardPiece({
@@ -38,6 +39,11 @@ export default function BoardPiece({
 
       {/* Status overlay — dormiente, immobilizzato… */}
       <BoardPieceStatus hasMoved={hasMoved} debuffs={debuffs} />
+
+      {/* Tag lato — centro in alto */}
+      <div className="bp-side-tag">
+        <TagSide side={p.side} />
+      </div>
 
       {/* Nome — barra in fondo */}
       <div className={`bp-name bp-name-${p.side}`}>

@@ -6,7 +6,7 @@ import GameFooter from "./GameFooter";
 import logo from "../assets/questboard_logo.svg";
 
 // ── Componente principale ─────────────────────────────────────────────────────
-export default function MainMenu({ utente, onEnterDungeon, onEnterLocanda, onEnterFabbro, onGilda, onLogout }) {
+export default function MainMenu({ utente, onEnterDungeon, onEnterLocanda, onEnterFabbro, onEnterMercante, onGilda, onLogout }) {
   const starsRef = useRef(null);
   const [saveData, setSaveData] = useState(null);
   const [activeTab, setActiveTab] = useState(PANELS[0].id);
@@ -46,6 +46,7 @@ export default function MainMenu({ utente, onEnterDungeon, onEnterLocanda, onEnt
     if (id === "dungeon")    onEnterDungeon(1, null);
     if (id === "questboard") onEnterLocanda();
     if (id === "fabbro")     onEnterFabbro?.();
+    if (id === "mercante")   onEnterMercante?.();
   };
 
   return (
@@ -110,7 +111,7 @@ export default function MainMenu({ utente, onEnterDungeon, onEnterLocanda, onEnt
       <GameFooter
         floor={statFloor}
         gold={statGold}
-        gems={statGems}
+        monete={utente?.monete ?? 0}
         hp={statHp}
       />
     </div>

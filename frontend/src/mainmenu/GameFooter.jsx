@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import moneteImg from "../assets/monete.png";
 import "./GameFooter.css";
 
-export default function GameFooter({ floor, gold, gems, hp }) {
+export default function GameFooter({ floor, gold, monete, hp }) {
   const [isMobile, setIsMobile] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -36,8 +37,8 @@ export default function GameFooter({ floor, gold, gems, hp }) {
               <span className="gf-mobile-value">{gold}</span>
             </div>
             <div className="gf-mobile-stat">
-              <span className="gf-mobile-label">💎 Gemme</span>
-              <span className="gf-mobile-value">{gems}</span>
+              <span className="gf-mobile-label"><img src={moneteImg} alt="monete" style={{ width:14, verticalAlign:"middle", marginRight:3 }} /> Monete</span>
+              <span className="gf-mobile-value">{monete}</span>
             </div>
             <div className="gf-mobile-stat">
               <span className="gf-mobile-label">❤ HP</span>
@@ -65,8 +66,8 @@ export default function GameFooter({ floor, gold, gems, hp }) {
       <span className="gf-sep">|</span>
 
       <div className="gf-stat">
-        <span className="gf-label">💎 Gemme</span>
-        <span className="gf-value">{gems}</span>
+        <span className="gf-label"><img src={moneteImg} alt="monete" style={{ width:14, verticalAlign:"middle", marginRight:3 }} /> Monete</span>
+        <span className="gf-value">{monete}</span>
       </div>
 
       <span className="gf-sep">|</span>

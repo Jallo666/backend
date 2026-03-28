@@ -14,6 +14,7 @@ export default function GameOverlays({
   // Stato di gioco
   game,
   onBack,
+  guadagnoMonete = 0,
   handlePlayerChoice,
 
   // Notifiche
@@ -67,7 +68,7 @@ export default function GameOverlays({
 
       {/* ── Game Over ── */}
       {game.status === "over" && (
-        <GameOverModal winner={game.winner} onBack={onBack} />
+        <GameOverModal winner={game.winner} guadagno={guadagnoMonete} onBack={onBack} />
       )}
 
       {/* ── Forza del Popolo ── */}

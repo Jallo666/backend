@@ -5,6 +5,7 @@ import Gioco from "./Gioco";
 import MainMenu from "./mainmenu/MainMenu";
 import LocandaPage from "./LocandaPage";
 import Fabbro from "./fabbro/Fabbro";
+import Mercante from "./mercante/Mercante";
 import Formazione from "./formazione/Formazione";
 import QuestBoardGame from "./questboard/QuestBoardGame";
 import useMusic from "./music/useMusic";
@@ -113,6 +114,14 @@ function App() {
     caricaUtenti(token);
   }, [utente, token]);
 
+  // ── Sincronizza monete dal server ogni volta che si torna al mainmenu ─────────
+  useEffect(() => {
+    if (pagina !== "mainmenu" || !token) return;
+    fetch(`${API_URL}/api/me/preferenze`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setUtente(u => ({ ...u, monete: data.monete })); });
+  }, [pagina, token]);
+
   const handleDelete = async (id) => {
     await fetch(`${API_URL}/utenti/${id}`, {
       method: "DELETE",
@@ -126,7 +135,8 @@ function App() {
     setStartFloor(floor); setSaveData(player); setPagina("dungeon");
   };
   const enterLocanda = () => setPagina("locanda");
-  const enterFabbro  = () => setPagina("fabbro");
+  const enterFabbro    = () => setPagina("fabbro");
+  const enterMercante  = () => setPagina("mercante");
   const enterFormazione = (sfidante = null) => {
     setQbSfidante(sfidante);
     setPagina("formazione");
@@ -170,6 +180,7 @@ function App() {
           onEnterDungeon={enterDungeon}
           onEnterLocanda={enterLocanda}
           onEnterFabbro={enterFabbro}
+          onEnterMercante={enterMercante}
           onGilda={() => setPagina("gilda")}
           onLogout={handleLogout}
         />
@@ -191,6 +202,10 @@ function App() {
 
   if (pagina === "fabbro") {
     return <MobileGate><Fabbro token={token} onBack={() => setPagina("mainmenu")} /></MobileGate>;
+  }
+
+  if (pagina === "mercante") {
+    return <MobileGate><Mercante token={token} onBack={() => setPagina("mainmenu")} /></MobileGate>;
   }
 
   if (pagina === "locanda") {
@@ -225,6 +240,8 @@ function App() {
           formazione={qbFormazione}
           sfidante={qbSfidante}
           utente={utente}
+          token={token}
+          onMoneteUpdate={nuove => setUtente(u => ({ ...u, monete: nuove }))}
           onBack={() => setPagina("locanda")}
         />
       </MobileGate>

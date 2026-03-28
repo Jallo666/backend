@@ -60,6 +60,13 @@ export function TagLivello({ livello }) {
   return <span className="piece-tag" style={{ '--tag-color': color }}>⭐ Lv.{livello}</span>;
 }
 
+export function TagSide({ side }) {
+  const isPlayer = side === "player";
+  const color = isPlayer ? "#4090d0" : "#c04040";
+  const label = isPlayer ? "Alleato" : "Nemico";
+  return <span className="piece-tag" style={{ '--tag-color': color }}>{label}</span>;
+}
+
 export function TagDebuff({ label }) {
   return <span className="piece-tag" style={{ '--tag-color': '#e04040' }}>🔒 {label}</span>;
 }

@@ -70,7 +70,7 @@ const RICETTE = [
     desc: "Una bestia da caccia. Veloce e letale, può bloccare la preda sul posto.",
   },
   {
-    id: "lich", nome: "Lich", natura: "Non Morto",
+    id: "lich", nome: "Lich", natura: "Arcano",
     razza: "Non-Morto", materiale: "Legno",
     hp: 9, hpMax: 9, atk: 5, def: 1, mov: 2,
     desc: "Un arcimago non morto. La prima volta che cadrebbe, sopravvive con 1 HP. Drena la vita dei nemici.",

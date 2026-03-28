@@ -219,7 +219,7 @@ export const NATURA_DA_NOME = {
   "Chierico":    "Sacerdote",
   "Barbaro":     "Selvaggio",
   "Lupo":        "Selvaggio",
-  "Lich":           "Non Morto",
+  "Lich":           "Arcano",
   "Guerriero D'Ossa": "Sentinella",
 };
 

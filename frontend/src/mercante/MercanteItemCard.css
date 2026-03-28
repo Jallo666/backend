@@ -1,0 +1,169 @@
+.mric-card {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 20px;
+  padding: 20px 18px;
+  border-radius: 12px;
+  background: rgba(10, 5, 1, 0.7);
+  border: 1px solid rgba(90, 53, 16, 0.35);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* ── Info sinistra ── */
+.mric-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 180px;
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(90, 53, 16, 0.25);
+}
+
+.mric-icon {
+  width: 160px;
+  height: 160px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.mric-icon-fallback { font-size: 80px; }
+
+.mric-nome {
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  color: #c8a060;
+}
+
+.mric-qty {
+  font-family: 'Cinzel', serif;
+  font-size: 52px;
+  color: #f0c040;
+}
+
+/* ── Azioni destra — griglia 4 colonne allineate ── */
+.mric-azioni {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  align-items: stretch;
+  gap: 14px 20px;
+  padding: 16px 20px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(90, 53, 16, 0.25);
+  overflow: hidden;
+}
+
+/* ── Ogni sezione è trasparente, le sue celle vanno nella griglia ── */
+.mric-sezione { display: contents; }
+
+.mric-sezione-label {
+  font-family: 'Cinzel', serif;
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #c8a060;
+  display: flex;
+  align-items: center;
+}
+
+.mric-qty-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  justify-self: start;
+  justify-content: center;
+}
+
+.mric-qty-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mric-qty-btn {
+  width: 48px; height: 48px;
+  font-size: 28px; font-weight: 700;
+  border-radius: 4px;
+  border: 1px solid rgba(200, 160, 40, 0.4);
+  background: rgba(40, 25, 0, 0.8);
+  color: #f0c040;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s;
+}
+.mric-qty-btn:hover:not(:disabled) { background: rgba(100, 60, 0, 0.9); }
+.mric-qty-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.mric-qty-input {
+  width: 72px;
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  color: #f0c040;
+  background: rgba(10, 5, 1, 0.8);
+  border: 1px solid rgba(200, 160, 40, 0.35);
+  border-radius: 4px;
+  padding: 2px 4px;
+  -moz-appearance: textfield;
+}
+.mric-qty-input::-webkit-inner-spin-button,
+.mric-qty-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.mric-qty-input:disabled { opacity: 0.3; }
+
+.mric-prezzo {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  color: #f0c040;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: center;
+}
+
+.mric-monete-img {
+  width: 28px;
+  height: 28px;
+  image-rendering: pixelated;
+}
+
+.mric-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 22px;
+  font-weight: 700;
+  padding: 0 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  align-self: stretch;
+  width: 100%;
+}
+.mric-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.mric-btn-vendi {
+  border: 1px solid rgba(200, 80, 40, 0.5);
+  background: rgba(60, 15, 0, 0.8);
+  color: #ff9060;
+}
+.mric-btn-vendi:hover:not(:disabled) {
+  background: rgba(120, 40, 0, 0.9);
+  border-color: rgba(255, 120, 60, 0.8);
+}
+
+.mric-btn-compra {
+  border: 1px solid rgba(40, 160, 80, 0.5);
+  background: rgba(0, 30, 10, 0.8);
+  color: #60e090;
+}
+.mric-btn-compra:hover:not(:disabled) {
+  background: rgba(0, 80, 30, 0.9);
+  border-color: rgba(60, 220, 100, 0.8);
+}

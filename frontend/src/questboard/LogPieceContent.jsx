@@ -3,7 +3,7 @@ import SilhouettePiece from '../SilhouettePiece.jsx';
 import PieceStats from '../components/PieceStats.jsx';
 import HpGauge from '../components/HpGauge.jsx';
 import AbilitaList from '../components/AbilitaList.jsx';
-import { TagNatura, TagRazza, TagMateriale, TagLivello, TagRe, TagDebuff, TagDormiente } from '../components/PieceTag.jsx';
+import { TagNatura, TagRazza, TagMateriale, TagLivello, TagRe, TagDebuff, TagDormiente, TagSide } from '../components/PieceTag.jsx';
 import { livelloPerRicetta } from '../game/questboard/qb_pieces.js';
 
 export default function LogPieceContent({ pieceCard, setPieceCard, setActiveTab, onGestaClick, onArdoreClick, ardoreUsed, debuffs = [], isDormiente = false, selectedUid }) {
@@ -26,9 +26,7 @@ export default function LogPieceContent({ pieceCard, setPieceCard, setActiveTab,
           <TagLivello livello={livello} />
           {piece.isRe && <TagRe />}
         </span>
-        <span className={`lpc-team ${isPlayer ? "lpc-team-player" : "lpc-team-ai"}`}>
-          {isPlayer ? "TUO" : "NEMICO"}
-        </span>
+        <TagSide side={piece.side} />
         <button className="lpc-close" onClick={() => { setPieceCard(null); setActiveTab('diario'); }}>✕</button>
       </div>
 

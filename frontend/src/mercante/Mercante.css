@@ -1,0 +1,122 @@
+/* Mercante.css */
+.mer-root {
+  height: 100%;
+  overflow: hidden;
+  background:
+    linear-gradient(rgba(10, 4, 0, 0.55), rgba(10, 4, 0, 0.55)),
+    url('../assets/mercante.png') center / cover no-repeat fixed;
+  color: #f5e0b0;
+  font-family: 'Crimson Text', serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Toast ── */
+.mer-toast {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  padding: 12px 28px;
+  border-radius: 8px;
+  pointer-events: none;
+  white-space: nowrap;
+  color: #60cc60;
+  border: 1px solid rgba(48, 136, 32, 0.5);
+  background: rgba(0, 30, 0, 0.92);
+  animation: merToastIn 0.2s ease;
+}
+@keyframes merToastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Monete ── */
+.mer-monete {
+  font-family: 'Cinzel', serif;
+  font-size: 40px;
+  font-weight: 700;
+  color: #f0c040;
+  border: 1px solid rgba(200, 160, 40, 0.4);
+  padding: 8px 24px;
+  border-radius: 6px;
+  background: rgba(30, 20, 0, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-shadow: 0 0 10px rgba(240, 192, 64, 0.3);
+  flex-shrink: 0;
+}
+.mer-monete-img {
+  width: 100px;
+  height: 100px;
+  image-rendering: pixelated;
+}
+
+/* ── Body — occupa tutto lo spazio residuo senza scrollare ── */
+.mer-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 20px 28px 20px;
+  gap: 16px;
+}
+
+/* ── Sezione inventario ── */
+.mer-sezione {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mer-sezione-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(200, 160, 40, 0.2);
+  flex-shrink: 0;
+}
+
+.mer-sezione-titolo {
+  font-family: 'Cinzel Decorative', 'Cinzel', serif;
+  font-size: 40px;
+  color: #f0c040;
+  margin: 0;
+  text-shadow: 0 0 16px rgba(240, 192, 64, 0.25);
+}
+
+/* ── Tre colonne — occupano l'altezza residua e scrollano dentro ── */
+.mer-colonne {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+}
+
+/* Forza pnl-root a crescere e scrollare internamente */
+.mer-colonne .pnl-root {
+  flex: 1;
+  flex-shrink: 1;
+  min-height: 0;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.mer-colonne .pnl-lista {
+  overflow-x: hidden;
+}
+
+/* ── Responsive ── */
+@media (max-width: 700px), (max-height: 500px) {
+  .mer-body    { padding: 12px 14px; }
+  .mer-colonne { flex-direction: column; }
+}

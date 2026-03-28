@@ -76,6 +76,24 @@ using (var scope = app.Services.CreateScope())
 
     // Migrazione: tabella PezziUtente
     var isPostgres = db.Database.ProviderName?.Contains("Npgsql") == true;
+
+    // Migrazione: nuovi campi Utenti (Music, Audio, Avatar, Language, Monete)
+    if (isPostgres)
+    {
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Music\"    BOOLEAN NOT NULL DEFAULT TRUE"); }  catch { }
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Audio\"    BOOLEAN NOT NULL DEFAULT TRUE"); }  catch { }
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Avatar\"   TEXT"); }                           catch { }
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Language\" TEXT    NOT NULL DEFAULT 'ita'"); } catch { }
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Monete\"   INTEGER NOT NULL DEFAULT 0"); }     catch { }
+    }
+    else
+    {
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Music\"    INTEGER NOT NULL DEFAULT 1"); }     catch { }
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Audio\"    INTEGER NOT NULL DEFAULT 1"); }     catch { }
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Avatar\"   TEXT"); }                           catch { }
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Language\" TEXT    NOT NULL DEFAULT 'ita'"); } catch { }
+        try { db.Database.ExecuteSqlRaw("ALTER TABLE \"Utenti\" ADD COLUMN \"Monete\"   INTEGER NOT NULL DEFAULT 0"); }     catch { }
+    }
     try
     {
         if (isPostgres)
@@ -409,6 +427,69 @@ app.MapGet("/api/materiali", async (ClaimsPrincipal user, AppDbContext db) =>
     return Results.Ok(materiali);
 }).RequireAuthorization();
 
+// ── Endpoint: vendi materiale ─────────────────────────────────────────────────
+var PREZZI_VENDITA = new Dictionary<string, int>
+{
+    ["legna"]       = 1,
+    ["quarzo"]      = 2,
+    ["onice_nero"]  = 2,
+    ["resina"]      = 2,
+    ["farina_ossa"] = 2,
+};
+
+app.MapPost("/api/materiali/vendi", async (ClaimsPrincipal user, VendiRequest req, AppDbContext db) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    if (req.Quantita <= 0) return Results.BadRequest("Quantità non valida");
+    if (!PREZZI_VENDITA.TryGetValue(req.Tipo, out var prezzoUnit))
+        return Results.BadRequest("Materiale non vendibile");
+
+    var mat = await db.MaterialiUtente.FirstOrDefaultAsync(m => m.UtenteId == utenteId && m.Tipo == req.Tipo);
+    if (mat is null || mat.Quantita < req.Quantita) return Results.BadRequest("Quantità insufficiente");
+
+    var utente = await db.Utenti.FindAsync(utenteId);
+    if (utente is null) return Results.NotFound();
+
+    mat.Quantita   -= req.Quantita;
+    utente.Monete  += prezzoUnit * req.Quantita;
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { mat.Quantita, utente.Monete });
+}).RequireAuthorization();
+
+// ── Endpoint: compra materiale ────────────────────────────────────────────────
+var PREZZI_ACQUISTO = new Dictionary<string, int>
+{
+    ["legna"]       = 2,
+    ["quarzo"]      = 4,
+    ["onice_nero"]  = 4,
+    ["resina"]      = 4,
+    ["farina_ossa"] = 4,
+};
+
+app.MapPost("/api/materiali/compra", async (ClaimsPrincipal user, VendiRequest req, AppDbContext db) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    if (req.Quantita <= 0) return Results.BadRequest("Quantità non valida");
+    if (!PREZZI_ACQUISTO.TryGetValue(req.Tipo, out var prezzoUnit))
+        return Results.BadRequest("Materiale non acquistabile");
+
+    var utente = await db.Utenti.FindAsync(utenteId);
+    if (utente is null) return Results.NotFound();
+
+    var costo = prezzoUnit * req.Quantita;
+    if (utente.Monete < costo) return Results.BadRequest("Monete insufficienti");
+
+    var mat = await db.MaterialiUtente.FirstOrDefaultAsync(m => m.UtenteId == utenteId && m.Tipo == req.Tipo);
+    if (mat is null) return Results.NotFound("Materiale non trovato nell'inventario");
+
+    utente.Monete -= costo;
+    mat.Quantita  += req.Quantita;
+    await db.SaveChangesAsync();
+
+    return Results.Ok(new { mat.Quantita, utente.Monete });
+}).RequireAuthorization();
+
 // ── Endpoint: utenti ──────────────────────────────────────────────────────────
 app.MapGet("/utenti", async (AppDbContext db) =>
     await db.Utenti.Select(u => new { u.Id, u.Nome, u.Cognome, u.Email, u.Ruolo }).ToListAsync())
@@ -421,7 +502,7 @@ app.MapPost("/login", async (LoginRequest req, AppDbContext db) =>
         return Results.Unauthorized();
 
     var token = GeneraToken(utente, key);
-    return Results.Ok(new { utente.Id, utente.Nome, utente.Cognome, utente.Email, utente.Ruolo, token });
+    return Results.Ok(new { utente.Id, utente.Nome, utente.Cognome, utente.Email, utente.Ruolo, utente.Music, utente.Audio, utente.Avatar, utente.Language, utente.Monete, token });
 });
 
 app.MapPost("/registrati", async (RegistrazioneRequest req, AppDbContext db) =>
@@ -445,7 +526,7 @@ app.MapPost("/registrati", async (RegistrazioneRequest req, AppDbContext db) =>
     await db.SaveChangesAsync();
 
     var token = GeneraToken(utente, key);
-    return Results.Ok(new { utente.Id, utente.Nome, utente.Cognome, utente.Email, utente.Ruolo, token });
+    return Results.Ok(new { utente.Id, utente.Nome, utente.Cognome, utente.Email, utente.Ruolo, utente.Music, utente.Audio, utente.Avatar, utente.Language, utente.Monete, token });
 });
 
 app.MapDelete("/utenti/{id}", async (int id, ClaimsPrincipal user, AppDbContext db) =>
@@ -461,6 +542,30 @@ app.MapDelete("/utenti/{id}", async (int id, ClaimsPrincipal user, AppDbContext 
     await db.SaveChangesAsync();
     return Results.NoContent();
 }).RequireAuthorization(p => p.RequireRole("admin"));
+
+app.MapGet("/api/me/preferenze", async (ClaimsPrincipal user, AppDbContext db) =>
+{
+    var id = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    var utente = await db.Utenti.FindAsync(id);
+    if (utente is null) return Results.NotFound();
+    return Results.Ok(new { utente.Music, utente.Audio, utente.Avatar, utente.Language, utente.Monete });
+}).RequireAuthorization();
+
+app.MapPatch("/api/me/preferenze", async (ClaimsPrincipal user, PreferenzeRequest req, AppDbContext db) =>
+{
+    var id = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    var utente = await db.Utenti.FindAsync(id);
+    if (utente is null) return Results.NotFound();
+
+    if (req.Music    is not null) utente.Music    = req.Music.Value;
+    if (req.Audio    is not null) utente.Audio    = req.Audio.Value;
+    if (req.Avatar   is not null) utente.Avatar   = req.Avatar;
+    if (req.Language is not null) utente.Language = req.Language;
+    if (req.Monete   is not null) utente.Monete   = req.Monete.Value;
+
+    await db.SaveChangesAsync();
+    return Results.Ok(new { utente.Music, utente.Audio, utente.Avatar, utente.Language, utente.Monete });
+}).RequireAuthorization();
 
 app.Run();
 
@@ -521,12 +626,17 @@ class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 
 class Utente
 {
-    public int    Id       { get; set; }
-    public string Nome     { get; set; } = "";
-    public string Cognome  { get; set; } = "";
-    public string Email    { get; set; } = "";
-    public string Password { get; set; } = "";
-    public string Ruolo    { get; set; } = "user";
+    public int     Id       { get; set; }
+    public string  Nome     { get; set; } = "";
+    public string  Cognome  { get; set; } = "";
+    public string  Email    { get; set; } = "";
+    public string  Password { get; set; } = "";
+    public string  Ruolo    { get; set; } = "user";
+    public bool    Music    { get; set; } = true;
+    public bool    Audio    { get; set; } = true;
+    public string? Avatar   { get; set; } = null;
+    public string  Language { get; set; } = "ita";
+    public int     Monete   { get; set; } = 0;
 }
 
 class PezzoUtente
@@ -567,6 +677,8 @@ class MaterialeUtente
 record LoginRequest(string Email, string Password);
 record RegistrazioneRequest(string Nome, string Cognome, string Email, string Password);
 record FormazioneRequest(string Data);
+record PreferenzeRequest(bool? Music, bool? Audio, string? Avatar, string? Language, int? Monete);
+record VendiRequest(string Tipo, int Quantita);
 record CraftaRequest(
     string  Nome,
     string  Icona,
