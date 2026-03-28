@@ -259,7 +259,7 @@ export function createAiFormation(pezzi = CLASSIC_PIECES) {
       mov:      tmpl.mov,
       row:      0,
       col:      i,
-      isRe:     tmpl.isRe ?? (i === 2),
+      isRe:     tmpl.isRe ?? false,
       side:     "ai",
       natura,
       razza:    tmpl.razza    ?? "Umanoide",
