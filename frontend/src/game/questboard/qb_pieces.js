@@ -51,6 +51,7 @@ export const ARDORE_CATALOG = {
     icona:   "🎯",
     danno:   3,
     isArdore: true,
+    notAdjacentOnly: true,
     desc:    "Azione bonus: scegli un bersaglio e infliggi 3 danni diretti.",
   },
   carica: {

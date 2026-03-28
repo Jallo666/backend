@@ -11,6 +11,15 @@
   color: var(--hs-cream, #f5e0b0);
 }
 
+@keyframes lpcActivePulse {
+  0%, 100% { border-color: rgba(60,200,90,0.6); box-shadow: 0 0 10px rgba(60,200,90,0.15); }
+  50%       { border-color: rgba(60,200,90,1);   box-shadow: 0 0 22px rgba(60,200,90,0.45); }
+}
+.lpc-card-active {
+  border-color: rgba(60,200,90,0.6);
+  animation: lpcActivePulse 1.8s ease-in-out infinite;
+}
+
 /* ── Header ── */
 .lpc-header {
   display: flex; align-items: center; gap: 10px;

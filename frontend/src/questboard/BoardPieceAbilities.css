@@ -1,0 +1,26 @@
+/* ── BoardPieceAbilities — badge abilità ultra-collapsed ── */
+.bpa-left {
+  position: absolute; left: 2px; top: 4px;
+  display: flex; flex-direction: column; gap: 3px;
+  pointer-events: none; z-index: 4;
+}
+.bpa-right {
+  position: absolute; right: 2px; top: 4px;
+  display: flex; flex-direction: column; gap: 3px;
+  pointer-events: none; z-index: 4;
+}
+.bpa-on  { opacity: 1; }
+.bpa-off { opacity: 0.3; filter: grayscale(1); }
+
+/* Ultra-collapsed: solo icona, niente testo */
+.bpa-left .piece-tag,
+.bpa-right .piece-tag {
+  font-size: 0; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; box-sizing: border-box;
+}
+.bpa-left .piece-tag-svg,
+.bpa-right .piece-tag-svg {
+  width: 20px; height: 20px; display: block; flex-shrink: 0;
+  margin-right: 0; vertical-align: unset;
+}

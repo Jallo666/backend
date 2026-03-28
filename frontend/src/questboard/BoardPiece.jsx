@@ -1,9 +1,7 @@
 import SilhouettePiece from "../SilhouettePiece.jsx";
-import { TagRazza, TagMateriale, TagLivello } from "../components/PieceTag.jsx";
-import { livelloPerRicetta } from "../game/questboard/qb_pieces.js";
-import coronaIcon  from "../assets/icon/corona.svg";
-import ardoreIcon  from "../assets/icon/ardore.svg";
-import gestaIcon   from "../assets/icon/gesta.svg";
+import HpGauge from "../components/HpGauge.jsx";
+import BoardPieceAbilities from "./BoardPieceAbilities.jsx";
+import BoardPieceStatus from "./BoardPieceStatus.jsx";
 import "./BoardPiece.css";
 
 export default function BoardPiece({
@@ -11,14 +9,17 @@ export default function BoardPiece({
   isSelected, inRot, hasMoved,
   isMoving, isAtkCell, isDefCell,
   moveDx, moveDy,
-  hasArdore, hasGesta, ardoreAvail, gestaAvail,
+  ardoreAvail, gestaAvail,
+  debuffs = [],
+  isCardOpen = false,
 }) {
   return (
     <div
       className={[
         "bp",
         `bp-${p.side}`,
-        isSelected ? "bp-selected" : "",
+        isSelected   ? "bp-selected"  : "",
+        isCardOpen   ? "bp-card-open" : "",
         p.isRe     ? "bp-re"       : "",
         inRot      ? "bp-ready"    : "",
         isMoving   ? "bp-moving"   : "",
@@ -32,34 +33,20 @@ export default function BoardPiece({
         <SilhouettePiece natura={p.natura} pieceId={p.id} size={cellSize * 0.72} />
       </div>
 
-      {/* HP — top-left */}
-      <div className={`bp-hp bp-hp-${p.side}`}>
-        {p.hp}<span className="bp-hp-label">HP</span>
-      </div>
+      {/* Abilità — sinistra, Re — destra */}
+      <BoardPieceAbilities p={p} ardoreAvail={ardoreAvail} gestaAvail={gestaAvail} />
 
-      {/* RE badge — top-right */}
-      {p.isRe && <div className="bp-re-badge"><img src={coronaIcon} alt="RE" style={{ width: "100%", height: "100%", filter: "drop-shadow(0 0 3px #f0c040)" }} /></div>}
+      {/* Status overlay — dormiente, immobilizzato… */}
+      <BoardPieceStatus hasMoved={hasMoved} debuffs={debuffs} />
 
-      {/* Abilità disponibili — bottom-right */}
-      {(hasArdore || hasGesta) && (
-        <div className="bp-abilities">
-          {hasArdore && <span className={`bp-ab ${ardoreAvail ? 'bp-ab-on' : 'bp-ab-off'}`}><img src={ardoreIcon} alt="ardore" /></span>}
-          {hasGesta  && <span className={`bp-ab ${gestaAvail  ? 'bp-ab-on' : 'bp-ab-off'}`}><img src={gestaIcon}  alt="gesta"  /></span>}
-        </div>
-      )}
-
-      {/* Dormiente — overlay scuro + emoji */}
-      {hasMoved && <div className="bp-sleep-overlay" />}
-      {hasMoved && <div className="bp-sleep-badge">💤</div>}
-
-      {/* Nome + tag razza/materiale — barra in fondo */}
+      {/* Nome — barra in fondo */}
       <div className={`bp-name bp-name-${p.side}`}>
         {p.nome}
-        <div className="bp-tags">
-          {p.razza     && <TagRazza razza={p.razza} />}
-          {p.materiale && <TagMateriale materiale={p.materiale} />}
-          <TagLivello livello={livelloPerRicetta(p.id)} />
-        </div>
+      </div>
+
+      {/* HP — sotto al nome */}
+      <div className="bp-hp-gauge">
+        <HpGauge hp={p.hp} hpMax={p.hpMax} compact />
       </div>
     </div>
   );

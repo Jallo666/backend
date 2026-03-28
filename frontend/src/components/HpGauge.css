@@ -73,8 +73,13 @@
   letter-spacing: 0.05em;
 }
 
+.hp-gauge-compact .hp-gauge-track { height: 16px; }
+.hp-gauge-compact .hp-gauge-text  { font-size: 13px; }
+
 @media (min-height: 600px) {
   .hp-gauge-track  { height: 44px; }
   .hp-gauge-text   { font-size: 26px; }
   .hp-gauge-label  { font-size: 22px; }
+  .hp-gauge-compact .hp-gauge-track { height: 16px; }
+  .hp-gauge-compact .hp-gauge-text  { font-size: 13px; }
 }

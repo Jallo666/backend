@@ -1,7 +1,7 @@
 import './DiarioPanel.css';
 import LogPieceContent from './LogPieceContent.jsx';
 
-export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveTab, displayLog, opponentNome, pieceCard, setPieceCard, onGestaClick, onArdoreClick, ardoreUsed, pieceJustMoved, selectedUid, debuffs = [] }) {
+export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveTab, displayLog, opponentNome, pieceCard, setPieceCard, onGestaClick, onArdoreClick, ardoreUsed, pieceJustMoved, selectedUid, debuffs = [], isDormiente = false }) {
   return (
     <div className={`qbg-log-panel ${showLog ? "" : "qbg-log-hidden"}`}>
 
@@ -49,6 +49,7 @@ export default function DiarioPanel({ showLog, setShowLog, activeTab, setActiveT
             pieceJustMoved={pieceJustMoved}
             selectedUid={selectedUid}
             debuffs={debuffs}
+            isDormiente={isDormiente}
           />
         )}
       </div>

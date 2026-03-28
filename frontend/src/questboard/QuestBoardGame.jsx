@@ -674,6 +674,22 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
     }
   }
 
+  // ── Target validi per ardore (es. Tiro di Precisione: notAdjacentOnly) ──────
+  let ardoreTargetUids = null;
+  if (ardoreMode && ardoreMode.tipo !== "movimento") {
+    const ardoreCaster = game.playerPieces.find(p => p.uid === ardoreMode.casterUid);
+    const ardoreObj = ardoreCaster?.ardore?.find(a => a.id === ardoreMode.ardoreId);
+    const allPiecesNowA = [...game.playerPieces, ...game.aiPieces];
+    ardoreTargetUids = allPiecesNowA.filter(p => {
+      if (ardoreObj?.selfOnly) return p.uid === ardoreCaster.uid;
+      if (ardoreObj?.notAdjacentOnly) {
+        const dist = Math.max(Math.abs(p.row - ardoreCaster.row), Math.abs(p.col - ardoreCaster.col));
+        return dist > 1;
+      }
+      return true;
+    }).map(p => p.uid);
+  }
+
   const activePieceUid = pendingFineTurnoUid ?? ardoreImpegnato?.pieceUid ?? null;
   const hudFineTurnoUid = activePieceUid;
   const hudPieceJustMoved = pendingFineTurnoUid !== null;
@@ -854,6 +870,9 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
         scagliareTargetUids={scagliareTargetUids}
         scagliareDests={scagliareDests}
         gestaAdjacentTargetUids={gestaAdjacentTargetUids}
+        ardoreTargetUids={ardoreTargetUids}
+        debuffs={game.debuffs ?? []}
+        cardUid={pieceCard?.uid ?? null}
       />
 
       <DiarioPanel
@@ -869,11 +888,16 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
         onArdoreClick={handleArdoreClick}
         ardoreUsed={ardoreUsed}
         debuffs={game.debuffs ?? []}
+        isDormiente={pieceCard != null && (
+          pieceCard.side === 'player'
+            ? !canMoveInRotation(pieceCard.uid, game.playerRotation)
+            : !canMoveInRotation(pieceCard.uid, game.aiRotation)
+        )}
       />
 
       {/* ── Info pezzo selezionato ── */}
 
-      <RotazioneTracker game={game} openPieceTab={openPieceTab} selectedUid={pieceCard?.uid ?? null} opponentNome={game.opponentNome} />
+      <RotazioneTracker game={game} openPieceTab={openPieceTab} selectedUid={pieceCard?.uid ?? null} opponentNome={game.opponentNome} playerNome={utente?.nome ?? "Eroe"} utente={utente} debuffs={game.debuffs ?? []} />
 
       {/* ── Toast annuncio turno ── */}
       {turnPopup && (

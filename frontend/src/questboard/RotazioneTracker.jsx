@@ -1,43 +1,8 @@
 import { useState } from 'react';
 import './RotazioneTracker.css';
-import SilhouettePiece from '../SilhouettePiece.jsx';
-import { canMoveInRotation, canUseArdore } from '../game/questboard/qb_rules.js';
-import ardoreIcon from '../assets/icon/ardore.svg';
-import gestaIcon  from '../assets/icon/gesta.svg';
+import RotPieceRow from './RotPieceRow.jsx';
 
-function PieceRow({ p, rotation, ardoreTracker, isAi, collapsed, onClick, selected }) {
-  const ready = canMoveInRotation(p.uid, rotation);
-  const hasArdore  = (p.ardore?.length ?? 0) > 0;
-  const hasGesta   = (p.gesta?.length ?? 0) > 0;
-  const ardoreAvail = hasArdore && canUseArdore(p.uid, ardoreTracker ?? { used: new Set() }) && p.canAct !== false;
-  const gestaAvail  = hasGesta  && p.canAct !== false;
-  return (
-    <div
-      className={`qbg-rot-row ${isAi ? "qbg-rot-row-ai" : ""} ${ready ? "qbg-rot-ready" : "qbg-rot-done"} ${selected ? "qbg-rot-selected" : ""}`}
-      onClick={() => onClick(p)}
-    >
-      <span className="qbg-rot-icon"><SilhouettePiece natura={p.natura} pieceId={p.id} size={36} /></span>
-      {!collapsed && (
-        <div className="qbg-rot-info">
-          <span className="qbg-rot-nome">
-            {p.isRe && <span className="qbg-rot-crown">♛</span>}
-            {p.nome}
-            {!ready && <span className="qbg-rot-zzz-inline">💤</span>}
-          </span>
-          <span className="qbg-rot-stats">❤ {p.hp} &nbsp;⚔ {p.atk} &nbsp;🛡 {p.def}</span>
-          {(hasArdore || hasGesta) && (
-            <span className="qbg-rot-abilities">
-              {hasArdore && <span className={ardoreAvail ? 'qbg-ab-on' : 'qbg-ab-off'}><img src={ardoreIcon} alt="ardore" /></span>}
-              {hasGesta  && <span className={gestaAvail  ? 'qbg-ab-on' : 'qbg-ab-off'}><img src={gestaIcon}  alt="gesta"  /></span>}
-            </span>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export default function RotazioneTracker({ game, openPieceTab, selectedUid, opponentNome }) {
+export default function RotazioneTracker({ game, openPieceTab, selectedUid, opponentNome, playerNome, utente, debuffs = [] }) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -47,17 +12,36 @@ export default function RotazioneTracker({ game, openPieceTab, selectedUid, oppo
       </button>
 
       <div className="qbg-rot-content">
-        {!collapsed && <div className="qbg-rot-section-label qbg-rot-section-player">⚔ TUE</div>}
+        {!collapsed && (
+          <div className="qbg-rot-section-header qbg-rot-section-player">
+            <div className="qbg-rot-avatar qbg-rot-avatar-player">
+              {utente?.avatar
+                ? <img src={utente.avatar} alt="avatar" className="qbg-hud-avatar-img" />
+                : <span className="qbg-hud-avatar-initials">{utente?.nome?.[0] ?? "?"}{utente?.cognome?.[0] ?? ""}</span>
+              }
+            </div>
+            <span className="qbg-rot-section-nome">{playerNome}</span>
+          </div>
+        )}
         {game.playerPieces.map(p => (
-          <PieceRow key={p.uid} p={p} rotation={game.playerRotation} ardoreTracker={game.playerArdoreTracker} isAi={false} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} />
+          <RotPieceRow key={p.uid} p={p} rotation={game.playerRotation} isAi={false} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} debuffs={debuffs} />
         ))}
 
         {!collapsed && <>
           <div className="qbg-rot-divider" />
-          <div className="qbg-rot-section-label qbg-rot-section-ai">⚔ {opponentNome ?? "AI"}</div>
+          <div className="qbg-rot-section-header qbg-rot-section-ai">
+            <div className="qbg-rot-avatar qbg-rot-avatar-ai">
+              {game.opponentAvatarImg
+                ? <img src={game.opponentAvatarImg} alt={opponentNome} className="qbg-hud-avatar-img"
+                       style={{ objectPosition: game.opponentAvatarPos ?? 'center' }} />
+                : <span className="qbg-hud-avatar-initials">🤖</span>
+              }
+            </div>
+            <span className="qbg-rot-section-nome">{opponentNome ?? "AI"}</span>
+          </div>
         </>}
         {game.aiPieces.map(p => (
-          <PieceRow key={p.uid} p={p} rotation={game.aiRotation} ardoreTracker={game.aiArdoreTracker} isAi={true} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} />
+          <RotPieceRow key={p.uid} p={p} rotation={game.aiRotation} isAi={true} collapsed={collapsed} onClick={openPieceTab} selected={p.uid === selectedUid} debuffs={debuffs} />
         ))}
       </div>
     </div>

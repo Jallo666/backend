@@ -1,10 +1,10 @@
 import './HpGauge.css';
 
-export default function HpGauge({ hp, hpMax }) {
+export default function HpGauge({ hp, hpMax, compact = false }) {
   const pct = Math.round((hp / hpMax) * 100);
   return (
-    <div className="hp-gauge">
-      <span className="hp-gauge-label">Punti Vita</span>
+    <div className={`hp-gauge${compact ? " hp-gauge-compact" : ""}`}>
+      {!compact && <span className="hp-gauge-label">Punti Vita</span>}
       <div className="hp-gauge-track">
         <div
           className="hp-gauge-fill"

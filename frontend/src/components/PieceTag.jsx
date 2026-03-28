@@ -63,3 +63,7 @@ export function TagLivello({ livello }) {
 export function TagDebuff({ label }) {
   return <span className="piece-tag" style={{ '--tag-color': '#e04040' }}>🔒 {label}</span>;
 }
+
+export function TagDormiente() {
+  return <span className="piece-tag" style={{ '--tag-color': '#5070b0' }}>💤 Dormiente</span>;
+}

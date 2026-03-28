@@ -1,0 +1,21 @@
+/* ── BoardPieceStatus — overlay status (dormiente, immobilizzato…) ── */
+.bps-overlay {
+  position: absolute; inset: 0;
+  background: rgba(10,10,30,0.50);
+  pointer-events: none; z-index: 2;
+}
+.bps-badges {
+  position: absolute; top: 48%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; gap: 6px;
+  pointer-events: none; z-index: 5;
+}
+.bps-badge {
+  font-size: clamp(16px, 2vw, 22px);
+  filter: drop-shadow(0 0 5px rgba(0,0,0,0.95));
+  animation: bpsFloat 1.8s ease-in-out infinite;
+}
+@keyframes bpsFloat {
+  0%,100% { transform: scale(1);           opacity: 0.85; }
+  50%     { transform: scale(1.08) translateY(-5%); opacity: 1; }
+}
