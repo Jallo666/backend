@@ -5,7 +5,7 @@ import "./LocandaPage.css";
 import BackButton from "./components/BackButton.jsx";
 import dragoImg from "./assets/luoghi/drago_addormentato.png";
 
-export default function LocandaPage({ onBack, onApriFormazione }) {
+export default function LocandaPage({ onBack, onApriFormazione, onMultiplayer }) {
   const starsRef = useRef(null);
   const [idx, setIdx] = useState(0);
   const [dir, setDir] = useState('right');
@@ -49,6 +49,14 @@ export default function LocandaPage({ onBack, onApriFormazione }) {
             <p className="loc-sub">Un fuoco crepitante illumina la sala. Il locandiere ti fa un cenno. Qui puoi riposare e sfidare avversari alla Quest Board.</p>
           </div>
         </div>
+
+        {onMultiplayer && (
+          <div style={{ display: "flex", justifyContent: "center", margin: "1rem 0 0.5rem" }}>
+            <button className="loc-carousel-arrow" style={{ padding: "0.5rem 2rem", fontSize: "0.7rem", letterSpacing: "0.08em" }} onClick={onMultiplayer}>
+              ⚔ GIOCA ONLINE
+            </button>
+          </div>
+        )}
 
         <h2 className="loc-sfidanti-title">⚔ Sfidanti</h2>
 

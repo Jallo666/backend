@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { applyRemoteAction, replayActions } from "../multiplayer/applyRemoteAction.js";
 import {
   createGame, resolveCoinFlip, selectPiece,
   applyPlayerMove, applyAiTurn, applyAiMoveOnly, applyAiMoveForPiece, skipBlockedPiece, skipPieceTurn,
@@ -59,8 +60,10 @@ function calcCellSize() {
   return Math.max(60, Math.min(maxByW, maxByH, 144));
 }
 // ── Componente principale ─────────────────────────────────────────────────────
-export default function QuestBoardGame({ inventario, formazione, sfidante, utente, onBack }) {
-  const [game,          setGame]          = useState(() => createGame(inventario, formazione, sfidante));
+export default function QuestBoardGame({ inventario, formazione, sfidante, utente, onBack, mpConfig }) {
+  const [game,          setGame]          = useState(() => mpConfig?.initialGame ?? createGame(inventario, formazione, sfidante));
+  const [opponentDisconnected, setOpponentDisconnected] = useState(false);
+  const [disconnectCountdown, setDisconnectCountdown]  = useState(null); // null | number (secondi rimasti)
   const [animCell,      setAnimCell]      = useState(null);
   const [moveAnim,      setMoveAnim]      = useState(null);
   const [combatFlash,   setCombatFlash]   = useState(null);
@@ -111,14 +114,76 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
 
   const handlePlayerChoice = (goFirst) => setGame(s => resolveCoinFlip(s, goFirst));
 
+  // ── Multiplayer: invia azione al server ───────────────────────────────────
+  const sendMpAction = useCallback(async (type, params = {}) => {
+    if (!mpConfig?.sendAction) return;
+    try { await mpConfig.sendAction(type, params); }
+    catch (e) { console.warn("[MP] sendAction fallito:", type, e); }
+  }, [mpConfig]);
+
   const triggerMoveAnim = useCallback((fromRow, fromCol, toRow, toCol) => {
     clearTimeout(moveAnimTimer.current);
     setMoveAnim({ fromRow, fromCol, toRow, toCol });
     moveAnimTimer.current = setTimeout(() => setMoveAnim(null), 1000);
   }, []);
 
+  // ── Multiplayer: ascolta azioni remote ───────────────────────────────────
+  useEffect(() => {
+    const conn = mpConfig?.connection;
+    if (!conn) return;
+    const onAction = (action) => {
+      setGame(s => applyRemoteAction(s, action));
+    };
+    const onDisconnected = () => {
+      setOpponentDisconnected(true);
+      setDisconnectCountdown(30);
+    };
+    const onReconnected  = () => {
+      setOpponentDisconnected(false);
+      setDisconnectCountdown(null);
+    };
+    const onAbandoned    = () => {
+      setOpponentDisconnected(false);
+      setDisconnectCountdown(null);
+      setGame(s => ({ ...s, status: "over", winner: "player",
+        log: [...s.log, "L'avversario ha abbandonato. Hai vinto!"].slice(-40) }));
+    };
+    const onMatchReconnected = (data) => {
+      // Ricostruisce lo stato applicando il log dall'initialGame
+      const rebuilt = replayActions(mpConfig.initialGame, data.actionLog, mpConfig.localRole);
+      setGame(rebuilt);
+    };
+    conn.on("ActionReceived",       onAction);
+    conn.on("OpponentDisconnected", onDisconnected);
+    conn.on("OpponentReconnected",  onReconnected);
+    conn.on("MatchAbandoned",       onAbandoned);
+    conn.on("MatchReconnected",     onMatchReconnected);
+    // Riconnessione automatica: re-joina il match dopo che SignalR ha riconnesso
+    conn.onreconnected(() => {
+      if (mpConfig?.matchId) {
+        conn.invoke("JoinMatch", mpConfig.matchId).catch(console.warn);
+      }
+    });
+    return () => {
+      conn.off("ActionReceived",       onAction);
+      conn.off("OpponentDisconnected", onDisconnected);
+      conn.off("OpponentReconnected",  onReconnected);
+      conn.off("MatchAbandoned",       onAbandoned);
+      conn.off("MatchReconnected",     onMatchReconnected);
+    };
+  }, [mpConfig]);
+
+  // ── Countdown disconnessione avversario ──────────────────────────────────
+  useEffect(() => {
+    if (disconnectCountdown === null) return;
+    if (disconnectCountdown <= 0) return;
+    const id = setTimeout(() => setDisconnectCountdown(n => (n !== null ? n - 1 : null)), 1000);
+    return () => clearTimeout(id);
+  }, [disconnectCountdown]);
+
   // ── Turno AI ──────────────────────────────────────────────────────────────
   useEffect(() => {
+    if (game.isMultiplayer) return; // in multiplayer l'avversario gioca per conto suo
     if (game.status !== "playing" || game.turn !== "ai") return;
     if (turnPopup || roundEndNotif || reAuraNotif) return; // aspetta OK o chiusura notifica
     clearTimeout(aiTimerRef.current);
@@ -173,6 +238,7 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
 
   // ── Mossa AI dopo ardore (pendingAiMove = uid del pezzo che deve muoversi) ─
   useEffect(() => {
+    if (game.isMultiplayer) return;
     if (!pendingAiMove) return;
     const casterUid = pendingAiMove;
     const t = setTimeout(() => {
@@ -298,7 +364,8 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
       setTurnPopup({ msg: `È il tuo turno, ${nome}!\nMuovi le pedine, usa gesta o ardore.`, requiresAck: false });
       turnPopupTimer.current = setTimeout(() => setTurnPopup(null), 2500);
     } else {
-      setTurnPopup({ msg: "Turno dell'avversario", requiresAck: true });
+      const oppNome = game.opponentNome ?? "Avversario";
+      setTurnPopup({ msg: `Turno di ${oppNome}`, requiresAck: !game.isMultiplayer });
       turnPopupTimer.current = setTimeout(() => setTurnPopup(null), 5000);
     }
     return () => clearTimeout(turnPopupTimer.current);
@@ -327,6 +394,7 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
     setArdoreImpegnato({ pieceUid: movingUid });
     setPendingFineTurnoUid(movingUid);
     setGame(s => applyPlayerMove(s, move.row, move.col));
+    sendMpAction("MOVE", { pieceUid: movingUid, toRow: move.row, toCol: move.col });
     // Avvia valutazione celle di riposizionamento (se difensore sopravvive)
     setPendingPlacement({ uid: movingUid, defRow: move.row, defCol: move.col });
   }, [combatPreview, game, triggerMoveAnim]);
@@ -373,6 +441,7 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
       if (afterAttack.status === "over") return afterAttack;
       return selectPiece(afterAttack, caster.uid);
     });
+    sendMpAction("ARDORE_CARICA_ATTACK", { casterUid: caster.uid, targetUid: target.uid });
     setArdoreImpegnato({ pieceUid: caster.uid });
     setArdoreUsedUid(caster.uid);
     // NON settiamo pendingFineTurnoUid: carica non consuma la rotazione,
@@ -422,6 +491,7 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
       if (afterArdore.status === "over") return afterArdore;
       return selectPiece(afterArdore, caster.uid);
     });
+    sendMpAction("ARDORE", { casterUid: caster.uid, ardoreId: ardore.id, targetUid: target.uid });
     setArdoreImpegnato({ pieceUid: caster.uid });
     setArdoreUsedUid(caster.uid);
   }, [ardorePreview]);
@@ -436,6 +506,7 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
     setTimeout(() => setGestaHitAnim(null), 1000);
     setPendingFineTurnoUid(caster.uid);
     setGame(s => applyGesta(s, "player", caster.uid, gesta.id, target.uid));
+    sendMpAction("GESTA", { casterUid: caster.uid, gestaId: gesta.id, targetUid: target.uid });
   }, [gestaPreview]);
 
   // ── Conferma attacco AI dopo preview ──────────────────────────────────────
@@ -457,7 +528,9 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
       if (game.turn !== "player") return;
       const isValid = pendingPlacement.validCells.some(c => c.row === row && c.col === col);
       if (isValid) {
-        setGame(s => applyAttackerRelocation(s, pendingPlacement.uid, row, col));
+        const uid = pendingPlacement.uid;
+        setGame(s => applyAttackerRelocation(s, uid, row, col));
+        sendMpAction("ATTACKER_RELOCATE", { pieceUid: uid, toRow: row, toCol: col });
         setPendingPlacement(null);
       }
       return;
@@ -484,6 +557,7 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
             if (afterCarica.status === "over") return afterCarica;
             return selectPiece(afterCarica, caster.uid);
           });
+          sendMpAction("ARDORE_CARICA", { casterUid: caster.uid, toRow: row, toCol: col });
           setArdoreImpegnato({ pieceUid: caster.uid });
           setArdoreUsedUid(caster.uid);
           return;
@@ -540,9 +614,11 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
         const dests = getScagliareDest(caster, gestaMode.targetUid, allPiecesNow2);
         if (dests.some(d => d.row === row && d.col === col)) {
           const scagliareCasterUid = caster.uid;
+          const scagliareTargetUid = gestaMode.targetUid;
           setGestaMode(null);
           setPendingFineTurnoUid(scagliareCasterUid); // mantieni activePieceUid per il popup
-          setGame(s => applyScagliare(s, "player", scagliareCasterUid, gestaMode.targetUid, row, col));
+          setGame(s => applyScagliare(s, "player", scagliareCasterUid, scagliareTargetUid, row, col));
+          sendMpAction("SCAGLIARE", { casterUid: scagliareCasterUid, targetUid: scagliareTargetUid, destRow: row, destCol: col });
         } else {
           setGestaMode(null);
         }
@@ -612,6 +688,7 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
       setPendingAttack(null);
       setPendingFineTurnoUid(movingUid);
       setGame(s => applyPlayerMove(s, row, col));
+      sendMpAction("MOVE", { pieceUid: movingUid, toRow: row, toCol: col });
       return;
     }
 
@@ -684,8 +761,13 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
         setPendingFineTurnoUid(null);
         setArdoreImpegnato(null);
         setPendingPlacement(null);
-        if (moved) { setGame(s => endPlayerPieceTurn(s, uidToEnd)); }
-        else { setGame(s => skipPieceTurn(s, uidToEnd)); }
+        if (moved) {
+          setGame(s => endPlayerPieceTurn(s, uidToEnd));
+          sendMpAction("END_TURN", { pieceUid: uidToEnd });
+        } else {
+          setGame(s => skipPieceTurn(s, uidToEnd));
+          sendMpAction("END_TURN", { pieceUid: uidToEnd });
+        }
       }
     : null;
 
@@ -892,6 +974,19 @@ export default function QuestBoardGame({ inventario, formazione, sfidante, utent
       {gameMsg && (
         <div className="qbg-game-msg-toast" onClick={() => setGameMsg(null)}>
           {gameMsg}
+        </div>
+      )}
+
+      {/* ── Banner disconnessione avversario ── */}
+      {opponentDisconnected && (
+        <div className="qbg-disconnect-banner">
+          <span className="qbg-disconnect-icon">⚡</span>
+          <span className="qbg-disconnect-msg">
+            {game.opponentNome ?? "Avversario"} si è disconnesso
+          </span>
+          {disconnectCountdown !== null && disconnectCountdown > 0 && (
+            <span className="qbg-disconnect-timer">{disconnectCountdown}s</span>
+          )}
         </div>
       )}
 

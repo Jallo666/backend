@@ -582,6 +582,45 @@
   to   { width: 0%; }
 }
 
+/* ── Banner disconnessione avversario ── */
+.qbg-disconnect-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(10, 5, 2, 0.95);
+  border: 2px solid #cc4422;
+  border-radius: 10px;
+  padding: 10px 24px;
+  font-family: 'Cinzel', serif;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+  animation: qbg-toast-in 0.2s ease;
+}
+.qbg-disconnect-icon {
+  font-size: 22px;
+  animation: qbg-blink 1s steps(1) infinite;
+}
+.qbg-disconnect-msg {
+  font-size: 14px;
+  color: #f08060;
+  letter-spacing: 0.05em;
+}
+.qbg-disconnect-timer {
+  font-size: 18px;
+  font-weight: bold;
+  color: #f0c040;
+  min-width: 36px;
+  text-align: right;
+}
+@keyframes qbg-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
 /* ── Toast messaggio info ── */
 .qbg-game-msg-toast {
   position: fixed;

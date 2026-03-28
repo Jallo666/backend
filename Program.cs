@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -21,6 +22,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuer = false,
             ValidateAudience = false
         };
+        // SignalR: il browser non può inviare header Authorization su WebSocket,
+        // quindi il token viene passato come query param "access_token"
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var token = ctx.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(token) &&
+                    ctx.HttpContext.Request.Path.StartsWithSegments("/hub/game"))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -34,9 +48,13 @@ builder.Services.AddCors(options =>
                   "http://localhost:5174",
                   "https://frontend-cop1.onrender.com")
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials(); // richiesto da SignalR WebSocket
     });
 });
+
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<MatchManager>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -60,9 +78,16 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 var app = builder.Build();
 
+// Collega IHubContext<GameHub> al MatchManager (evita circular DI)
+var matchManager = app.Services.GetRequiredService<MatchManager>();
+var hubContext   = app.Services.GetRequiredService<IHubContext<GameHub>>();
+matchManager.SetHubContext(hubContext);
+
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHub<GameHub>("/hub/game");
 
 // ── Startup: migrazioni manuali + seed ────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
@@ -462,7 +487,90 @@ app.MapDelete("/utenti/{id}", async (int id, ClaimsPrincipal user, AppDbContext 
     return Results.NoContent();
 }).RequireAuthorization(p => p.RequireRole("admin"));
 
+// ── Endpoint: crea partita multiplayer ───────────────────────────────────────
+app.MapPost("/api/match/crea", async (ClaimsPrincipal user, AppDbContext db, MatchManager mm) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    var utente   = await db.Utenti.FindAsync(utenteId);
+    if (utente == null) return Results.Unauthorized();
+
+    var formJson = await BuildFormationJson(utenteId, db);
+    if (formJson == null) return Results.BadRequest("Formazione non salvata o pezzi non trovati");
+
+    var session = mm.CreateSession(utenteId, utente.Nome, formJson);
+    return Results.Ok(new { matchId = session.MatchId, ruolo = "player1" });
+}).RequireAuthorization();
+
+// ── Endpoint: unisciti a partita multiplayer ──────────────────────────────────
+app.MapPost("/api/match/unisciti", async (ClaimsPrincipal user, UniscitiRequest req, AppDbContext db, MatchManager mm) =>
+{
+    var utenteId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+    var utente   = await db.Utenti.FindAsync(utenteId);
+    if (utente == null) return Results.Unauthorized();
+
+    var codice = req.Codice.Trim().ToUpper();
+    var session = mm.GetSession(codice);
+    if (session == null) return Results.BadRequest("Codice non trovato");
+
+    var formJson = await BuildFormationJson(utenteId, db);
+    if (formJson == null) return Results.BadRequest("Formazione non salvata o pezzi non trovati");
+
+    var (ok, error) = mm.JoinSession(codice, utenteId, utente.Nome, formJson);
+    if (!ok) return Results.BadRequest(error);
+
+    return Results.Ok(new { matchId = codice, ruolo = "player2" });
+}).RequireAuthorization();
+
 app.Run();
+
+// ── Helper: costruisce JSON formazione completa per multiplayer ───────────────
+async Task<string?> BuildFormationJson(int utenteId, AppDbContext db)
+{
+    var formazione = await db.Formazioni.FirstOrDefaultAsync(f => f.UtenteId == utenteId);
+    if (formazione == null || formazione.Data == "[]") return null;
+
+    // Il frontend salva un array di formazioni: [{ id, nome, schieramento: [{uid,row,col,isRe}] }]
+    var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+    var saved = JsonSerializer.Deserialize<List<SavedFormazione>>(formazione.Data, opts);
+    var slots = saved?.FirstOrDefault()?.Schieramento;
+    if (slots == null || slots.Count == 0) return null;
+
+    var pezziIds = slots.Select(s => s.Uid).ToList();
+    var pezzi    = await db.PezziUtente
+        .Where(p => p.UtenteId == utenteId && pezziIds.Contains(p.Id))
+        .ToListAsync();
+    var pezziMap = pezzi.ToDictionary(p => p.Id);
+
+    var formationPieces = slots
+        .Select((slot, i) => pezziMap.TryGetValue(slot.Uid, out var p) ? new MatchPiece
+        {
+            DbId      = p.Id,
+            Index     = i,
+            Nome      = p.Nome,
+            Icona     = p.Icona,
+            Hp        = p.HpMax,
+            HpMax     = p.HpMax,
+            Atk       = p.Atk,
+            Def       = p.Def,
+            Mov       = p.Mov,
+            IsClassico = p.IsClassico,
+            Materiali = p.Materiali,
+            Razza     = p.Razza,
+            Materiale = p.Materiale,
+            NomeCustom = p.NomeCustom,
+            RicettaId = p.RicettaId,
+            Row       = slot.Row,
+            Col       = slot.Col,
+            IsRe      = slot.IsRe,
+        } : null)
+        .Where(p => p != null)
+        .ToList();
+
+    if (formationPieces.Count == 0) return null;
+    // camelCase: il frontend legge raw.dbId, raw.nome, raw.hpMax, ecc.
+    var camelCase = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    return JsonSerializer.Serialize(formationPieces, camelCase);
+}
 
 // ── Helper: genera JWT ────────────────────────────────────────────────────────
 string GeneraToken(Utente utente, SymmetricSecurityKey key)
@@ -565,6 +673,10 @@ class MaterialeUtente
 }
 
 record LoginRequest(string Email, string Password);
+record UniscitiRequest(string Codice);
+record FormazioneSlot(int Uid, int Row, int Col, bool IsRe);
+// Struttura reale del JSON salvato dal frontend: lista di formazioni con schieramento annidato
+record SavedFormazione(string Id, string Nome, List<FormazioneSlot> Schieramento);
 record RegistrazioneRequest(string Nome, string Cognome, string Email, string Password);
 record FormazioneRequest(string Data);
 record CraftaRequest(

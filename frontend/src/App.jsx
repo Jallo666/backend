@@ -7,6 +7,7 @@ import LocandaPage from "./LocandaPage";
 import Fabbro from "./fabbro/Fabbro";
 import Formazione from "./formazione/Formazione";
 import QuestBoardGame from "./questboard/QuestBoardGame";
+import MultiplayerLobby from "./multiplayer/MultiplayerLobby";
 import useMusic from "./music/useMusic";
 import { unlockAudio } from "./music/unlockAudio";
 import MobileGate from "./components/MobileGate";
@@ -41,6 +42,9 @@ function App() {
   const [qbInventario,  setQbInventario]  = useState([]);
   const [qbFormazione,  setQbFormazione]  = useState([]);
   const [qbSfidante,    setQbSfidante]    = useState(null);
+
+  // Multiplayer — dati della partita online
+  const [matchConfig,   setMatchConfig]   = useState(null);
 
   useEffect(() => {
     unlockAudio();
@@ -137,6 +141,13 @@ function App() {
     setPagina("questboard");
   };
 
+  const enterMultiplayer = () => setPagina("multiplayer");
+
+  const handleMatchReady = (config) => {
+    setMatchConfig(config);
+    setPagina("questboard_mp");
+  };
+
   // ── Loading ──
   if (checking) {
     return (
@@ -199,6 +210,7 @@ function App() {
         <LocandaPage
           onBack={() => setPagina("mainmenu")}
           onApriFormazione={enterFormazione}
+          onMultiplayer={enterMultiplayer}
         />
       </MobileGate>
     );
@@ -226,6 +238,35 @@ function App() {
           sfidante={qbSfidante}
           utente={utente}
           onBack={() => setPagina("locanda")}
+        />
+      </MobileGate>
+    );
+  }
+
+  if (pagina === "multiplayer") {
+    return (
+      <MobileGate>
+        <MultiplayerLobby
+          token={token}
+          apiUrl={API_URL}
+          onMatchReady={handleMatchReady}
+          onBack={() => setPagina("locanda")}
+        />
+      </MobileGate>
+    );
+  }
+
+  if (pagina === "questboard_mp" && matchConfig) {
+    return (
+      <MobileGate>
+        <QuestBoardGame
+          utente={utente}
+          mpConfig={matchConfig}
+          onBack={() => {
+            matchConfig.connection?.stop?.();
+            setMatchConfig(null);
+            setPagina("locanda");
+          }}
         />
       </MobileGate>
     );

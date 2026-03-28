@@ -1031,3 +1031,102 @@ export function skipBlockedPiece(state, uid) {
     validMoves: [],
   }, uid), "player");
 }
+
+// ── Fine turno esplicito AI (per multiplayer: usato dopo una Gesta) ───────────
+export function endAiPieceTurn(state, uid) {
+  if (state.status !== "playing") return state;
+  // Se il turno è già passato al "player" (perché MOVE ha già chiamato _endTurn), no-op
+  if (state.turn !== "ai") return state;
+  const newTracker  = registerMove(uid, state.aiRotation, state.aiPieces);
+  const newAiPieces = state.aiPieces.map(p => p.uid === uid ? { ...p, canAct: false } : p);
+  let newState = _endTurn(expireActDebuffs({
+    ...state,
+    aiPieces:    newAiPieces,
+    aiRotation:  newTracker,
+  }, uid), "ai");
+  if (newTracker.cycleComplete) { newState = _applyCycleEnd(newState, "ai"); }
+  return newState;
+}
+
+// ── Inizializza partita multiplayer ──────────────────────────────────────────
+// player1PiecesRaw / player2PiecesRaw: array di MatchPiece dal server
+// localRole: "player1" | "player2"
+export function createMultiplayerGame(player1PiecesRaw, player2PiecesRaw, localRole, opponentNome = "Avversario") {
+  // Entrambi i giocatori salvano la formazione alle righe 4-5 (PLAYER_ROWS).
+  // I pezzi dell'avversario devono stare alle righe 0-1 (AI_ROWS):
+  // mirrorRow(r) = (BOARD_SIZE - 1) - r  →  riga 4 → 1, riga 5 → 0
+  const BOARD_LAST_ROW = BOARD_SIZE - 1; // 5
+
+  function toPieces(rawArr, rolePrefix, side, mirrorRow = false) {
+    return _initForzaDelPopolo(rawArr.map((raw, i) => {
+      const gamePiece = fromApi({
+        id:        raw.dbId,
+        ricettaId: raw.ricettaId,
+        nome:      raw.nome,
+        nomeCustom: raw.nomeCustom,
+        icona:     raw.icona,
+        hp:        raw.hpMax,
+        hpMax:     raw.hpMax,
+        atk:       raw.atk,
+        def:       raw.def,
+        mov:       raw.mov,
+        isClassico: raw.isClassico,
+        materiali: raw.materiali,
+        razza:     raw.razza      ?? "Umanoide",
+        materiale: raw.materiale  ?? "Legno",
+      });
+      return {
+        ...gamePiece,
+        hp:   raw.hpMax,
+        row:  mirrorRow ? (BOARD_LAST_ROW - raw.row) : raw.row,
+        col:  raw.col,
+        isRe: raw.isRe,
+        side,
+        uid:  `${rolePrefix}_${raw.dbId}_${i}`, // consistente su entrambi i client
+      };
+    }));
+  }
+
+  const isPlayer1    = localRole === "player1";
+  const playerPieces = toPieces(
+    isPlayer1 ? player1PiecesRaw : player2PiecesRaw,
+    isPlayer1 ? "p1" : "p2",
+    "player",
+    false // propri pezzi: righe 4-5, nessun mirror
+  );
+  const aiPieces = toPieces(
+    isPlayer1 ? player2PiecesRaw : player1PiecesRaw,
+    isPlayer1 ? "p2" : "p1",
+    "ai",
+    true  // pezzi avversario: righe 4-5 → 0-1 (mirror)
+  );
+
+  return {
+    playerPieces,
+    aiPieces,
+    opponentNome,
+    opponentTag:       opponentNome,
+    opponentImg:       null,
+    opponentAvatarImg: null,
+    opponentAvatarPos: "center",
+    turn:        "player",    // verrà aggiornato con il risultato del coin flip dal server
+    playerRound: 1,
+    aiRound:     1,
+    status:      "coinflip",
+    winner:      null,
+    playerRotation:      createRotationTracker(playerPieces),
+    aiRotation:          createRotationTracker(aiPieces),
+    playerArdoreTracker: createArdoreTracker(),
+    aiArdoreTracker:     createArdoreTracker(),
+    log:             [],
+    combatAnim:      null,
+    selected:        null,
+    validMoves:      [],
+    pendingCycleEnd: false,
+    cycleEndEvent:   null,
+    debuffs:         [],
+    // flag multiplayer
+    isMultiplayer: true,
+    localRole,
+  };
+}
